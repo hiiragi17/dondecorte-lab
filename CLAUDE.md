@@ -35,7 +35,7 @@
 - CHECK制約: `(artist_id is not null)::int + (comedy_group_id is not null)::int + (unit_id is not null)::int = 1`
 
 ### パーソナル
-- `memos` — ポリモーフィック設計（target_type + target_id）。認証ユーザーのみ。
+- `memos` — ポリモーフィック設計（target_type + target_id）。閲覧は公開、書き込みは認証ユーザーのみ。
 
 ## ディレクトリ構成
 
@@ -84,7 +84,7 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - ユーザーは手動で1つだけ作成済み（メール+パスワード）。
 - 公開UIにログインボタン・リンクを一切表示しない。
 - `/auth/login` はURL直打ちでのみアクセス可能。
-- ログイン状態でのみ: メモ欄表示、ヘッダーに管理画面リンク表示。
+- メモ欄は全員に表示（閲覧は公開）。ログイン状態でのみメモの編集・追加UIとヘッダーに管理画面リンクを表示。
 - `/admin/*` は middleware.ts で認証ガード。
 
 ## コーディング規約

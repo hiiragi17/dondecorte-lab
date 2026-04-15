@@ -63,7 +63,7 @@
 
 | テーブル | 役割 |
 |---------|------|
-| memos | 各コンテンツへの個人メモ |
+| memos | 各コンテンツへのメモ（閲覧は公開、書き込みは認証ユーザーのみ） |
 
 **cast テーブルの共通構造:**
 - `artist_id` / `comedy_group_id` / `unit_id` のうち **1つだけ** NOT NULL
@@ -524,7 +524,7 @@ alter table tv_show_casts enable row level security;
 alter table topics enable row level security;
 alter table topic_casts enable row level security;
 
--- メモは認証ユーザーのみ読み書き可能（公開しない）
+-- メモは全員が閲覧可、書き込みは認証ユーザーのみ
 alter table memos enable row level security;
 
 -- 読み取り：全員OK（メモ以外）
@@ -564,8 +564,8 @@ begin
   end loop;
 end $$;
 
--- メモ専用RLS: 認証ユーザーのみ全操作可能（公開ページには表示しない）
-create policy memos_select on memos for select to authenticated using (true);
+-- メモ専用RLS: SELECTは公開、書き込みは認証ユーザーのみ
+create policy memos_select on memos for select to anon, authenticated using (true);
 create policy memos_insert on memos for insert to authenticated with check (true);
 create policy memos_update on memos for update to authenticated using (true) with check (true);
 create policy memos_delete on memos for delete to authenticated using (true);

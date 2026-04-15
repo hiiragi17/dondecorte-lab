@@ -518,20 +518,27 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
 - depends: "#1-20, #1-5"
 - body: |
   ## やること
-  - `src/components/features/memo/memo-section.tsx` — メモ表示/入力
+  - `src/components/features/memo/memo-section.tsx` — メモ表示（Server Component、全員向け）
+  - `src/components/features/memo/memo-editor.tsx` — メモ追加/編集UI（Client Component、ログイン時のみマウント）
+  - `src/lib/queries/memos.ts` — メモ取得（公開）
+  - `src/lib/actions/memos.ts` — Server Actions（書き込みは認証必須）
   - `src/hooks/use-memo.ts` — メモ CRUD フック
-  - `src/lib/actions/memos.ts` — Server Actions
   - 各コンテンツ詳細ページにメモセクションを追加
-  - ログイン状態でのみ表示（破線ボーダー + ロックアイコン）
+  - 閲覧は全員可能。ログイン時のみ追加・編集・削除ボタンを表示
 
   ## ポリモーフィック設計
   - target_type: 'video' | 'live' | 'radio' | 'article' | 'tv_show' | 'topic'
   - target_id: 対象コンテンツのUUID
 
+  ## RLSポリシー
+  - SELECT: 公開（anon, authenticated）
+  - INSERT / UPDATE / DELETE: authenticated のみ
+
   ## 完了条件
-  - ログイン状態で各詳細ページにメモ入力欄が表示される
-  - 未ログインでは非表示
-  - メモの保存、編集、削除ができる
+  - 各詳細ページでメモが全員に表示される
+  - ログイン状態でのみメモの追加・編集・削除UIが表示される
+  - 未ログインでは閲覧のみで編集UIは非表示
+  - メモの保存、編集、削除ができる（ログイン時）
 
 ---
 
