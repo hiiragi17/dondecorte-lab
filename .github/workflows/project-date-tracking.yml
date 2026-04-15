@@ -4,9 +4,10 @@ name: Project Date Tracking
 # Project (hiiragi17/projects/2) 上の「Start date」「Merged date」フィールドを更新する。
 #
 # 前提:
-# - Project に `Start date` と `Merged date` という名前のDateフィールドを作成しておくこと
+# - Project 2 に `Start date` と `Merged date` という名前のDateフィールドを作成しておくこと
 # - `project` スコープを持つ Personal Access Token を `PROJECTS_TOKEN` という名前で
 #   リポジトリのSecretsに登録しておくこと（GITHUB_TOKENではProjects v2を更新できない）
+# - 対象のissueが Project 2 に追加されていること（Auto-addワークフローまたは手動追加）
 
 on:
   pull_request:
