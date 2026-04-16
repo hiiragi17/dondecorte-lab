@@ -11,7 +11,7 @@ name: Project Date Tracking
 
 on:
   pull_request:
-    types: [opened, reopened, closed]
+    types: [opened, reopened, edited, closed]
 
 jobs:
   update-project-dates:
