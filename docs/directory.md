@@ -2,7 +2,7 @@
 
 ## 技術スタック
 
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - Supabase (DB + Auth)
 - Tailwind CSS 4
 - TypeScript
@@ -286,11 +286,10 @@ dondecorte-lab/
 ├── supabase/
 │   ├── migrations/
 │   │   └── 001_initial_schema.sql        # 設計書のSQL
-│   └── seed.sql                          # 初期データ（ドンデコルテ関連）
+│   └── seed.sql                          # 初期データ（ドンデコルテさん関連）
 │
 ├── .env.local                            # 環境変数（Supabase URL, Keys）
 ├── .env.example                          # 環境変数テンプレート
-├── tailwind.config.ts                    # カスタムカラーパレット定義
 ├── next.config.ts
 ├── tsconfig.json
 ├── package.json
@@ -350,30 +349,25 @@ actions/  → INSERT/UPDATE/DELETE。Server Actions として "use server" 付�
 
 この分離により、データ取得ロジックと更新ロジックが混在しない。
 
-### 5. Tailwind カスタムカラー
+### 5. Tailwind カスタムカラー（CSS ファースト）
 
-```ts
-// tailwind.config.ts
-export default {
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          bg:      { DEFAULT: '#FBF7F1', dark: '#1A120B' },
-          card:    { DEFAULT: '#FFFFFF', dark: '#2C1E14' },
-          border:  { DEFAULT: '#E8D8C8', dark: '#3D2B1E' },
-          brown:   { DEFAULT: '#5C3D2E', light: '#8B6347', dark: '#3D2B1E' },
-          sky:     { DEFAULT: '#2E8FAD', light: '#6BB8D4', pale: '#E6F4F9' },
-          text:    { DEFAULT: '#3D2B1E', muted: '#8B6347', dark: '#D4B896' },
-          cream:   '#F0DFC8',
-        }
-      }
-    }
-  }
+Tailwind 4 では `tailwind.config.ts` ではなく `globals.css` 内の `@theme` で定義:
+
+```css
+@theme inline {
+  --color-brand-brown: #5C3D2E;
+  --color-brand-brown-light: #8B6347;
+  --color-brand-sky: #2E8FAD;
+  --color-brand-sky-light: #6BB8D4;
+  --color-brand-cream: #F0DFC8;
+  --color-brand-gold: #D4B896;
+  --color-brand-bg-dark: #1A120B;
+  --color-brand-bg-light: #FBF7F1;
+  /* ... 他は globals.css を参照 */
 }
 ```
 
-使い方: `bg-brand-bg dark:bg-brand-bg-dark`
+使い方: `bg-brand-bg-dark`, `text-brand-cream`, `border-brand-border-light`
 
 ### 6. 実装の優先順
 

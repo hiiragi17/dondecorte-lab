@@ -11,7 +11,7 @@ name: Project Date Tracking
 
 on:
   pull_request:
-    types: [opened, reopened, closed]
+    types: [opened, reopened, edited, closed]
 
 jobs:
   update-project-dates:
@@ -27,7 +27,12 @@ jobs:
 
             const pr = context.payload.pull_request;
             const isMerged = pr.merged === true;
-            const isClosed = context.payload.action === 'closed';
+            const action = context.payload.action;
+            const isClosed = action === 'closed';
+
+            const shouldSetStartDate =
+              (action === 'opened' || action === 'reopened' || action === 'edited') && !isMerged;
+            const shouldSetMergedDate = action === 'closed' && isMerged;
 
             // closedでmergedでない場合は何もしない（単に閉じられただけ）
             if (isClosed && !isMerged) {
@@ -57,8 +62,8 @@ jobs:
               owner: OWNER,
               number: PROJECT_NUMBER,
             });
-            const project = projectData.user.projectV2;
-            if (!project) {
+            const project = projectData.user?.projectV2;
+            if (!projectData.user || !project) {
               core.setFailed(`Project ${OWNER}/projects/${PROJECT_NUMBER} not found`);
               return;
             }
@@ -140,6 +145,10 @@ jobs:
 
             for (const issue of issues) {
               const itemData = await github.graphql(itemQuery, { issueId: issue.id });
+              if (!itemData.node?.projectItems?.nodes) {
+                core.warning(`Could not fetch project items for issue #${issue.number} — skipping`);
+                continue;
+              }
               const items = itemData.node.projectItems.nodes.filter(
                 i => i.project.id === projectId
               );
@@ -157,8 +166,8 @@ jobs:
                 }
               }
 
-              // Start date: opened/reopened時、まだ設定されていなければ今日の日付を入れる
-              if (!isClosed && startField && !existing['Start date']) {
+              // Start date: opened/reopened/edited時、まだ設定されていなければ今日の日付を入れる
+              if (shouldSetStartDate && startField && !existing['Start date']) {
                 await github.graphql(updateMutation, {
                   projectId,
                   itemId: item.id,
@@ -168,8 +177,8 @@ jobs:
                 core.info(`Set Start date=${today} on issue #${issue.number}`);
               }
 
-              // Merged date: マージされたタイミングで設定
-              if (isMerged && mergedField) {
+              // Merged date: マージされたタイミングでのみ設定（edited では上書きしない）
+              if (shouldSetMergedDate && mergedField) {
                 await github.graphql(updateMutation, {
                   projectId,
                   itemId: item.id,

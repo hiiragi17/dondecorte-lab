@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* フォント */
+  --font-sans: var(--font-noto-sans-jp), var(--font-inter), sans-serif;
+
+  /* 茶色系（渡辺さんベース） */
+  --color-brand-brown: #5C3D2E;
+  --color-brand-brown-light: #8B6347;
+  --color-brand-brown-dark: #3D2B1E;
+  --color-brand-brown-muted: #6B4C35;
+
+  /* 水色系（小橋さんアクセント） */
+  --color-brand-sky: #2E8FAD;
+  --color-brand-sky-light: #6BB8D4;
+  --color-brand-sky-pale: #E6F4F9;
+  --color-brand-sky-hover: #A8D8EA;
+  --color-brand-sky-dark: #4A96B3;
+
+  /* テキスト・装飾 */
+  --color-brand-cream: #F0DFC8;
+  --color-brand-gold: #D4B896;
+  --color-brand-muted: #A68B6B;
+
+  /* ダークモード背景系 */
+  --color-brand-bg-dark: #1A120B;
+  --color-brand-card-dark: #2C1E14;
+  --color-brand-border-dark: #3D2B1E;
+
+  /* ライトモード背景系 */
+  --color-brand-bg-light: #FBF7F1;
+  --color-brand-card-light: #FFFFFF;
+  --color-brand-border-light: #E8D8C8;
+}

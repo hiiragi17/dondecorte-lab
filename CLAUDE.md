@@ -1,11 +1,11 @@
 # DonDecorte Lab
 
-お笑いコンビ「ドンデコルテ」の非公式ファンサイト兼データベースアプリ。
+お笑いコンビ・ドンデコルテさんの非公式ファンサイト兼データベースアプリ。
 動画・ライブ・ラジオ・記事・TV出演を一元管理し、推し活を支援する。
 
 ## 技術スタック
 
-- Next.js 15 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Supabase (PostgreSQL + Auth)
 - Tailwind CSS 4
 - react-hook-form
@@ -66,7 +66,7 @@ src/
 
 ## カラーパレット
 
-渡辺銀次の深い茶色 + 小橋共作の水色。
+渡辺銀次さんの深い茶色 + 小橋共作さんの水色。
 
 ### ダークモード（公開側デフォルト）
 - 背景: #1A120B / カード: #2C1E14 / ボーダー: #3D2B1E
@@ -110,6 +110,12 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - 記事本文は転載不可（リンクのみ）
 - YouTube埋め込みはAPIのサムネURLまたは公式埋め込みプレーヤーを使用
 - フッターに非公式ファンサイトの免責事項を必ず表示
+
+## GitHub PR ルール
+
+- PR本文は**日本語**で書く
+- assignee に `hiiragi17` を設定する
+- 関連する issue がある場合は本文に `Closes #<番号>` を含めて紐付ける
 
 ## 詳細ドキュメント
 
