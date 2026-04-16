@@ -400,7 +400,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
   - ログイン状態ではヘッダーに管理画面リンクを表示
 
   ## 免責文
-  「本サイトはドンデコルテおよび吉本興業とは無関係の非公式ファンサイトです。
+  「本サイトはドンデコルテさんおよび吉本興業とは無関係の非公式ファンサイトです。
   掲載情報の正確性は保証しません。権利者様からの削除要請には速やかに対応いたします。」
 
   ## 完了条件
@@ -567,9 +567,9 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
 - body: |
   ## やること
   - `supabase/seed.sql` 作成
-  - ドンデコルテ関連の初期データ:
-    - artists: 小橋共作、渡辺銀次
-    - comedy_groups: ドンデコルテ（theme_color, SNS含む）
+  - ドンデコルテさん関連の初期データ:
+    - artists: 小橋共作さん、渡辺銀次さん
+    - comedy_groups: ドンデコルテさん（theme_color, SNS含む）
     - comedy_group_members: 2人分（role: ツッコミ/ボケ）
     - achievements: M-1 2019〜2025の成績、R-1 2026
     - videos: YouTube公式チャンネルから主要動画
@@ -599,7 +599,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
 - body: |
   ## やること
   - Markdown で記事を書いて表示できる機能
-  - コンテンツ例:「おすすめネタ5選」「ドンデコルテとは」
+  - コンテンツ例:「おすすめネタ5選」「ドンデコルテさんとは」
 
 ### issue: 2-3 SEO対応
 
@@ -733,7 +733,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
 - milestone: Phase 4: 通知・分析
 - body: |
   ## やること
-  - ドンデコルテ出演ライブの通知（メール or LINE Notify）
+  - ドンデコルテさん出演ライブの通知（メール or LINE Notify）
   - is_notified フラグで送信済み管理
 
 ### issue: 4-2 Googleカレンダー連携
@@ -750,7 +750,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
 - milestone: Phase 4: 通知・分析
 - body: |
   ## やること
-  - ドンデコルテと最も共演が多いコンビ/芸人をランキング表示
+  - ドンデコルテさんと最も共演が多いコンビ/芸人をランキング表示
 
 ### issue: 4-4 出演回数ランキング
 

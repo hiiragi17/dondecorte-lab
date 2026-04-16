@@ -286,7 +286,7 @@ dondecorte-lab/
 ├── supabase/
 │   ├── migrations/
 │   │   └── 001_initial_schema.sql        # 設計書のSQL
-│   └── seed.sql                          # 初期データ（ドンデコルテ関連）
+│   └── seed.sql                          # 初期データ（ドンデコルテさん関連）
 │
 ├── .env.local                            # 環境変数（Supabase URL, Keys）
 ├── .env.example                          # 環境変数テンプレート

@@ -6,7 +6,7 @@ export default function Home() {
           DonDecorte Lab
         </h1>
         <p className="mt-2 text-brand-gold">
-          ドンデコルテ非公式ファンサイト
+          ドンデコルテさん非公式ファンサイト
         </p>
         <span className="mt-4 inline-block text-brand-sky-light">
           Coming Soon

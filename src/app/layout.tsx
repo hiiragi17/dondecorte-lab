@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "DonDecorte Lab",
-  description: "ドンデコルテ非公式ファンサイト兼データベース",
+  description: "ドンデコルテさん非公式ファンサイト兼データベース",
 };
 
 export default function RootLayout({
