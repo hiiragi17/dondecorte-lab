@@ -5,7 +5,7 @@
 
 ## 技術スタック
 
-- Next.js 15 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Supabase (PostgreSQL + Auth)
 - Tailwind CSS 4
 - react-hook-form

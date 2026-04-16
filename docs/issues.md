@@ -95,7 +95,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
   - `.env.example` 作成
 
   ## 完了条件
-  - `npm run dev` でローカルサーバー起動確認
+  - `pnpm dev` でローカルサーバー起動確認
   - カスタムカラーがTailwindで使える
 
 ---

@@ -25,7 +25,7 @@
 ## Step 1: Next.js プロジェクト初期化
 
 ```bash
-npx create-next-app@latest dondecorte-lab \
+pnpm create next-app dondecorte-lab \
   --typescript \
   --tailwind \
   --eslint \
@@ -41,7 +41,7 @@ cd dondecorte-lab
 ## Step 2: 依存パッケージ追加
 
 ```bash
-npm install @supabase/supabase-js @supabase/ssr react-hook-form
+pnpm add @supabase/supabase-js @supabase/ssr react-hook-form
 ```
 
 ---
@@ -190,60 +190,45 @@ export const config = {
 
 ## Step 6: Tailwind カスタムカラー
 
-### `tailwind.config.ts`
+Tailwind 4 では CSS ファーストの `@theme` ディレクティブで設定する（`tailwind.config.ts` は不要）。
 
-```ts
-import type { Config } from "tailwindcss";
+### `src/app/globals.css`
 
-const config: Config = {
-  content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  darkMode: "class",
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          // ダークモード背景系（渡辺さんの茶色ベース）
-          "bg-dark": "#1A120B",
-          "card-dark": "#2C1E14",
-          "border-dark": "#3D2B1E",
-          // ライトモード背景系
-          "bg-light": "#FBF7F1",
-          "card-light": "#FFFFFF",
-          "border-light": "#E8D8C8",
-          // 茶色系（共通）
-          brown: {
-            DEFAULT: "#5C3D2E",
-            light: "#8B6347",
-            dark: "#3D2B1E",
-            muted: "#6B4C35",
-          },
-          // 水色系（小橋さんのアクセント）
-          sky: {
-            DEFAULT: "#2E8FAD",
-            light: "#6BB8D4",
-            pale: "#E6F4F9",
-            hover: "#A8D8EA",
-            dark: "#4A96B3",
-          },
-          // テキスト
-          cream: "#F0DFC8",
-          gold: "#D4B896",
-          muted: "#A68B6B",
-        },
-      },
-      fontFamily: {
-        sans: ['"Noto Sans JP"', '"Inter"', "sans-serif"],
-      },
-    },
-  },
-  plugins: [],
-};
+```css
+@import "tailwindcss";
 
-export default config;
+@theme inline {
+  /* フォント */
+  --font-sans: var(--font-noto-sans-jp), var(--font-inter), sans-serif;
+
+  /* 茶色系（渡辺さんベース） */
+  --color-brand-brown: #5C3D2E;
+  --color-brand-brown-light: #8B6347;
+  --color-brand-brown-dark: #3D2B1E;
+  --color-brand-brown-muted: #6B4C35;
+
+  /* 水色系（小橋さんアクセント） */
+  --color-brand-sky: #2E8FAD;
+  --color-brand-sky-light: #6BB8D4;
+  --color-brand-sky-pale: #E6F4F9;
+  --color-brand-sky-hover: #A8D8EA;
+  --color-brand-sky-dark: #4A96B3;
+
+  /* テキスト・装飾 */
+  --color-brand-cream: #F0DFC8;
+  --color-brand-gold: #D4B896;
+  --color-brand-muted: #A68B6B;
+
+  /* ダークモード背景系 */
+  --color-brand-bg-dark: #1A120B;
+  --color-brand-card-dark: #2C1E14;
+  --color-brand-border-dark: #3D2B1E;
+
+  /* ライトモード背景系 */
+  --color-brand-bg-light: #FBF7F1;
+  --color-brand-card-light: #FFFFFF;
+  --color-brand-border-light: #E8D8C8;
+}
 ```
 
 ---
@@ -280,7 +265,7 @@ export type SnsLinks = {
 Supabase の自動生成型も追加:
 
 ```bash
-npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/lib/types/database.ts
+pnpm dlx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/lib/types/database.ts
 ```
 
 ---
