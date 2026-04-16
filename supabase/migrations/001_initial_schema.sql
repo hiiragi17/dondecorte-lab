@@ -96,7 +96,11 @@ create table unit_members (
   check (
     (comedy_group_id is not null and artist_id is null) or
     (comedy_group_id is null and artist_id is not null)
-  )
+  ),
+
+  -- 重複メンバー防止
+  unique nulls not distinct (unit_id, comedy_group_id),
+  unique nulls not distinct (unit_id, artist_id)
 );
 
 comment on table unit_members is 'ユニットの構成。コンビ単位 or ピン参加';
@@ -360,15 +364,19 @@ create index idx_live_casts_unit on live_casts(unit_id) where unit_id is not nul
 
 create index idx_radio_casts_artist on radio_casts(artist_id) where artist_id is not null;
 create index idx_radio_casts_group on radio_casts(comedy_group_id) where comedy_group_id is not null;
+create index idx_radio_casts_unit on radio_casts(unit_id) where unit_id is not null;
 
 create index idx_article_casts_artist on article_casts(artist_id) where artist_id is not null;
 create index idx_article_casts_group on article_casts(comedy_group_id) where comedy_group_id is not null;
+create index idx_article_casts_unit on article_casts(unit_id) where unit_id is not null;
 
 create index idx_tv_show_casts_artist on tv_show_casts(artist_id) where artist_id is not null;
 create index idx_tv_show_casts_group on tv_show_casts(comedy_group_id) where comedy_group_id is not null;
+create index idx_tv_show_casts_unit on tv_show_casts(unit_id) where unit_id is not null;
 
 create index idx_topic_casts_artist on topic_casts(artist_id) where artist_id is not null;
 create index idx_topic_casts_group on topic_casts(comedy_group_id) where comedy_group_id is not null;
+create index idx_topic_casts_unit on topic_casts(unit_id) where unit_id is not null;
 
 -- 受賞歴：コンビ/芸人で検索
 create index idx_achievements_group on achievements(comedy_group_id) where comedy_group_id is not null;
@@ -384,6 +392,31 @@ create index idx_topics_date on topics(topic_date desc);
 
 -- YouTube自動取得用
 create index idx_videos_youtube_channel on videos(youtube_channel_id);
+
+-- cast系：重複出演防止の unique partial index
+create unique index idx_video_casts_uniq_artist on video_casts(video_id, artist_id) where artist_id is not null;
+create unique index idx_video_casts_uniq_group on video_casts(video_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_video_casts_uniq_unit on video_casts(video_id, unit_id) where unit_id is not null;
+
+create unique index idx_live_casts_uniq_artist on live_casts(live_id, artist_id) where artist_id is not null;
+create unique index idx_live_casts_uniq_group on live_casts(live_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_live_casts_uniq_unit on live_casts(live_id, unit_id) where unit_id is not null;
+
+create unique index idx_radio_casts_uniq_artist on radio_casts(radio_id, artist_id) where artist_id is not null;
+create unique index idx_radio_casts_uniq_group on radio_casts(radio_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_radio_casts_uniq_unit on radio_casts(radio_id, unit_id) where unit_id is not null;
+
+create unique index idx_article_casts_uniq_artist on article_casts(article_id, artist_id) where artist_id is not null;
+create unique index idx_article_casts_uniq_group on article_casts(article_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_article_casts_uniq_unit on article_casts(article_id, unit_id) where unit_id is not null;
+
+create unique index idx_tv_show_casts_uniq_artist on tv_show_casts(tv_show_id, artist_id) where artist_id is not null;
+create unique index idx_tv_show_casts_uniq_group on tv_show_casts(tv_show_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_tv_show_casts_uniq_unit on tv_show_casts(tv_show_id, unit_id) where unit_id is not null;
+
+create unique index idx_topic_casts_uniq_artist on topic_casts(topic_id, artist_id) where artist_id is not null;
+create unique index idx_topic_casts_uniq_group on topic_casts(topic_id, comedy_group_id) where comedy_group_id is not null;
+create unique index idx_topic_casts_uniq_unit on topic_casts(topic_id, unit_id) where unit_id is not null;
 
 -- メモ：対象コンテンツ検索用
 create index idx_memos_target on memos(target_type, target_id);

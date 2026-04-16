@@ -57,8 +57,8 @@ jobs:
               owner: OWNER,
               number: PROJECT_NUMBER,
             });
-            const project = projectData.user.projectV2;
-            if (!project) {
+            const project = projectData.user?.projectV2;
+            if (!projectData.user || !project) {
               core.setFailed(`Project ${OWNER}/projects/${PROJECT_NUMBER} not found`);
               return;
             }
@@ -140,6 +140,10 @@ jobs:
 
             for (const issue of issues) {
               const itemData = await github.graphql(itemQuery, { issueId: issue.id });
+              if (!itemData.node?.projectItems?.nodes) {
+                core.warning(`Could not fetch project items for issue #${issue.number} — skipping`);
+                continue;
+              }
               const items = itemData.node.projectItems.nodes.filter(
                 i => i.project.id === projectId
               );
