@@ -27,7 +27,12 @@ jobs:
 
             const pr = context.payload.pull_request;
             const isMerged = pr.merged === true;
-            const isClosed = context.payload.action === 'closed';
+            const action = context.payload.action;
+            const isClosed = action === 'closed';
+
+            const shouldSetStartDate =
+              (action === 'opened' || action === 'reopened' || action === 'edited') && !isMerged;
+            const shouldSetMergedDate = action === 'closed' && isMerged;
 
             // closedでmergedでない場合は何もしない（単に閉じられただけ）
             if (isClosed && !isMerged) {
@@ -161,8 +166,8 @@ jobs:
                 }
               }
 
-              // Start date: opened/reopened時、まだ設定されていなければ今日の日付を入れる
-              if (!isClosed && startField && !existing['Start date']) {
+              // Start date: opened/reopened/edited時、まだ設定されていなければ今日の日付を入れる
+              if (shouldSetStartDate && startField && !existing['Start date']) {
                 await github.graphql(updateMutation, {
                   projectId,
                   itemId: item.id,
@@ -172,8 +177,8 @@ jobs:
                 core.info(`Set Start date=${today} on issue #${issue.number}`);
               }
 
-              // Merged date: マージされたタイミングで設定
-              if (isMerged && mergedField) {
+              // Merged date: マージされたタイミングでのみ設定（edited では上書きしない）
+              if (shouldSetMergedDate && mergedField) {
                 await github.graphql(updateMutation, {
                   projectId,
                   itemId: item.id,

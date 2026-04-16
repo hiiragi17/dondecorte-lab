@@ -601,7 +601,7 @@ gh api repos/{owner}/{repo}/milestones -f title="Phase 4: 通知・分析" -f de
   ## やること
 
   - `src/components/features/memo/memo-section.tsx` — メモ表示（Server Component、全員向け）
-  - `src/components/features/memo/memo-editor.tsx` — メモ追加/編集 UI（Client Component、ログイン時のみマウント）
+  - `src/components/features/memo/memo-form.tsx` — メモ追加/編集 UI（Client Component、ログイン時のみマウント）
   - `src/lib/queries/memos.ts` — メモ取得（公開）
   - `src/lib/actions/memos.ts` — Server Actions（書き込みは認証必須）
   - `src/hooks/use-memo.ts` — メモ CRUD フック
