@@ -55,7 +55,7 @@ type Props = {
 const URL_PATTERN =
   /^https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+$/i;
 
-const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 const FIELD_LABELS: Record<keyof ComboFormValues, string> = {
   name: "名前",

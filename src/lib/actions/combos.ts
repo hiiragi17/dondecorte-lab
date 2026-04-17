@@ -40,7 +40,7 @@ const GROUP_TYPES: ComboGroupType[] = ["combo", "trio", "quartet", "other"];
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -165,26 +165,19 @@ async function replaceMembers(
   comboId: string,
   members: ComboMemberInput[]
 ): Promise<{ error?: string }> {
-  const { error: deleteError } = await supabase
-    .from("comedy_group_members")
-    .delete()
-    .eq("comedy_group_id", comboId);
-  if (deleteError) {
-    return { error: `メンバーの更新に失敗しました: ${deleteError.message}` };
-  }
-
-  if (members.length === 0) return {};
-
-  const rows = members.map((m) => ({
-    comedy_group_id: comboId,
+  // 既存メンバーの全削除と新規メンバーの挿入をサーバ側で
+  // 単一トランザクションとして実行する RPC を呼ぶ。
+  // （Supabase クライアントはトランザクションを直接扱えないため）
+  const payload = members.map((m) => ({
     artist_id: m.artist_id,
-    role: m.role,
+    role: m.role ?? "",
   }));
-  const { error: insertError } = await supabase
-    .from("comedy_group_members")
-    .insert(rows);
-  if (insertError) {
-    return { error: `メンバーの登録に失敗しました: ${insertError.message}` };
+  const { error } = await supabase.rpc("replace_comedy_group_members", {
+    p_comedy_group_id: comboId,
+    p_members: payload,
+  });
+  if (error) {
+    return { error: `メンバーの更新に失敗しました: ${error.message}` };
   }
   return {};
 }
@@ -262,4 +255,6 @@ export async function deleteCombo(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/admin/combos");
+  revalidatePath(`/admin/combos/${id}/edit`);
+  redirect("/admin/combos");
 }
