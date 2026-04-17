@@ -93,6 +93,12 @@ export async function createAchievement(
   }
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
   const { error } = await supabase.from("achievements").insert(values);
 
   if (error) {
@@ -116,6 +122,12 @@ export async function updateAchievement(
   }
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
   const { error } = await supabase
     .from("achievements")
     .update(values)
@@ -135,6 +147,12 @@ export async function deleteAchievement(formData: FormData): Promise<void> {
   if (!id) return;
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("認証が必要です");
+  }
+
   const { error } = await supabase
     .from("achievements")
     .delete()

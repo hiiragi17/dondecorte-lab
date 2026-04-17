@@ -249,7 +249,7 @@ export function UnitForm({
                   className="flex items-center justify-between gap-3 rounded-md border border-brand-border-light bg-brand-bg-light px-3 py-2 text-sm"
                 >
                   <div>
-                    <span className="rounded-sm bg-white px-2 py-0.5 text-xs text-brand-brown-light mr-2">
+                    <span className="mr-2 rounded-sm bg-brand-cream px-2 py-0.5 text-xs text-brand-brown-light">
                       {m.type === "comedy_group" ? "コンビ" : "個人"}
                     </span>
                     <span className="font-medium text-brand-brown-dark">

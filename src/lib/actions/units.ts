@@ -119,6 +119,12 @@ export async function createUnit(
   }
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
   const { data, error } = await supabase
     .from("units")
     .insert(values)
@@ -151,6 +157,12 @@ export async function updateUnit(
   }
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "認証が必要です" };
+  }
+
   const { error } = await supabase
     .from("units")
     .update({ ...values, updated_at: new Date().toISOString() })
@@ -175,6 +187,12 @@ export async function deleteUnit(formData: FormData): Promise<void> {
   if (!id) return;
 
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("認証が必要です");
+  }
+
   const { error } = await supabase.from("units").delete().eq("id", id);
 
   if (error) {
