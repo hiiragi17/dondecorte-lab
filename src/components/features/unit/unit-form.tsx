@@ -182,7 +182,7 @@ export function UnitForm({
   });
 
   const inputClass =
-    "mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
+    "mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
 
   const currentList =
     activeTab === "comedy_group" ? filteredCombos : filteredArtists;
@@ -261,7 +261,7 @@ export function UnitForm({
                     onClick={() =>
                       removeMember(m.type as MemberTab, m.id)
                     }
-                    className="rounded-md border border-brand-border-light px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-white"
+                    className="rounded-md border border-brand-border-light px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-brand-card-light"
                   >
                     削除
                   </button>
@@ -281,10 +281,11 @@ export function UnitForm({
                   setActiveTab(tab);
                   setSelectedId("");
                   setSearchQuery("");
+                  setLocalMemberError(null);
                 }}
                 className={
                   activeTab === tab
-                    ? "rounded-md bg-brand-sky px-3 py-1 text-xs font-medium text-white"
+                    ? "rounded-md bg-brand-sky px-3 py-1 text-xs font-medium text-brand-cream"
                     : "rounded-md border border-brand-border-light px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-brand-bg-light"
                 }
               >
@@ -357,7 +358,7 @@ export function UnitForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "保存中..." : submitLabel}
         </button>

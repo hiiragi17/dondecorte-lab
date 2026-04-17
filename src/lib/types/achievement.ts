@@ -1,4 +1,6 @@
-export type AchievementTargetType = "artist" | "comedy_group" | "unit";
+import type { CastType } from "@/lib/types";
+
+export type AchievementTargetType = CastType;
 
 export type Achievement = {
   id: string;

@@ -2,14 +2,13 @@ import Link from "next/link";
 import { AchievementDeleteButton } from "@/components/features/achievement/achievement-delete-button";
 import { deleteAchievement } from "@/lib/actions/achievements";
 import { listAchievements } from "@/lib/queries/achievements";
+import type { AchievementWithTarget } from "@/lib/types/achievement";
 
 export const dynamic = "force-dynamic";
 
-function targetName(achievement: {
-  artist: { name: string } | null;
-  comedy_group: { name: string } | null;
-  unit: { name: string } | null;
-}): string {
+function targetName(
+  achievement: Pick<AchievementWithTarget, "artist" | "comedy_group" | "unit">
+): string {
   return (
     achievement.comedy_group?.name ??
     achievement.artist?.name ??

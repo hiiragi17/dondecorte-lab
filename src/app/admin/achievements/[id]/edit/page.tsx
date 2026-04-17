@@ -48,7 +48,7 @@ export default async function EditAchievementPage({ params }: Props) {
           artists={artists}
           combos={combos}
           units={units}
-          initialValues={achievement ?? undefined}
+          initialValues={achievement}
           submitLabel="更新する"
         />
       </div>

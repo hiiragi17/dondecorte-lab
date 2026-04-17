@@ -131,7 +131,7 @@ export function AchievementForm({
   });
 
   const inputClass =
-    "mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
+    "mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
 
   const targetTypeError = state.fieldErrors?.target_type;
   const targetIdError = state.fieldErrors?.target_id;
@@ -226,6 +226,7 @@ export function AchievementForm({
               <label key={opt.value} className="flex items-center gap-1.5 text-sm text-brand-brown-dark cursor-pointer">
                 <input
                   type="radio"
+                  name="target_type"
                   value={opt.value}
                   checked={targetType === opt.value}
                   onChange={() => {
@@ -282,7 +283,7 @@ export function AchievementForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "保存中..." : submitLabel}
         </button>

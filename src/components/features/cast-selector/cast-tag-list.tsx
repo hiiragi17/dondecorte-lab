@@ -1,8 +1,8 @@
 "use client";
 
-import type { CastEntry } from "@/lib/types";
+import type { CastEntry, CastType } from "@/lib/types";
 
-const TYPE_LABELS: Record<string, string> = {
+const TYPE_LABELS: Record<CastType, string> = {
   artist: "個人",
   comedy_group: "コンビ",
   unit: "ユニット",
@@ -30,7 +30,7 @@ export function CastTagList({ entries, onRemove }: Props) {
           className="flex items-center gap-1 rounded-full border border-brand-border-light bg-brand-bg-light px-3 py-1 text-xs text-brand-brown-dark"
         >
           <span className="text-brand-brown-light">
-            {TYPE_LABELS[entry.type] ?? entry.type}
+            {TYPE_LABELS[entry.type]}
           </span>
           <span className="font-medium">{entry.name}</span>
           <button

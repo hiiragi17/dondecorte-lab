@@ -14,10 +14,11 @@ export type UnitInput = {
 export type UnitMember = {
   id: string;
   unit_id: string;
-  comedy_group_id: string | null;
-  artist_id: string | null;
   created_at: string;
-};
+} & (
+  | { comedy_group_id: string; artist_id: null }
+  | { comedy_group_id: null; artist_id: string }
+);
 
 export type UnitMemberEntry = {
   type: "comedy_group" | "artist";

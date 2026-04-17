@@ -115,10 +115,17 @@ export function CastSelector({
         />
 
         <div>
+          <label
+            htmlFor="cast_selector_target"
+            className="block text-xs font-medium text-brand-brown-dark"
+          >
+            追加対象
+          </label>
           <select
+            id="cast_selector_target"
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+            className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
           >
             <option value="">-- 選択してください --</option>
             {currentItems.map((item) => (

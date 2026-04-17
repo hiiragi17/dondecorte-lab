@@ -23,7 +23,7 @@ export function CastTab({ active, onChange }: Props) {
           onClick={() => onChange(tab.type)}
           className={
             active === tab.type
-              ? "rounded-md bg-brand-sky px-3 py-1 text-xs font-medium text-white"
+              ? "rounded-md bg-brand-sky px-3 py-1 text-xs font-medium text-brand-cream"
               : "rounded-md border border-brand-border-light px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-brand-bg-light"
           }
         >
