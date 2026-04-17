@@ -4,8 +4,9 @@ import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
-  subsets: ["latin", "japanese"],
+  subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 const inter = Inter({
