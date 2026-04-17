@@ -29,16 +29,22 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+  const redirectWithCookies = (pathname: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+    url.pathname = pathname;
+    const response = NextResponse.redirect(url);
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      response.cookies.set(cookie);
+    }
+    return response;
+  };
+
+  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+    return redirectWithCookies("/auth/login");
   }
 
   if (request.nextUrl.pathname === "/auth/login" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    return NextResponse.redirect(url);
+    return redirectWithCookies("/admin");
   }
 
   return supabaseResponse;
