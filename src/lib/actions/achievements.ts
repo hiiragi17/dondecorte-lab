@@ -54,9 +54,18 @@ function parseFormData(formData: FormData): {
     }
   }
 
-  const sortOrderRaw = String(formData.get("sort_order") ?? "0").trim();
-  const sortOrder = Number(sortOrderRaw);
-  const sortOrderVal = Number.isInteger(sortOrder) ? sortOrder : 0;
+  const sortOrderRaw = String(formData.get("sort_order") ?? "").trim();
+  let sortOrderVal = 0;
+  if (!sortOrderRaw) {
+    fieldErrors.sort_order = "表示順を入力してください";
+  } else {
+    const parsedSortOrder = Number(sortOrderRaw);
+    if (!Number.isInteger(parsedSortOrder)) {
+      fieldErrors.sort_order = "表示順は整数で入力してください";
+    } else {
+      sortOrderVal = parsedSortOrder;
+    }
+  }
 
   const targetType = String(formData.get("target_type") ?? "").trim();
   if (!(TARGET_TYPES as string[]).includes(targetType)) {
@@ -116,6 +125,10 @@ export async function updateAchievement(
   _prev: AchievementFormState,
   formData: FormData
 ): Promise<AchievementFormState> {
+  if (!UUID_PATTERN.test(id)) {
+    return { error: "IDが不正です" };
+  }
+
   const { values, fieldErrors } = parseFormData(formData);
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
@@ -145,6 +158,9 @@ export async function updateAchievement(
 export async function deleteAchievement(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
+  if (!UUID_PATTERN.test(id)) {
+    throw new Error("IDが不正です");
+  }
 
   const supabase = await createClient();
 

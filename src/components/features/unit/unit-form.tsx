@@ -258,9 +258,7 @@ export function UnitForm({
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      removeMember(m.type as MemberTab, m.id)
-                    }
+                    onClick={() => removeMember(m.type, m.id)}
                     className="rounded-md border border-brand-border-light px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-brand-card-light"
                   >
                     削除
@@ -272,11 +270,14 @@ export function UnitForm({
         </div>
 
         <div className="space-y-3 rounded-md border border-dashed border-brand-border-light p-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="tablist" aria-label="メンバー種別">
             {(["comedy_group", "artist"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                tabIndex={activeTab === tab ? 0 : -1}
                 onClick={() => {
                   setActiveTab(tab);
                   setSelectedId("");
