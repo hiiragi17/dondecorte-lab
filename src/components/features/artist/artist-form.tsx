@@ -109,7 +109,7 @@ export function ArtistForm({ action, initialValues, submitLabel }: Props) {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       {state.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <p className="rounded-md bg-brand-cream px-3 py-2 text-sm text-brand-brown-dark" role="alert">
           {state.error}
         </p>
       )}
@@ -276,11 +276,11 @@ function Field({
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-brand-brown-dark">
         {label}
-        {required && <span className="ml-1 text-red-600">*</span>}
+        {required && <span className="ml-1 text-brand-gold">*</span>}
       </label>
       {children}
       {error && (
-        <p className="mt-1 text-xs text-red-600" role="alert">
+        <p className="mt-1 text-xs text-brand-gold" role="alert">
           {error}
         </p>
       )}

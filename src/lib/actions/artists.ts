@@ -44,6 +44,13 @@ function parseFormData(formData: FormData): {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
     fieldErrors.name = "名前を入力してください";
+  } else if (name.length > 100) {
+    fieldErrors.name = "100文字以内で入力してください";
+  }
+
+  const kanaName = toNullableString(formData.get("kana_name"));
+  if (kanaName !== null && kanaName.length > 100) {
+    fieldErrors.kana_name = "100文字以内で入力してください";
   }
 
   const debutYearRaw = toNullableString(formData.get("debut_year"));
@@ -59,7 +66,7 @@ function parseFormData(formData: FormData): {
 
   const values: ArtistInput = {
     name,
-    kana_name: toNullableString(formData.get("kana_name")),
+    kana_name: kanaName,
     profile: toNullableString(formData.get("profile")),
     debut_year: debutYear,
     image_url: toNullableString(formData.get("image_url")),
