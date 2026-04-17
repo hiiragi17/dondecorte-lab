@@ -1,5 +1,5 @@
-import { signOut } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { AdminSignOutButton } from "./admin-sign-out-button";
 
 export async function AdminHeader() {
   const supabase = await createClient();
@@ -18,14 +18,7 @@ export async function AdminHeader() {
             {user.email}
           </span>
         ) : null}
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="rounded-md border border-brand-border-light bg-white px-3 py-1.5 text-xs font-medium text-brand-brown-dark transition hover:bg-brand-bg-light"
-          >
-            ログアウト
-          </button>
-        </form>
+        <AdminSignOutButton />
       </div>
     </header>
   );

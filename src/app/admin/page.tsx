@@ -22,7 +22,7 @@ const CARDS: DashboardCard[] = [
 
 async function fetchCounts() {
   const supabase = await createClient();
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     CARDS.map(async (card) => {
       const { count, error } = await supabase
         .from(card.table)
@@ -31,7 +31,10 @@ async function fetchCounts() {
     })
   );
   const map = new Map<string, number | null>();
-  for (const r of results) map.set(r.table, r.count);
+  results.forEach((r, index) => {
+    const table = CARDS[index].table;
+    map.set(table, r.status === "fulfilled" ? r.value.count : null);
+  });
   return map;
 }
 
