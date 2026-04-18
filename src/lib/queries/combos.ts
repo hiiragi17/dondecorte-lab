@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Combo, ComboMemberWithArtist } from "@/lib/types/combo";
 
+export type ComboSummary = Pick<Combo, "id" | "name" | "kana_name">;
+
 export type ComboWithMembers = Combo & {
   members: ComboMemberWithArtist[];
 };
@@ -42,4 +44,19 @@ export async function getCombo(id: string): Promise<ComboWithMembers | null> {
   }
 
   return (data ?? null) as ComboWithMembers | null;
+}
+
+export async function listComboSummaries(): Promise<ComboSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("comedy_groups")
+    .select("id, name, kana_name")
+    .order("kana_name", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error(`コンビ一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []) as ComboSummary[];
 }
