@@ -270,14 +270,12 @@ export function UnitForm({
         </div>
 
         <div className="space-y-3 rounded-md border border-dashed border-brand-border-light p-4">
-          <div className="flex gap-2" role="tablist" aria-label="メンバー種別">
+          <div className="flex gap-2" role="group" aria-label="メンバー種別">
             {(["comedy_group", "artist"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                tabIndex={activeTab === tab ? 0 : -1}
+                aria-pressed={activeTab === tab}
                 onClick={() => {
                   setActiveTab(tab);
                   setSelectedId("");
