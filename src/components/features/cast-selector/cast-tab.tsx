@@ -20,6 +20,7 @@ export function CastTab({ active, onChange }: Props) {
         <button
           key={tab.type}
           type="button"
+          aria-pressed={active === tab.type}
           onClick={() => onChange(tab.type)}
           className={
             active === tab.type

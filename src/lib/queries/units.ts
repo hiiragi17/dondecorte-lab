@@ -46,13 +46,16 @@ export async function getUnit(id: string): Promise<UnitWithMembers | null> {
 
   if (!data) return null;
 
-  const rawMembers = (data as Record<string, unknown>)
-    .unit_members as Array<{
+  type UnitMemberRow = {
     comedy_group_id: string | null;
     artist_id: string | null;
     comedy_group: { id: string; name: string; kana_name: string | null } | null;
     artist: { id: string; name: string; kana_name: string | null } | null;
-  }>;
+  };
+
+  const rawMembers = (
+    (data as Record<string, unknown>).unit_members as UnitMemberRow[]
+  );
 
   const members: UnitMemberEntry[] = (rawMembers ?? []).flatMap((m) => {
     if (m.comedy_group_id && m.comedy_group) {

@@ -14,15 +14,17 @@ export type Achievement = {
   created_at: string;
 };
 
-export type AchievementInput = {
-  artist_id: string | null;
-  comedy_group_id: string | null;
-  unit_id: string | null;
+type AchievementBaseInput = {
   title: string;
   result: string;
   year: number;
   sort_order: number;
 };
+
+export type AchievementInput =
+  | (AchievementBaseInput & { artist_id: string; comedy_group_id: null; unit_id: null })
+  | (AchievementBaseInput & { artist_id: null; comedy_group_id: string; unit_id: null })
+  | (AchievementBaseInput & { artist_id: null; comedy_group_id: null; unit_id: string });
 
 export type AchievementWithTarget = Achievement & {
   artist: { id: string; name: string } | null;

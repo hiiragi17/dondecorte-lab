@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UnitInput, UnitMemberEntry } from "@/lib/types/unit";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type UnitFormState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof UnitInput | "members", string>>;
@@ -151,6 +154,10 @@ export async function updateUnit(
   _prev: UnitFormState,
   formData: FormData
 ): Promise<UnitFormState> {
+  if (!UUID_PATTERN.test(id)) {
+    return { error: "IDが不正です" };
+  }
+
   const { values, members, fieldErrors } = parseFormData(formData);
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
@@ -185,6 +192,9 @@ export async function updateUnit(
 export async function deleteUnit(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
+  if (!UUID_PATTERN.test(id)) {
+    throw new Error("IDが不正です");
+  }
 
   const supabase = await createClient();
 
