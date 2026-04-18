@@ -14,6 +14,7 @@ import type { ComboSummary } from "@/lib/queries/combos";
 import type { UnitSummary } from "@/lib/queries/units";
 import type { CastEntry } from "@/lib/types";
 import type { VideoInput } from "@/lib/types/video";
+import { extractYoutubeVideoId } from "@/lib/utils/youtube";
 
 type VideoFormAction = (
   prev: VideoFormState,
@@ -72,6 +73,7 @@ export function VideoForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors: clientErrors },
     reset,
   } = useForm<VideoFormValues>({
@@ -83,6 +85,10 @@ export function VideoForm({
   }, [initialValues, reset]);
 
   const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
+
+  useEffect(() => {
+    setCasts(initialCasts ?? []);
+  }, [initialCasts]);
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();
@@ -107,10 +113,14 @@ export function VideoForm({
 
   const fieldErrors = state.fieldErrors;
 
+  const inputClass =
+    "mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
+  const inputWithPlaceholderClass = `${inputClass} placeholder-brand-brown-light`;
+
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       {state.error && (
-        <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+        <p className="rounded-md border border-brand-gold bg-brand-bg-light px-4 py-3 text-sm text-brand-brown-dark" role="alert">
           {state.error}
         </p>
       )}
@@ -126,7 +136,7 @@ export function VideoForm({
           id="title"
           type="text"
           {...register("title", { required: "タイトルを入力してください", maxLength: { value: 200, message: "200文字以内で入力してください" } })}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputClass}
         />
         {(clientErrors.title?.message || fieldErrors?.title) && (
           <p className="mt-1 text-xs text-brand-gold" role="alert">
@@ -145,9 +155,14 @@ export function VideoForm({
         <input
           id="youtube_url"
           type="url"
-          {...register("youtube_url")}
+          {...register("youtube_url", {
+            onBlur: (e) => {
+              const extracted = extractYoutubeVideoId(String(e.target.value ?? ""));
+              if (extracted) setValue("youtube_video_id", extracted, { shouldDirty: true });
+            },
+          })}
           placeholder="https://www.youtube.com/watch?v=..."
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputWithPlaceholderClass}
         />
         <p className="mt-0.5 text-xs text-brand-brown-light">
           URLを入力すると動画IDが自動抽出されます
@@ -166,8 +181,13 @@ export function VideoForm({
           type="text"
           {...register("youtube_video_id")}
           placeholder="例: dQw4w9WgXcQ"
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputWithPlaceholderClass}
         />
+        {fieldErrors?.youtube_video_id && (
+          <p className="mt-1 text-xs text-brand-gold" role="alert">
+            {fieldErrors.youtube_video_id}
+          </p>
+        )}
         <p className="mt-0.5 text-xs text-brand-brown-light">
           URLから自動抽出できない場合は直接入力してください
         </p>
@@ -185,7 +205,7 @@ export function VideoForm({
           type="text"
           {...register("youtube_channel_id")}
           placeholder="例: UCxxxxxxxxxx"
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputWithPlaceholderClass}
         />
       </div>
 
@@ -201,7 +221,7 @@ export function VideoForm({
           type="url"
           {...register("thumbnail_url")}
           placeholder="https://..."
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputWithPlaceholderClass}
         />
         <p className="mt-0.5 text-xs text-brand-brown-light">
           空欄の場合はYouTube動画IDからサムネイルURLが自動生成されます
@@ -219,7 +239,7 @@ export function VideoForm({
           id="published_at"
           type="datetime-local"
           {...register("published_at")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputClass}
         />
       </div>
 
@@ -234,7 +254,7 @@ export function VideoForm({
           id="description"
           rows={4}
           {...register("description")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={inputClass}
         />
       </div>
 
@@ -260,7 +280,7 @@ export function VideoForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-brand-sky px-5 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:opacity-50"
+          className="rounded-md bg-brand-sky px-5 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:opacity-50"
         >
           {isPending ? "保存中..." : submitLabel}
         </button>

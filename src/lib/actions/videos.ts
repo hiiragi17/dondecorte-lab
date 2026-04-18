@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { VideoInput } from "@/lib/types/video";
+import { extractYoutubeVideoId, YOUTUBE_ID_PATTERN } from "@/lib/utils/youtube";
+
+export { extractYoutubeVideoId };
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
 export type VideoFormState = {
   error?: string;
@@ -20,31 +21,6 @@ function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
-}
-
-export function extractYoutubeVideoId(url: string): string | null {
-  try {
-    const parsed = new URL(url.trim());
-    const host = parsed.hostname.replace(/^www\./, "");
-
-    if (host === "youtu.be") {
-      const id = parsed.pathname.slice(1).split("/")[0];
-      return YOUTUBE_ID_PATTERN.test(id) ? id : null;
-    }
-
-    if (host === "youtube.com") {
-      const path = parsed.pathname;
-      if (path === "/watch") {
-        const id = parsed.searchParams.get("v") ?? "";
-        return YOUTUBE_ID_PATTERN.test(id) ? id : null;
-      }
-      const match = path.match(/^\/(embed|shorts|v)\/([A-Za-z0-9_-]{11})/);
-      if (match) return match[2];
-    }
-  } catch {
-    // invalid URL
-  }
-  return null;
 }
 
 function parseCasts(formData: FormData): {
@@ -99,6 +75,11 @@ function parseFormData(formData: FormData): {
 
   if (youtubeUrl && !youtubeVideoId) {
     youtubeVideoId = extractYoutubeVideoId(youtubeUrl);
+  }
+
+  if (youtubeVideoId && !YOUTUBE_ID_PATTERN.test(youtubeVideoId)) {
+    fieldErrors.youtube_video_id = "YouTube動画IDの形式が不正です（11文字の英数字）";
+    youtubeVideoId = null;
   }
 
   const values: VideoInput = {

@@ -13,7 +13,7 @@ export function VideoDeleteButton({ title }: Props) {
           e.preventDefault();
         }
       }}
-      className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 transition hover:bg-red-50"
+      className="rounded-md border border-brand-gold px-3 py-1 text-xs text-brand-brown-dark transition hover:bg-brand-cream"
     >
       削除
     </button>
