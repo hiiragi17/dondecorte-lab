@@ -26,3 +26,8 @@ export type VideoInput = {
 export type VideoWithCasts = Video & {
   casts: CastEntry[];
 };
+
+export type VideoFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof VideoInput | "casts", string>>;
+};

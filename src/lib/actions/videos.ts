@@ -4,18 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
-import type { VideoInput } from "@/lib/types/video";
+import type { VideoFormState, VideoInput } from "@/lib/types/video";
 import { extractYoutubeVideoId, YOUTUBE_ID_PATTERN } from "@/lib/utils/youtube";
-
-export { extractYoutubeVideoId };
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export type VideoFormState = {
-  error?: string;
-  fieldErrors?: Partial<Record<keyof VideoInput | "casts", string>>;
-};
 
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
