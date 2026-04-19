@@ -44,6 +44,7 @@ export default async function EditArticlePage({ params }: Props) {
 
       <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
         <ArticleForm
+          key={article.id}
           action={action}
           artists={artists}
           combos={combos}

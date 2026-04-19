@@ -80,10 +80,6 @@ export function ArticleForm({
 
   const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
 
-  useEffect(() => {
-    setCasts(initialCasts ?? []);
-  }, [initialCasts]);
-
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();
     formData.set("title", data.title);
