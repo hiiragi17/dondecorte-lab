@@ -22,3 +22,8 @@ export type TopicInput = {
 export type TopicWithCasts = Topic & {
   casts: CastEntry[];
 };
+
+export type TopicFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof TopicInput | "casts", string>>;
+};

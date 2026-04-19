@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useForm } from "react-hook-form";
 import { CastSelector } from "@/components/features/cast-selector/cast-selector";
-import type { TopicFormState } from "@/lib/actions/topics";
+import type { TopicFormState } from "@/lib/types/topic";
 import type { ArtistSummary } from "@/lib/queries/artists";
 import type { ComboSummary } from "@/lib/queries/combos";
 import type { UnitSummary } from "@/lib/queries/units";
