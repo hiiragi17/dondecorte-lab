@@ -39,7 +39,7 @@ function toFormValues(initial?: Partial<LiveInput>): LiveFormValues {
   return {
     title: initial?.title ?? "",
     event_date: initial?.event_date ?? "",
-    start_time: initial?.start_time ? initial.start_time.slice(0, 16) : "",
+    start_time: initial?.start_time ? initial.start_time.slice(11, 16) : "",
     venue: initial?.venue ?? "",
     description: initial?.description ?? "",
     url: initial?.url ?? "",
@@ -143,11 +143,11 @@ export function LiveForm({
           htmlFor="start_time"
           className="block text-sm font-medium text-brand-brown-dark"
         >
-          開演日時
+          開演時刻
         </label>
         <input
           id="start_time"
-          type="datetime-local"
+          type="time"
           {...register("start_time")}
           className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />

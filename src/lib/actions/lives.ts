@@ -62,10 +62,15 @@ function parseFormData(formData: FormData): {
     fieldErrors.title = "200文字以内で入力してください";
   }
 
+  const event_date = toNullableString(formData.get("event_date"));
+  const startTimeInput = String(formData.get("start_time") ?? "").trim();
+  const start_time =
+    event_date && startTimeInput ? `${event_date}T${startTimeInput}:00` : null;
+
   const values: LiveInput = {
     title,
-    event_date: toNullableString(formData.get("event_date")),
-    start_time: toNullableString(formData.get("start_time")),
+    event_date,
+    start_time,
     venue: toNullableString(formData.get("venue")),
     description: toNullableString(formData.get("description")),
     url: toNullableString(formData.get("url")),
@@ -172,13 +177,17 @@ export async function updateLive(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("lives")
     .update({ ...values, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .count("exact");
 
   if (error) {
     return { error: `ライブの更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定されたライブが見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);
@@ -205,10 +214,17 @@ export async function deleteLive(formData: FormData): Promise<void> {
     throw new Error("認証が必要です");
   }
 
-  const { error } = await supabase.from("lives").delete().eq("id", id);
+  const { error, count } = await supabase
+    .from("lives")
+    .delete()
+    .eq("id", id)
+    .count("exact");
 
   if (error) {
     throw new Error(`ライブの削除に失敗しました: ${error.message}`);
+  }
+  if (count !== 1) {
+    throw new Error("指定されたライブが見つかりません");
   }
 
   revalidatePath("/admin/lives");
