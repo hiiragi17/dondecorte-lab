@@ -81,7 +81,7 @@ React Hook Form は実フォームの振る舞いを検証したいため、モ�
 
 テストコードはテスト対象と **colocate**（同階層に `.test.ts[x]`）する。
 
-```
+```text
 src/
   components/
     features/
@@ -108,7 +108,8 @@ src/
 
 ```bash
 npm i -D vitest @vitejs/plugin-react jsdom \
-  @testing-library/react @testing-library/jest-dom @testing-library/user-event
+  @testing-library/react @testing-library/jest-dom @testing-library/user-event \
+  @vitest/ui
 ```
 
 ### 2. `vitest.config.ts`
@@ -176,7 +177,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 ## CI（将来）
 
-GitHub Actions で `npm run test:run` をプルリクトリガで回す。
+GitHub Actions で `npm run test:run` を PR トリガーで回す。
 現時点では導入せず、ローカルで `npm test` を watch モードで使う運用から始める。
 
 ---
