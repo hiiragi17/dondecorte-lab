@@ -26,3 +26,8 @@ export type LiveInput = {
 export type LiveWithCasts = Live & {
   casts: CastEntry[];
 };
+
+export type LiveFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof LiveInput | "casts", string>>;
+};
