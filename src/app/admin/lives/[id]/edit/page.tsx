@@ -44,6 +44,7 @@ export default async function EditLivePage({ params }: Props) {
 
       <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
         <LiveForm
+          key={live.id}
           action={action}
           artists={artists}
           combos={combos}

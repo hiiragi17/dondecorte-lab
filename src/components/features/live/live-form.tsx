@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useState,
-  useTransition,
-} from "react";
+import { useActionState, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { CastSelector } from "@/components/features/cast-selector/cast-selector";
 import type { LiveFormState } from "@/lib/types/live";
@@ -71,20 +66,11 @@ export function LiveForm({
     register,
     handleSubmit,
     formState: { errors: clientErrors },
-    reset,
   } = useForm<LiveFormValues>({
     defaultValues: toFormValues(initialValues),
   });
 
-  useEffect(() => {
-    reset(toFormValues(initialValues));
-  }, [initialValues, reset]);
-
   const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
-
-  useEffect(() => {
-    setCasts(initialCasts ?? []);
-  }, [initialCasts]);
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();
@@ -112,7 +98,7 @@ export function LiveForm({
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       {state.error && (
-        <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+        <p className="rounded-md bg-brand-bg-light px-4 py-3 text-sm text-brand-brown-dark" role="alert">
           {state.error}
         </p>
       )}
@@ -128,7 +114,7 @@ export function LiveForm({
           id="title"
           type="text"
           {...register("title", { required: "タイトルを入力してください", maxLength: { value: 200, message: "200文字以内で入力してください" } })}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
         {(clientErrors.title?.message || fieldErrors?.title) && (
           <p className="mt-1 text-xs text-brand-gold" role="alert">
@@ -148,7 +134,7 @@ export function LiveForm({
           id="event_date"
           type="date"
           {...register("event_date")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
       </div>
 
@@ -163,7 +149,7 @@ export function LiveForm({
           id="start_time"
           type="datetime-local"
           {...register("start_time")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
       </div>
 
@@ -178,7 +164,7 @@ export function LiveForm({
           id="venue"
           type="text"
           {...register("venue")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
       </div>
 
@@ -194,7 +180,7 @@ export function LiveForm({
           type="url"
           {...register("url")}
           placeholder="https://..."
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
       </div>
 
@@ -209,7 +195,7 @@ export function LiveForm({
           id="description"
           rows={4}
           {...register("description")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-white px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
       </div>
 
@@ -250,7 +236,7 @@ export function LiveForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-brand-sky px-5 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:opacity-50"
+          className="rounded-md bg-brand-sky px-5 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:opacity-50"
         >
           {isPending ? "保存中..." : submitLabel}
         </button>
