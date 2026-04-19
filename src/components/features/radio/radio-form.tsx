@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useForm } from "react-hook-form";
 import { CastSelector } from "@/components/features/cast-selector/cast-selector";
-import type { RadioFormState } from "@/lib/actions/radios";
+import type { RadioFormState } from "@/lib/types/radio";
 import type { ArtistSummary } from "@/lib/queries/artists";
 import type { ComboSummary } from "@/lib/queries/combos";
 import type { UnitSummary } from "@/lib/queries/units";

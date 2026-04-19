@@ -22,3 +22,8 @@ export type RadioInput = {
 export type RadioWithCasts = Radio & {
   casts: CastEntry[];
 };
+
+export type RadioFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof RadioInput | "casts", string>>;
+};
