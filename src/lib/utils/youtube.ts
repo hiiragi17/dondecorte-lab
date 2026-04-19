@@ -3,7 +3,7 @@ const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 export function extractYoutubeVideoId(url: string): string | null {
   try {
     const parsed = new URL(url.trim());
-    const host = parsed.hostname.replace(/^www\./, "");
+    const host = parsed.hostname.replace(/^(www|m)\./, "");
 
     if (host === "youtu.be") {
       const id = parsed.pathname.slice(1).split("/")[0];
