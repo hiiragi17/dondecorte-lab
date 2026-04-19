@@ -22,3 +22,8 @@ export type ArticleInput = {
 export type ArticleWithCasts = Article & {
   casts: CastEntry[];
 };
+
+export type ArticleFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof ArticleInput | "casts", string>>;
+};
