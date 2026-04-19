@@ -4,15 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
-import type { TvShowInput } from "@/lib/types/tv-show";
+import type { TvShowFormState, TvShowInput } from "@/lib/types/tv-show";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export type TvShowFormState = {
-  error?: string;
-  fieldErrors?: Partial<Record<keyof TvShowInput | "casts", string>>;
-};
 
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;

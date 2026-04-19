@@ -24,3 +24,8 @@ export type TvShowInput = {
 export type TvShowWithCasts = TvShow & {
   casts: CastEntry[];
 };
+
+export type TvShowFormState = {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof TvShowInput | "casts", string>>;
+};
