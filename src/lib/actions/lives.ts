@@ -179,9 +179,11 @@ export async function updateLive(
 
   const { error, count } = await supabase
     .from("lives")
-    .update({ ...values, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .count("exact");
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
+    .eq("id", id);
 
   if (error) {
     return { error: `ライブの更新に失敗しました: ${error.message}` };
@@ -216,9 +218,8 @@ export async function deleteLive(formData: FormData): Promise<void> {
 
   const { error, count } = await supabase
     .from("lives")
-    .delete()
-    .eq("id", id)
-    .count("exact");
+    .delete({ count: "exact" })
+    .eq("id", id);
 
   if (error) {
     throw new Error(`ライブの削除に失敗しました: ${error.message}`);
