@@ -13,8 +13,8 @@ export type RecentContentItem = {
 
 const UPCOMING_LIVES_LIMIT = 5;
 const LATEST_VIDEOS_LIMIT = 3;
-const RECENT_PER_TYPE_LIMIT = 5;
 const RECENT_TOTAL_LIMIT = 10;
+const RECENT_PER_TYPE_LIMIT = RECENT_TOTAL_LIMIT;
 const BUSINESS_TIMEZONE = "Asia/Tokyo";
 
 function todayInBusinessTimezone(): string {
