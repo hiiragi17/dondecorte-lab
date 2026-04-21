@@ -17,6 +17,26 @@ export async function listVideos(): Promise<Video[]> {
   return (data ?? []) as Video[];
 }
 
+export async function listRelatedVideos(
+  excludeId: string,
+  limit: number
+): Promise<Video[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("videos")
+    .select("*")
+    .neq("id", excludeId)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`関連動画の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []) as Video[];
+}
+
 export async function getVideo(id: string): Promise<VideoWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
