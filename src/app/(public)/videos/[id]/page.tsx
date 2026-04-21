@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VideoGrid } from "@/components/features/video/video-grid";
 import { VideoPlayer } from "@/components/features/video/video-player";
-import { getVideo, listVideos } from "@/lib/queries/videos";
+import { getVideo, listRelatedVideos } from "@/lib/queries/videos";
 import type { CastEntry } from "@/lib/types";
+import { formatDate } from "@/lib/utils/date";
 
 export const dynamic = "force-dynamic";
 
@@ -11,25 +12,7 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-const BUSINESS_TIMEZONE = "Asia/Tokyo";
 const RELATED_LIMIT = 6;
-
-function formatDate(value: string | null): string | null {
-  if (!value) return null;
-  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnly) {
-    const [, y, m, d] = dateOnly;
-    return `${Number(y)}年${Number(m)}月${Number(d)}日`;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: BUSINESS_TIMEZONE,
-  });
-}
 
 function castHref(cast: CastEntry): string {
   switch (cast.type) {
@@ -47,8 +30,7 @@ export default async function VideoDetailPage({ params }: Props) {
   const video = await getVideo(id);
   if (!video) notFound();
 
-  const allVideos = await listVideos();
-  const related = allVideos.filter((v) => v.id !== video.id).slice(0, RELATED_LIMIT);
+  const related = await listRelatedVideos(video.id, RELATED_LIMIT);
   const published = formatDate(video.published_at);
 
   return (
