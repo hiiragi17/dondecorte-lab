@@ -29,28 +29,52 @@ const CONTENT_TYPE_PATH: Record<ContentType, string> = {
   topic: "topics",
 };
 
-function formatDate(iso: string | null): string {
-  if (!iso) return "日付未定";
-  const date = new Date(iso);
+const BUSINESS_TIMEZONE = "Asia/Tokyo";
+
+function formatDate(value: string | null): string {
+  if (!value) return "日付未定";
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    const [, y, m, d] = dateOnly;
+    return `${Number(y)}年${Number(m)}月${Number(d)}日`;
+  }
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "日付未定";
   return date.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: BUSINESS_TIMEZONE,
   });
 }
 
-function formatTime(time: string | null): string | null {
-  if (!time) return null;
-  return time.slice(0, 5);
+function formatTime(value: string | null): string | null {
+  if (!value) return null;
+  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: BUSINESS_TIMEZONE,
+  });
 }
 
 export default async function Home() {
-  const [upcomingLives, latestVideos, recentContent] = await Promise.all([
-    getUpcomingLives(),
-    getLatestVideos(),
-    getRecentContent(),
-  ]);
+  const [upcomingLivesRes, latestVideosRes, recentContentRes] =
+    await Promise.allSettled([
+      getUpcomingLives(),
+      getLatestVideos(),
+      getRecentContent(),
+    ]);
+
+  const upcomingLives =
+    upcomingLivesRes.status === "fulfilled" ? upcomingLivesRes.value : [];
+  const latestVideos =
+    latestVideosRes.status === "fulfilled" ? latestVideosRes.value : [];
+  const recentContent =
+    recentContentRes.status === "fulfilled" ? recentContentRes.value : [];
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:py-12">

@@ -15,10 +15,24 @@ const UPCOMING_LIVES_LIMIT = 5;
 const LATEST_VIDEOS_LIMIT = 3;
 const RECENT_PER_TYPE_LIMIT = 5;
 const RECENT_TOTAL_LIMIT = 10;
+const BUSINESS_TIMEZONE = "Asia/Tokyo";
+
+function todayInBusinessTimezone(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+}
 
 export async function getUpcomingLives(): Promise<Live[]> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBusinessTimezone();
 
   const { data, error } = await supabase
     .from("lives")
