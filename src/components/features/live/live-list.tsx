@@ -32,7 +32,10 @@ function partition(
   upcoming.sort((a, b) => {
     const dateDiff = (a.event_date ?? "").localeCompare(b.event_date ?? "");
     if (dateDiff !== 0) return dateDiff;
-    return (a.start_time ?? "").localeCompare(b.start_time ?? "");
+    if (a.start_time === b.start_time) return 0;
+    if (!a.start_time) return 1;
+    if (!b.start_time) return -1;
+    return a.start_time.localeCompare(b.start_time);
   });
   return { upcoming, past };
 }

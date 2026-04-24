@@ -9,10 +9,19 @@ const CAST_PATH: Record<CastType, string> = {
   unit: "/units",
 };
 
+const BUSINESS_TIMEZONE = "Asia/Tokyo";
+
 function formatTime(value: string | null): string | null {
   if (!value) return null;
-  const match = value.match(/^(\d{2}):(\d{2})/);
-  return match ? `${match[1]}:${match[2]}` : null;
+  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: BUSINESS_TIMEZONE,
+  });
 }
 
 function CastTag({ cast }: { cast: CastEntry }) {
