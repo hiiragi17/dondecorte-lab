@@ -2,6 +2,45 @@ import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { Live, LiveWithCasts } from "@/lib/types/live";
 
+type CastRow = {
+  artist_id: string | null;
+  comedy_group_id: string | null;
+  unit_id: string | null;
+  artist: { id: string; name: string } | null;
+  comedy_group: { id: string; name: string } | null;
+  unit: { id: string; name: string } | null;
+};
+
+function mapCasts(rows: CastRow[] | null | undefined): CastEntry[] {
+  return (rows ?? []).flatMap((c) => {
+    if (c.artist_id && c.artist) {
+      return [{ type: "artist" as const, id: c.artist.id, name: c.artist.name }];
+    }
+    if (c.comedy_group_id && c.comedy_group) {
+      return [{ type: "comedy_group" as const, id: c.comedy_group.id, name: c.comedy_group.name }];
+    }
+    if (c.unit_id && c.unit) {
+      return [{ type: "unit" as const, id: c.unit.id, name: c.unit.name }];
+    }
+    return [];
+  });
+}
+
+function toLiveBase(row: Record<string, unknown>): Live {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    event_date: (row.event_date as string | null) ?? null,
+    start_time: (row.start_time as string | null) ?? null,
+    venue: (row.venue as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    url: (row.url as string | null) ?? null,
+    is_notified: row.is_notified as boolean,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
 export async function listLives(): Promise<Live[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -15,6 +54,37 @@ export async function listLives(): Promise<Live[]> {
   }
 
   return (data ?? []) as Live[];
+}
+
+export async function listLivesWithCasts(): Promise<LiveWithCasts[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lives")
+    .select(
+      `*,
+       live_casts(
+         id,
+         artist_id,
+         comedy_group_id,
+         unit_id,
+         artist:artists(id, name),
+         comedy_group:comedy_groups(id, name),
+         unit:units(id, name)
+       )`
+    )
+    .order("event_date", { ascending: false, nullsFirst: false })
+    .order("start_time", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    const casts = mapCasts(record.live_casts as CastRow[] | null | undefined);
+    return { ...toLiveBase(record), casts };
+  });
 }
 
 export async function getLive(id: string): Promise<LiveWithCasts | null> {
@@ -42,42 +112,7 @@ export async function getLive(id: string): Promise<LiveWithCasts | null> {
 
   if (!data) return null;
 
-  type CastRow = {
-    artist_id: string | null;
-    comedy_group_id: string | null;
-    unit_id: string | null;
-    artist: { id: string; name: string } | null;
-    comedy_group: { id: string; name: string } | null;
-    unit: { id: string; name: string } | null;
-  };
-
-  const rawCasts = (data as Record<string, unknown>).live_casts as CastRow[];
-
-  const casts: CastEntry[] = (rawCasts ?? []).flatMap((c) => {
-    if (c.artist_id && c.artist) {
-      return [{ type: "artist" as const, id: c.artist.id, name: c.artist.name }];
-    }
-    if (c.comedy_group_id && c.comedy_group) {
-      return [{ type: "comedy_group" as const, id: c.comedy_group.id, name: c.comedy_group.name }];
-    }
-    if (c.unit_id && c.unit) {
-      return [{ type: "unit" as const, id: c.unit.id, name: c.unit.name }];
-    }
-    return [];
-  });
-
-  const liveBase: Live = {
-    id: (data as { id: string }).id,
-    title: (data as { title: string }).title,
-    event_date: (data as { event_date: string | null }).event_date,
-    start_time: (data as { start_time: string | null }).start_time,
-    venue: (data as { venue: string | null }).venue,
-    description: (data as { description: string | null }).description,
-    url: (data as { url: string | null }).url,
-    is_notified: (data as { is_notified: boolean }).is_notified,
-    created_at: (data as { created_at: string }).created_at,
-    updated_at: (data as { updated_at: string }).updated_at,
-  };
-
-  return { ...liveBase, casts };
+  const record = data as Record<string, unknown>;
+  const casts = mapCasts(record.live_casts as CastRow[] | null | undefined);
+  return { ...toLiveBase(record), casts };
 }
