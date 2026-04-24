@@ -1,28 +1,13 @@
 import Link from "next/link";
 import type { CastEntry, CastType } from "@/lib/types";
 import type { LiveWithCasts } from "@/lib/types/live";
-import { formatDate } from "@/lib/utils/date";
+import { formatDate, formatTime } from "@/lib/utils/date";
 
 const CAST_PATH: Record<CastType, string> = {
   artist: "/artists",
   comedy_group: "/combos",
   unit: "/units",
 };
-
-const BUSINESS_TIMEZONE = "Asia/Tokyo";
-
-function formatTime(value: string | null): string | null {
-  if (!value) return null;
-  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleTimeString("ja-JP", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: BUSINESS_TIMEZONE,
-  });
-}
 
 function CastTag({ cast }: { cast: CastEntry }) {
   return (
