@@ -19,7 +19,7 @@ export function formatDate(value: string | null): string | null {
 
 export function formatTime(value: string | null): string | null {
   if (!value) return null;
-  if (/^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(value)) return value.slice(0, 5);
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleTimeString("ja-JP", {
