@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import { VideoGrid } from "@/components/features/video/video-grid";
 import { listVideos } from "@/lib/queries/videos";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "動画",
+  description: "ドンデコルテさん関連のYouTube動画一覧。",
+  alternates: { canonical: "/videos" },
+  openGraph: {
+    title: "動画",
+    description: "ドンデコルテさん関連のYouTube動画一覧。",
+    url: "/videos",
+  },
+};
 
 export default async function VideosPage() {
   const videos = await listVideos();

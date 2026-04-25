@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import { LiveList } from "@/components/features/live/live-list";
 import { listLivesWithCasts } from "@/lib/queries/lives";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "ライブ",
+  description: "ドンデコルテさん関連のライブ情報一覧。",
+  alternates: { canonical: "/lives" },
+  openGraph: {
+    title: "ライブ",
+    description: "ドンデコルテさん関連のライブ情報一覧。",
+    url: "/lives",
+  },
+};
 
 export default async function LivesPage() {
   const lives = await listLivesWithCasts();
