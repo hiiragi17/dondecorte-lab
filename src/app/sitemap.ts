@@ -38,7 +38,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.6,
     }));
-  } catch {
+  } catch (error) {
+    console.warn("sitemap: failed to load video entries", error);
     videoEntries = [];
   }
 

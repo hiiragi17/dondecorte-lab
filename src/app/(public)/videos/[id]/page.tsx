@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { VideoGrid } from "@/components/features/video/video-grid";
 import { VideoPlayer } from "@/components/features/video/video-player";
-import { getVideo, listRelatedVideos } from "@/lib/queries/videos";
+import {
+  getVideo as fetchVideo,
+  listRelatedVideos,
+} from "@/lib/queries/videos";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 
 export const dynamic = "force-dynamic";
+
+const getVideo = cache(fetchVideo);
 
 type Props = {
   params: Promise<{ id: string }>;
