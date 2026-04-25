@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VideoGrid } from "@/components/features/video/video-grid";
@@ -13,6 +14,50 @@ type Props = {
 };
 
 const RELATED_LIMIT = 6;
+const DESCRIPTION_MAX_LENGTH = 160;
+
+function buildDescription(video: {
+  description: string | null;
+  casts: CastEntry[];
+  title: string;
+}): string {
+  const performerNames = video.casts.map((c) => c.name).join("、");
+  const performerText = performerNames ? `出演: ${performerNames}。` : "";
+  const raw = (video.description ?? "").replace(/\s+/g, " ").trim();
+  const fallback = `${performerText}ドンデコルテさん関連動画「${video.title}」の詳細ページ。`;
+  const base = raw ? `${performerText}${raw}` : fallback;
+  if (base.length <= DESCRIPTION_MAX_LENGTH) return base;
+  return `${base.slice(0, DESCRIPTION_MAX_LENGTH - 1)}…`;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const video = await getVideo(id);
+  if (!video) return {};
+
+  const description = buildDescription(video);
+  const url = `/videos/${video.id}`;
+  const images = video.thumbnail_url ? [{ url: video.thumbnail_url }] : undefined;
+
+  return {
+    title: video.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "video.other",
+      title: video.title,
+      description,
+      url,
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: video.title,
+      description,
+      images: video.thumbnail_url ? [video.thumbnail_url] : undefined,
+    },
+  };
+}
 
 function castHref(cast: CastEntry): string {
   switch (cast.type) {
