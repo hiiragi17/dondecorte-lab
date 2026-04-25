@@ -4,26 +4,27 @@ import { getSiteUrl } from "@/lib/utils/site-url";
 
 export const dynamic = "force-dynamic";
 
+const STATIC_ENTRY_LAST_MODIFIED = new Date();
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
-  const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
-      lastModified: now,
+      lastModified: STATIC_ENTRY_LAST_MODIFIED,
       changeFrequency: "daily",
       priority: 1,
     },
     {
       url: `${baseUrl}/videos`,
-      lastModified: now,
+      lastModified: STATIC_ENTRY_LAST_MODIFIED,
       changeFrequency: "daily",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/lives`,
-      lastModified: now,
+      lastModified: STATIC_ENTRY_LAST_MODIFIED,
       changeFrequency: "daily",
       priority: 0.8,
     },
@@ -34,7 +35,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const videos = await listVideos();
     videoEntries = videos.map((video) => ({
       url: `${baseUrl}/videos/${video.id}`,
-      lastModified: video.updated_at ? new Date(video.updated_at) : now,
+      lastModified: video.updated_at
+        ? new Date(video.updated_at)
+        : STATIC_ENTRY_LAST_MODIFIED,
       changeFrequency: "weekly",
       priority: 0.6,
     }));
