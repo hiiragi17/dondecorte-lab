@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { ArticleCard } from "@/components/features/article/article-card";
 import { LiveCard } from "@/components/features/live/live-card";
 import { RadioCard } from "@/components/features/radio/radio-card";
@@ -22,20 +22,13 @@ type Props = {
   articles: ArticleWithCasts[];
 };
 
-const TAB_LABEL: Record<TabKey, string> = {
-  videos: "Videos",
-  lives: "Lives",
-  radios: "Radio",
-  tv: "TV",
-  articles: "Articles",
-};
-
-const EMPTY_LABEL: Record<TabKey, string> = {
-  videos: "出演動画はまだ登録されていません。",
-  lives: "出演ライブはまだ登録されていません。",
-  radios: "出演ラジオはまだ登録されていません。",
-  tv: "出演TV番組はまだ登録されていません。",
-  articles: "関連記事はまだ登録されていません。",
+type TabConfig = {
+  key: TabKey;
+  label: string;
+  count: number;
+  emptyLabel: string;
+  listClassName: string;
+  render: () => ReactNode;
 };
 
 export function ContentTabs({
@@ -45,17 +38,101 @@ export function ContentTabs({
   tvShows,
   articles,
 }: Props) {
-  const counts: Record<TabKey, number> = {
-    videos: videos.length,
-    lives: lives.length,
-    radios: radios.length,
-    tv: tvShows.length,
-    articles: articles.length,
-  };
-  const orderedTabs: TabKey[] = ["videos", "lives", "radios", "tv", "articles"];
-  const initialTab =
-    orderedTabs.find((t) => counts[t] > 0) ?? ("videos" as TabKey);
+  const tabs: TabConfig[] = [
+    {
+      key: "videos",
+      label: "Videos",
+      count: videos.length,
+      emptyLabel: "出演動画はまだ登録されていません。",
+      listClassName: "grid grid-cols-2 gap-4 md:grid-cols-3",
+      render: () =>
+        videos.map((v) => (
+          <li key={v.id}>
+            <VideoCard video={v} />
+          </li>
+        )),
+    },
+    {
+      key: "lives",
+      label: "Lives",
+      count: lives.length,
+      emptyLabel: "出演ライブはまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        lives.map((l) => (
+          <li key={l.id}>
+            <LiveCard live={l} variant="past" />
+          </li>
+        )),
+    },
+    {
+      key: "radios",
+      label: "Radio",
+      count: radios.length,
+      emptyLabel: "出演ラジオはまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        radios.map((r) => (
+          <li key={r.id}>
+            <RadioCard radio={r} />
+          </li>
+        )),
+    },
+    {
+      key: "tv",
+      label: "TV",
+      count: tvShows.length,
+      emptyLabel: "出演TV番組はまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        tvShows.map((t) => (
+          <li key={t.id}>
+            <TvShowCard tvShow={t} />
+          </li>
+        )),
+    },
+    {
+      key: "articles",
+      label: "Articles",
+      count: articles.length,
+      emptyLabel: "関連記事はまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        articles.map((a) => (
+          <li key={a.id}>
+            <ArticleCard article={a} />
+          </li>
+        )),
+    },
+  ];
+
+  const initialTab = (tabs.find((t) => t.count > 0) ?? tabs[0]).key;
   const [active, setActive] = useState<TabKey>(initialTab);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const focusTab = (index: number) => {
+    const next = tabs[index];
+    setActive(next.key);
+    tabRefs.current[index]?.focus();
+  };
+
+  const onTabKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    const last = tabs.length - 1;
+    let next = index;
+    if (e.key === "ArrowRight") next = index === last ? 0 : index + 1;
+    else if (e.key === "ArrowLeft") next = index === 0 ? last : index - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = last;
+    else return;
+
+    e.preventDefault();
+    focusTab(next);
+  };
+
+  const activeTab = tabs.find((t) => t.key === active) ?? tabs[0];
 
   return (
     <section>
@@ -64,28 +141,30 @@ export function ContentTabs({
         aria-label="出演コンテンツ"
         className="mb-4 flex flex-wrap gap-1 overflow-x-auto border-b border-brand-border-dark"
       >
-        {orderedTabs.map((tab) => {
-          const isActive = tab === active;
+        {tabs.map((tab, index) => {
+          const isActive = tab.key === active;
           return (
             <button
-              key={tab}
-              id={`tab-${tab}`}
+              key={tab.key}
+              ref={(el) => {
+                tabRefs.current[index] = el;
+              }}
+              id={`tab-${tab.key}`}
               role="tab"
               type="button"
-              aria-controls={`tabpanel-${tab}`}
+              aria-controls={`tabpanel-${tab.key}`}
               aria-selected={isActive}
               tabIndex={isActive ? 0 : -1}
-              onClick={() => setActive(tab)}
+              onKeyDown={(e) => onTabKeyDown(e, index)}
+              onClick={() => setActive(tab.key)}
               className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm transition ${
                 isActive
                   ? "border-brand-sky text-brand-sky-light"
                   : "border-transparent text-brand-muted hover:text-brand-cream"
               }`}
             >
-              {TAB_LABEL[tab]}
-              <span className="ml-1 text-xs text-brand-muted">
-                {counts[tab]}
-              </span>
+              {tab.label}
+              <span className="ml-1 text-xs text-brand-muted">{tab.count}</span>
             </button>
           );
         })}
@@ -93,78 +172,14 @@ export function ContentTabs({
 
       <div
         role="tabpanel"
-        id={`tabpanel-${active}`}
-        aria-labelledby={`tab-${active}`}
+        id={`tabpanel-${activeTab.key}`}
+        aria-labelledby={`tab-${activeTab.key}`}
       >
-        {active === "videos" ? (
-          videos.length > 0 ? (
-            <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              {videos.map((v) => (
-                <li key={v.id}>
-                  <VideoCard video={v} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={EMPTY_LABEL.videos} />
-          )
-        ) : null}
-
-        {active === "lives" ? (
-          lives.length > 0 ? (
-            <ul className="space-y-3">
-              {lives.map((l) => (
-                <li key={l.id}>
-                  <LiveCard live={l} variant="past" />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={EMPTY_LABEL.lives} />
-          )
-        ) : null}
-
-        {active === "radios" ? (
-          radios.length > 0 ? (
-            <ul className="space-y-3">
-              {radios.map((r) => (
-                <li key={r.id}>
-                  <RadioCard radio={r} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={EMPTY_LABEL.radios} />
-          )
-        ) : null}
-
-        {active === "tv" ? (
-          tvShows.length > 0 ? (
-            <ul className="space-y-3">
-              {tvShows.map((t) => (
-                <li key={t.id}>
-                  <TvShowCard tvShow={t} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={EMPTY_LABEL.tv} />
-          )
-        ) : null}
-
-        {active === "articles" ? (
-          articles.length > 0 ? (
-            <ul className="space-y-3">
-              {articles.map((a) => (
-                <li key={a.id}>
-                  <ArticleCard article={a} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={EMPTY_LABEL.articles} />
-          )
-        ) : null}
+        {activeTab.count > 0 ? (
+          <ul className={activeTab.listClassName}>{activeTab.render()}</ul>
+        ) : (
+          <EmptyState message={activeTab.emptyLabel} />
+        )}
       </div>
     </section>
   );
