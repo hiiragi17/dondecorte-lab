@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { CastTagList } from "@/components/shared/cast-tag";
+import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getTopic as fetchTopic } from "@/lib/queries/topics";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
@@ -86,7 +86,7 @@ export default async function TopicDetailPage({ params }: Props) {
 
       {topic.casts.length > 0 ? (
         <div className="mt-4">
-          <CastTagList casts={topic.casts} />
+          <PerformerTagList performers={topic.casts} />
         </div>
       ) : null}
 

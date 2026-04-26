@@ -1,6 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Achievement, AchievementWithTarget } from "@/lib/types/achievement";
 
+export async function listAchievementsByTarget(
+  field: "artist_id" | "comedy_group_id" | "unit_id",
+  id: string
+): Promise<Achievement[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("achievements")
+    .select("*")
+    .eq(field, id)
+    .order("year", { ascending: false })
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw new Error(`受賞歴の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []) as Achievement[];
+}
+
 export async function listAchievements(): Promise<AchievementWithTarget[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

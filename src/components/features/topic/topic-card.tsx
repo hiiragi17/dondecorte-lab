@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CastTagList } from "@/components/shared/cast-tag";
+import { PerformerTagList } from "@/components/shared/performer-tags";
 import type { TopicWithCasts } from "@/lib/types/topic";
 import { formatDate } from "@/lib/utils/date";
 
@@ -39,7 +39,7 @@ export function TopicCard({ topic }: { topic: TopicWithCasts }) {
       ) : null}
       {topic.casts.length > 0 ? (
         <div className="mt-2">
-          <CastTagList casts={topic.casts} />
+          <PerformerTagList performers={topic.casts} />
         </div>
       ) : null}
     </article>

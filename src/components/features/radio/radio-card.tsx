@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CastTagList } from "@/components/shared/cast-tag";
+import { PerformerTagList } from "@/components/shared/performer-tags";
 import type { RadioWithCasts } from "@/lib/types/radio";
 import { formatDate } from "@/lib/utils/date";
 
@@ -39,7 +39,7 @@ export function RadioCard({ radio }: { radio: RadioWithCasts }) {
       ) : null}
       {radio.casts.length > 0 ? (
         <div className="mt-2">
-          <CastTagList casts={radio.casts} />
+          <PerformerTagList performers={radio.casts} />
         </div>
       ) : null}
     </article>

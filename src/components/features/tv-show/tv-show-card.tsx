@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CastTagList } from "@/components/shared/cast-tag";
+import { PerformerTagList } from "@/components/shared/performer-tags";
 import type { TvShowWithCasts } from "@/lib/types/tv-show";
 import { formatDate, formatTime } from "@/lib/utils/date";
 
@@ -29,7 +29,7 @@ export function TvShowCard({ tvShow }: { tvShow: TvShowWithCasts }) {
       </Link>
       {tvShow.casts.length > 0 ? (
         <div className="mt-2">
-          <CastTagList casts={tvShow.casts} />
+          <PerformerTagList performers={tvShow.casts} />
         </div>
       ) : null}
     </article>
