@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 
 const NAV_ITEMS = [
   { href: "/videos", label: "動画" },
@@ -12,12 +11,7 @@ const NAV_ITEMS = [
   { href: "/artists", label: "芸人" },
 ];
 
-export async function PublicHeader() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export function PublicHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-brand-border-dark bg-brand-bg-dark/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
@@ -41,14 +35,6 @@ export async function PublicHeader() {
             ))}
           </ul>
         </nav>
-        {user ? (
-          <Link
-            href="/admin"
-            className="rounded-md border border-brand-border-dark bg-brand-card-dark px-3 py-1.5 text-xs font-medium text-brand-sky-light transition hover:border-brand-sky hover:text-brand-sky"
-          >
-            管理画面
-          </Link>
-        ) : null}
       </div>
     </header>
   );
