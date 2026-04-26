@@ -25,6 +25,18 @@ export function TopicCard({ topic }: { topic: TopicWithCasts }) {
           {topic.title}
         </p>
       </Link>
+      {topic.url ? (
+        <div className="mt-2">
+          <a
+            href={topic.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center text-xs font-medium text-brand-sky-light transition hover:text-brand-sky"
+          >
+            関連URL ↗
+          </a>
+        </div>
+      ) : null}
       {topic.casts.length > 0 ? (
         <div className="mt-2">
           <CastTagList casts={topic.casts} />

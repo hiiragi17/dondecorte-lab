@@ -25,6 +25,18 @@ export function RadioCard({ radio }: { radio: RadioWithCasts }) {
           {radio.title}
         </p>
       </Link>
+      {radio.url ? (
+        <div className="mt-2">
+          <a
+            href={radio.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center text-xs font-medium text-brand-sky-light transition hover:text-brand-sky"
+          >
+            ラジオを聴く ↗
+          </a>
+        </div>
+      ) : null}
       {radio.casts.length > 0 ? (
         <div className="mt-2">
           <CastTagList casts={radio.casts} />

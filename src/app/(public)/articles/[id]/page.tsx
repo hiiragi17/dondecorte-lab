@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { CastTag } from "@/components/shared/cast-tag";
+import { CastTagList } from "@/components/shared/cast-tag";
 import { getArticle as fetchArticle } from "@/lib/queries/articles";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
@@ -82,10 +82,8 @@ export default async function ArticleDetailPage({ params }: Props) {
       </div>
 
       {article.casts.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {article.casts.map((cast) => (
-            <CastTag key={`${cast.type}-${cast.id}`} cast={cast} />
-          ))}
+        <div className="mt-4">
+          <CastTagList casts={article.casts} />
         </div>
       ) : null}
 

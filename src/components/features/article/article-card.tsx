@@ -25,6 +25,18 @@ export function ArticleCard({ article }: { article: ArticleWithCasts }) {
           {article.title}
         </p>
       </Link>
+      {article.url ? (
+        <div className="mt-2">
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center text-xs font-medium text-brand-sky-light transition hover:text-brand-sky"
+          >
+            出典元を開く ↗
+          </a>
+        </div>
+      ) : null}
       {article.casts.length > 0 ? (
         <div className="mt-2">
           <CastTagList casts={article.casts} />

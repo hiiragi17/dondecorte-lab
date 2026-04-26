@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { CastTag } from "@/components/shared/cast-tag";
+import { CastTagList } from "@/components/shared/cast-tag";
 import { getTvShow as fetchTvShow } from "@/lib/queries/tv-shows";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
@@ -93,10 +93,8 @@ export default async function TvDetailPage({ params }: Props) {
       </div>
 
       {tvShow.casts.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {tvShow.casts.map((cast) => (
-            <CastTag key={`${cast.type}-${cast.id}`} cast={cast} />
-          ))}
+        <div className="mt-4">
+          <CastTagList casts={tvShow.casts} />
         </div>
       ) : null}
 
