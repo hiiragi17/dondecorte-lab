@@ -2,6 +2,43 @@ import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { Radio, RadioWithCasts } from "@/lib/types/radio";
 
+type CastRow = {
+  artist_id: string | null;
+  comedy_group_id: string | null;
+  unit_id: string | null;
+  artist: { id: string; name: string } | null;
+  comedy_group: { id: string; name: string } | null;
+  unit: { id: string; name: string } | null;
+};
+
+function mapCasts(rows: CastRow[] | null | undefined): CastEntry[] {
+  return (rows ?? []).flatMap((c) => {
+    if (c.artist_id && c.artist) {
+      return [{ type: "artist" as const, id: c.artist.id, name: c.artist.name }];
+    }
+    if (c.comedy_group_id && c.comedy_group) {
+      return [{ type: "comedy_group" as const, id: c.comedy_group.id, name: c.comedy_group.name }];
+    }
+    if (c.unit_id && c.unit) {
+      return [{ type: "unit" as const, id: c.unit.id, name: c.unit.name }];
+    }
+    return [];
+  });
+}
+
+function toRadioBase(row: Record<string, unknown>): Radio {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    platform: (row.platform as string | null) ?? null,
+    url: (row.url as string | null) ?? null,
+    published_at: (row.published_at as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
 export async function listRadios(): Promise<Radio[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -15,6 +52,36 @@ export async function listRadios(): Promise<Radio[]> {
   }
 
   return (data ?? []) as Radio[];
+}
+
+export async function listRadiosWithCasts(): Promise<RadioWithCasts[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("radios")
+    .select(
+      `*,
+       radio_casts(
+         id,
+         artist_id,
+         comedy_group_id,
+         unit_id,
+         artist:artists(id, name),
+         comedy_group:comedy_groups(id, name),
+         unit:units(id, name)
+       )`
+    )
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`ラジオ一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    const casts = mapCasts(record.radio_casts as CastRow[] | null | undefined);
+    return { ...toRadioBase(record), casts };
+  });
 }
 
 export async function getRadio(id: string): Promise<RadioWithCasts | null> {
@@ -42,40 +109,7 @@ export async function getRadio(id: string): Promise<RadioWithCasts | null> {
 
   if (!data) return null;
 
-  type CastRow = {
-    artist_id: string | null;
-    comedy_group_id: string | null;
-    unit_id: string | null;
-    artist: { id: string; name: string } | null;
-    comedy_group: { id: string; name: string } | null;
-    unit: { id: string; name: string } | null;
-  };
-
-  const rawCasts = (data as Record<string, unknown>).radio_casts as CastRow[];
-
-  const casts: CastEntry[] = (rawCasts ?? []).flatMap((c) => {
-    if (c.artist_id && c.artist) {
-      return [{ type: "artist" as const, id: c.artist.id, name: c.artist.name }];
-    }
-    if (c.comedy_group_id && c.comedy_group) {
-      return [{ type: "comedy_group" as const, id: c.comedy_group.id, name: c.comedy_group.name }];
-    }
-    if (c.unit_id && c.unit) {
-      return [{ type: "unit" as const, id: c.unit.id, name: c.unit.name }];
-    }
-    return [];
-  });
-
-  const radioBase: Radio = {
-    id: (data as { id: string }).id,
-    title: (data as { title: string }).title,
-    platform: (data as { platform: string | null }).platform,
-    url: (data as { url: string | null }).url,
-    published_at: (data as { published_at: string | null }).published_at,
-    description: (data as { description: string | null }).description,
-    created_at: (data as { created_at: string }).created_at,
-    updated_at: (data as { updated_at: string }).updated_at,
-  };
-
-  return { ...radioBase, casts };
+  const record = data as Record<string, unknown>;
+  const casts = mapCasts(record.radio_casts as CastRow[] | null | undefined);
+  return { ...toRadioBase(record), casts };
 }
