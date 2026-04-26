@@ -30,9 +30,36 @@ const CAST_SUBSELECT = `
 `;
 
 type Row = Record<string, unknown>;
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 function castsOf(record: Row, key: string) {
   return mapCasts(record[key] as CastRow[] | null | undefined);
+}
+
+async function listMatchingIds<K extends string>(
+  supabase: SupabaseClient,
+  castTable:
+    | "video_casts"
+    | "live_casts"
+    | "radio_casts"
+    | "article_casts"
+    | "tv_show_casts",
+  parentIdField: K,
+  field: PerformerField,
+  id: string
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from(castTable)
+    .select(parentIdField)
+    .eq(field, id);
+
+  if (error) {
+    throw new Error(`出演コンテンツの取得に失敗しました: ${error.message}`);
+  }
+
+  return ((data ?? []) as Array<Record<K, string>>).map(
+    (row) => row[parentIdField]
+  );
 }
 
 export async function getPerformerContents(
@@ -41,40 +68,59 @@ export async function getPerformerContents(
 ): Promise<PerformerContents> {
   const supabase = await createClient();
 
+  const [videoIds, liveIds, radioIds, articleIds, tvShowIds] =
+    await Promise.all([
+      listMatchingIds(supabase, "video_casts", "video_id", field, id),
+      listMatchingIds(supabase, "live_casts", "live_id", field, id),
+      listMatchingIds(supabase, "radio_casts", "radio_id", field, id),
+      listMatchingIds(supabase, "article_casts", "article_id", field, id),
+      listMatchingIds(supabase, "tv_show_casts", "tv_show_id", field, id),
+    ]);
+
   const [videosRes, livesRes, radiosRes, articlesRes, tvShowsRes] =
     await Promise.all([
-      supabase
-        .from("videos")
-        .select(`*, video_casts!inner(${CAST_SUBSELECT})`)
-        .eq(`video_casts.${field}`, id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("lives")
-        .select(`*, live_casts!inner(${CAST_SUBSELECT})`)
-        .eq(`live_casts.${field}`, id)
-        .order("event_date", { ascending: false, nullsFirst: false })
-        .order("start_time", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("radios")
-        .select(`*, radio_casts!inner(${CAST_SUBSELECT})`)
-        .eq(`radio_casts.${field}`, id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("articles")
-        .select(`*, article_casts!inner(${CAST_SUBSELECT})`)
-        .eq(`article_casts.${field}`, id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("tv_shows")
-        .select(`*, tv_show_casts!inner(${CAST_SUBSELECT})`)
-        .eq(`tv_show_casts.${field}`, id)
-        .order("air_date", { ascending: false, nullsFirst: false })
-        .order("air_time", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false }),
+      videoIds.length > 0
+        ? supabase
+            .from("videos")
+            .select(`*, video_casts(${CAST_SUBSELECT})`)
+            .in("id", videoIds)
+            .order("published_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      liveIds.length > 0
+        ? supabase
+            .from("lives")
+            .select(`*, live_casts(${CAST_SUBSELECT})`)
+            .in("id", liveIds)
+            .order("event_date", { ascending: false, nullsFirst: false })
+            .order("start_time", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      radioIds.length > 0
+        ? supabase
+            .from("radios")
+            .select(`*, radio_casts(${CAST_SUBSELECT})`)
+            .in("id", radioIds)
+            .order("published_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      articleIds.length > 0
+        ? supabase
+            .from("articles")
+            .select(`*, article_casts(${CAST_SUBSELECT})`)
+            .in("id", articleIds)
+            .order("published_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      tvShowIds.length > 0
+        ? supabase
+            .from("tv_shows")
+            .select(`*, tv_show_casts(${CAST_SUBSELECT})`)
+            .in("id", tvShowIds)
+            .order("air_date", { ascending: false, nullsFirst: false })
+            .order("air_time", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   const errors = [videosRes, livesRes, radiosRes, articlesRes, tvShowsRes]
