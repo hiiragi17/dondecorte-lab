@@ -69,9 +69,12 @@ export function ContentTabs({
           return (
             <button
               key={tab}
+              id={`tab-${tab}`}
               role="tab"
               type="button"
+              aria-controls={`tabpanel-${tab}`}
               aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => setActive(tab)}
               className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm transition ${
                 isActive
@@ -88,7 +91,11 @@ export function ContentTabs({
         })}
       </div>
 
-      <div role="tabpanel">
+      <div
+        role="tabpanel"
+        id={`tabpanel-${active}`}
+        aria-labelledby={`tab-${active}`}
+      >
         {active === "videos" ? (
           videos.length > 0 ? (
             <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">

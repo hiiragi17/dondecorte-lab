@@ -23,10 +23,23 @@ const LINKS: SnsLink[] = [
   { key: "website_url", label: "Web" },
 ];
 
+function normalizeExternalUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function SnsLinks({ sns }: { sns: SnsInput }) {
-  const items = LINKS.filter((link) => {
-    const value = sns[link.key];
-    return typeof value === "string" && value.length > 0;
+  const items = LINKS.flatMap((link) => {
+    const href = normalizeExternalUrl(sns[link.key]);
+    return href ? [{ ...link, href }] : [];
   });
 
   if (items.length === 0) return null;
@@ -36,7 +49,7 @@ export function SnsLinks({ sns }: { sns: SnsInput }) {
       {items.map((link) => (
         <li key={link.key}>
           <a
-            href={sns[link.key] as string}
+            href={link.href}
             target="_blank"
             rel="noreferrer noopener"
             className="inline-flex items-center rounded-full border border-brand-border-dark bg-brand-card-dark px-3 py-1 text-xs font-medium text-brand-sky-light transition hover:border-brand-sky hover:text-brand-sky"
