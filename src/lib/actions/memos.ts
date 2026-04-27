@@ -98,27 +98,28 @@ export async function updateMemo(
   } = await supabase.auth.getUser();
   if (!user) return { error: "認証が必要です" };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("memos")
     .update({ content, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("target_type, target_id")
+    .maybeSingle();
 
   if (error) {
     return { error: `メモの更新に失敗しました: ${error.message}` };
   }
+  if (!data) {
+    return { error: "対象のメモが見つかりませんでした" };
+  }
 
-  revalidateTarget(targetType, targetId);
+  revalidateTarget(data.target_type as ContentType, data.target_id as string);
   return {};
 }
 
 export async function deleteMemo(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "").trim();
-  const targetType = parseTargetType(formData.get("target_type"));
-  const targetId = String(formData.get("target_id") ?? "").trim();
 
   if (!UUID_PATTERN.test(id)) throw new Error("メモIDが不正です");
-  if (!targetType) throw new Error("対象種別が不正です");
-  if (!UUID_PATTERN.test(targetId)) throw new Error("対象IDが不正です");
 
   const supabase = await createClient();
   const {
@@ -126,11 +127,19 @@ export async function deleteMemo(formData: FormData): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("認証が必要です");
 
-  const { error } = await supabase.from("memos").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("memos")
+    .delete()
+    .eq("id", id)
+    .select("target_type, target_id")
+    .maybeSingle();
 
   if (error) {
     throw new Error(`メモの削除に失敗しました: ${error.message}`);
   }
+  if (!data) {
+    throw new Error("対象のメモが見つかりませんでした");
+  }
 
-  revalidateTarget(targetType, targetId);
+  revalidateTarget(data.target_type as ContentType, data.target_id as string);
 }

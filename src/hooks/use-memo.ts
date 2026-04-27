@@ -23,12 +23,18 @@ export function useMemoCreate({ targetType, targetId }: Options) {
       formData.set("target_type", targetType);
       formData.set("target_id", targetId);
       startTransition(async () => {
-        const result = await createMemo({}, formData);
-        if (result.error || result.fieldError) {
-          setState(result);
-        } else {
-          setState({});
-          onSuccess?.();
+        try {
+          const result = await createMemo({}, formData);
+          if (result.error || result.fieldError) {
+            setState(result);
+          } else {
+            setState({});
+            onSuccess?.();
+          }
+        } catch (e) {
+          setState({
+            error: e instanceof Error ? e.message : "メモの保存に失敗しました",
+          });
         }
       });
     },
@@ -47,12 +53,18 @@ export function useMemoUpdate({ targetType, targetId }: Options) {
       formData.set("target_type", targetType);
       formData.set("target_id", targetId);
       startTransition(async () => {
-        const result = await updateMemo({}, formData);
-        if (result.error || result.fieldError) {
-          setState(result);
-        } else {
-          setState({});
-          onSuccess?.();
+        try {
+          const result = await updateMemo({}, formData);
+          if (result.error || result.fieldError) {
+            setState(result);
+          } else {
+            setState({});
+            onSuccess?.();
+          }
+        } catch (e) {
+          setState({
+            error: e instanceof Error ? e.message : "メモの保存に失敗しました",
+          });
         }
       });
     },
