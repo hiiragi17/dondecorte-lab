@@ -284,7 +284,7 @@ mkdir -p supabase/migrations
 ## Step 9: Vercel デプロイ
 
 1. Vercel で `dondecorte-lab` リポジトリを Import する（GitHub 連携）。
-2. `Environment Variables` に次を設定する（Production / Preview）。
+2. 環境変数に次を設定する（Production / Preview）。
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`

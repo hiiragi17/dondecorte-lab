@@ -24,7 +24,7 @@ export function VideoCard({ video }: { video: Video }) {
         {thumbnailSrc ? (
           <Image
             src={thumbnailSrc}
-            alt={video.title}
+            alt=""
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
             className="h-full w-full object-cover transition group-hover:scale-105"
