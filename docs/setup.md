@@ -281,6 +281,19 @@ mkdir -p supabase/migrations
 
 ---
 
+## Step 9: Vercel デプロイ
+
+1. Vercel で `dondecorte-lab` リポジトリを Import する（GitHub 連携）。
+2. `Environment Variables` に次を設定する（Production / Preview）。
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL`（例: `https://dondecorte-lab.vercel.app`）
+3. 初回デプロイ後に公開URLで表示を確認する。
+4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com` と `i.ytimg.com` が含まれていることを確認する。
+
+---
+
 ## 実装順序チェックリスト
 
 ここまで完了したら、以下の順で実装を進める:

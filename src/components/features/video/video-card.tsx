@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Video } from "@/lib/types/video";
 import { formatDate } from "@/lib/utils/date";
@@ -19,13 +20,13 @@ export function VideoCard({ video }: { video: Video }) {
       href={`/videos/${video.id}`}
       className="group block overflow-hidden rounded-lg border border-brand-border-dark bg-brand-card-dark transition hover:border-brand-sky-light"
     >
-      <div className="aspect-video w-full overflow-hidden bg-brand-bg-dark">
+      <div className="relative aspect-video w-full overflow-hidden bg-brand-bg-dark">
         {thumbnailSrc ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={thumbnailSrc}
-            alt=""
-            loading="lazy"
+            alt={video.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
             className="h-full w-full object-cover transition group-hover:scale-105"
           />
         ) : (
