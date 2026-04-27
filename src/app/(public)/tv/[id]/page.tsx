@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getTvShow as fetchTvShow } from "@/lib/queries/tv-shows";
 import type { CastEntry } from "@/lib/types";
@@ -118,6 +119,8 @@ export default async function TvDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+
+      <MemoSection targetType="tv_show" targetId={tvShow.id} />
     </div>
   );
 }
