@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/utils/date";
 function resolveThumbnailSrc(video: Video): string | null {
   if (video.thumbnail_url) return video.thumbnail_url;
   if (video.youtube_video_id) {
-    return `https://i.ytimg.com/vi/${video.youtube_video_id}/hqdefault.jpg`;
+    return `https://img.youtube.com/vi/${video.youtube_video_id}/hqdefault.jpg`;
   }
   return null;
 }

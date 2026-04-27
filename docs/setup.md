@@ -290,7 +290,7 @@ mkdir -p supabase/migrations
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SITE_URL`（例: `https://dondecorte-lab.vercel.app`）
 3. 初回デプロイ後に公開URLで表示を確認する。
-4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com` と `i.ytimg.com` が含まれていることを確認する。
+4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com`（`/vi/**`）が含まれていることを確認する。
 
 ---
 
