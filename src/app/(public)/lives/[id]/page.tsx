@@ -6,6 +6,7 @@ import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getLive as fetchLive } from "@/lib/queries/lives";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
+import { normalizeExternalUrl } from "@/lib/utils/url";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,8 @@ export default async function LiveDetailPage({ params }: Props) {
 
   const eventDate = formatDate(live.event_date);
   const startTime = formatTime(live.start_time);
+  const safeUrl = normalizeExternalUrl(live.url);
+  const description = live.description?.trim() ? live.description : null;
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -98,10 +101,10 @@ export default async function LiveDetailPage({ params }: Props) {
         </div>
       ) : null}
 
-      {live.url ? (
+      {safeUrl ? (
         <div className="mt-6">
           <a
-            href={live.url}
+            href={safeUrl}
             target="_blank"
             rel="noreferrer noopener"
             className="inline-flex items-center rounded-md border border-brand-border-dark bg-brand-card-dark px-4 py-2 text-sm font-medium text-brand-sky-light transition hover:border-brand-sky hover:text-brand-sky"
@@ -111,10 +114,10 @@ export default async function LiveDetailPage({ params }: Props) {
         </div>
       ) : null}
 
-      {live.description ? (
+      {description ? (
         <section className="mt-6 rounded-lg border border-brand-border-dark bg-brand-card-dark p-4">
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-brand-cream">
-            {live.description}
+            {description}
           </p>
         </section>
       ) : null}

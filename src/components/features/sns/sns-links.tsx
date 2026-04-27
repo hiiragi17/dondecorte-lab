@@ -1,3 +1,5 @@
+import { normalizeExternalUrl } from "@/lib/utils/url";
+
 export type SnsInput = {
   x_url?: string | null;
   instagram_url?: string | null;
@@ -22,19 +24,6 @@ const LINKS: SnsLink[] = [
   { key: "standfm_url", label: "stand.fm" },
   { key: "website_url", label: "Web" },
 ];
-
-function normalizeExternalUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  try {
-    const url = new URL(trimmed);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
 
 export function SnsLinks({ sns }: { sns: SnsInput }) {
   const items = LINKS.flatMap((link) => {
