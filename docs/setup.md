@@ -308,6 +308,7 @@ mkdir -p supabase/migrations
 [x] Step 6: Tailwind カスタムカラー
 [x] Step 7: 型定義
 [x] Step 8: SQLマイグレーション保存
+[ ] Step 9: Vercel デプロイ
 --- ここから Claude Code で実装 ---
 [ ] ログインページ（/auth/login）
 [ ] 管理画面レイアウト（サイドバー）
@@ -319,7 +320,6 @@ mkdir -p supabase/migrations
 [ ] 残りの管理画面 CRUD
 [ ] 公開側ページ
 [ ] メモ機能
-[ ] デプロイ
 ```
 
 ---
