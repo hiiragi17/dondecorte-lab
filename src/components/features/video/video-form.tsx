@@ -84,11 +84,7 @@ export function VideoForm({
     reset(toFormValues(initialValues));
   }, [initialValues, reset]);
 
-  const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
-
-  useEffect(() => {
-    setCasts(initialCasts ?? []);
-  }, [initialCasts]);
+  const [casts, setCasts] = useState<CastEntry[]>(() => initialCasts ?? []);
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();
