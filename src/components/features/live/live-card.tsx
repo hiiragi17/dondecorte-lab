@@ -1,24 +1,7 @@
 import Link from "next/link";
-import type { CastEntry, CastType } from "@/lib/types";
+import { PerformerTagList } from "@/components/shared/performer-tags";
 import type { LiveWithCasts } from "@/lib/types/live";
 import { formatDate, formatTime } from "@/lib/utils/date";
-
-const CAST_PATH: Record<CastType, string> = {
-  artist: "/artists",
-  comedy_group: "/combos",
-  unit: "/units",
-};
-
-function CastTag({ cast }: { cast: CastEntry }) {
-  return (
-    <Link
-      href={`${CAST_PATH[cast.type]}/${cast.id}`}
-      className="inline-flex items-center rounded-full border border-brand-border-dark bg-brand-bg-dark px-2 py-0.5 text-xs text-brand-gold transition hover:border-brand-sky-light hover:text-brand-sky-light"
-    >
-      {cast.name}
-    </Link>
-  );
-}
 
 export function LiveCard({
   live,
@@ -56,13 +39,9 @@ export function LiveCard({
         </p>
       </Link>
       {live.casts.length > 0 ? (
-        <ul className="mt-2 flex flex-wrap gap-1.5">
-          {live.casts.map((cast) => (
-            <li key={`${cast.type}-${cast.id}`}>
-              <CastTag cast={cast} />
-            </li>
-          ))}
-        </ul>
+        <div className="mt-2">
+          <PerformerTagList performers={live.casts} />
+        </div>
       ) : null}
     </article>
   );
