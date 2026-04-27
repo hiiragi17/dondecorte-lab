@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getArticle as fetchArticle } from "@/lib/queries/articles";
 import type { CastEntry } from "@/lib/types";
@@ -103,6 +104,8 @@ export default async function ArticleDetailPage({ params }: Props) {
       <p className="mt-6 text-xs text-brand-muted">
         ※ 著作権保護のため本文は転載せず、出典元へのリンクのみを掲載しています。
       </p>
+
+      <MemoSection targetType="article" targetId={article.id} />
     </div>
   );
 }
