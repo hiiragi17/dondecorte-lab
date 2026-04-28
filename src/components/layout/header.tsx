@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/tv", label: "TV" },
   { href: "/topics", label: "トピック" },
   { href: "/combos", label: "コンビ" },
+  { href: "/units", label: "ユニット" },
   { href: "/artists", label: "芸人" },
 ];
 
