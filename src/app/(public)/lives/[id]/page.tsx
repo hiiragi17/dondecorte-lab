@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { MemoSection } from "@/components/features/memo/memo-section";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getLive as fetchLive } from "@/lib/queries/lives";
 import type { CastEntry } from "@/lib/types";
@@ -122,8 +121,6 @@ export default async function LiveDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
-
-      <MemoSection targetType="live" targetId={live.id} />
     </div>
   );
 }

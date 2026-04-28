@@ -18,12 +18,12 @@ const CONTENT_TYPES: ContentType[] = [
 ];
 
 const CONTENT_PATH_MAP: Record<ContentType, string> = {
-  video: "/videos",
-  live: "/lives",
-  radio: "/radios",
-  article: "/articles",
-  tv_show: "/tv",
-  topic: "/topics",
+  video: "/admin/videos",
+  live: "/admin/lives",
+  radio: "/admin/radios",
+  article: "/admin/articles",
+  tv_show: "/admin/tv",
+  topic: "/admin/topics",
 };
 
 const MEMO_MAX_LENGTH = 2000;
@@ -37,7 +37,7 @@ function parseTargetType(value: FormDataEntryValue | null): ContentType | null {
 
 function revalidateTarget(targetType: ContentType, targetId: string) {
   const base = CONTENT_PATH_MAP[targetType];
-  revalidatePath(`${base}/${targetId}`);
+  revalidatePath(`${base}/${targetId}/edit`);
 }
 
 export async function createMemo(

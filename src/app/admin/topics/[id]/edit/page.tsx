@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { TopicForm } from "@/components/features/topic/topic-form";
 import { updateTopic } from "@/lib/actions/topics";
 import { listArtistSummaries } from "@/lib/queries/artists";
@@ -54,6 +55,8 @@ export default async function EditTopicPage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection targetType="topic" targetId={topic.id} />
     </div>
   );
 }

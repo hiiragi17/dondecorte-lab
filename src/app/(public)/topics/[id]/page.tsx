@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { MemoSection } from "@/components/features/memo/memo-section";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getTopic as fetchTopic } from "@/lib/queries/topics";
 import type { CastEntry } from "@/lib/types";
@@ -111,8 +110,6 @@ export default async function TopicDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
-
-      <MemoSection targetType="topic" targetId={topic.id} />
     </div>
   );
 }

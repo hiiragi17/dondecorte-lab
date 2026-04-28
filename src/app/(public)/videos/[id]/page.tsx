@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { MemoSection } from "@/components/features/memo/memo-section";
 import { VideoGrid } from "@/components/features/video/video-grid";
 import { VideoPlayer } from "@/components/features/video/video-player";
 import {
@@ -143,8 +142,6 @@ export default async function VideoDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
-
-      <MemoSection targetType="video" targetId={video.id} />
 
       {related.length > 0 ? (
         <section className="mt-10">
