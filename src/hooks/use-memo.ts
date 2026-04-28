@@ -33,7 +33,7 @@ export function useMemoCreate({ targetType, targetId }: Options) {
           }
         } catch (e) {
           setState({
-            error: e instanceof Error ? e.message : "メモの保存に失敗しました",
+            error: e instanceof Error ? e.message : "感想の保存に失敗しました",
           });
         }
       });
@@ -63,7 +63,7 @@ export function useMemoUpdate({ targetType, targetId }: Options) {
           }
         } catch (e) {
           setState({
-            error: e instanceof Error ? e.message : "メモの保存に失敗しました",
+            error: e instanceof Error ? e.message : "感想の保存に失敗しました",
           });
         }
       });
@@ -89,7 +89,7 @@ export function useMemoDelete({ targetType, targetId }: Options) {
         try {
           await deleteMemo(formData);
         } catch (e) {
-          setError(e instanceof Error ? e.message : "メモの削除に失敗しました");
+          setError(e instanceof Error ? e.message : "感想の削除に失敗しました");
         }
       });
     },

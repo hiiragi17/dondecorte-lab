@@ -15,7 +15,7 @@ export async function listMemos(
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`メモの取得に失敗しました: ${error.message}`);
+    throw new Error(`感想の取得に失敗しました: ${error.message}`);
   }
 
   return (data ?? []) as Memo[];
