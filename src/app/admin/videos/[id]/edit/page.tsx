@@ -55,7 +55,7 @@ export default async function EditVideoPage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="video" targetId={video.id} />
+      <MemoSection targetType="video" targetId={video.id} variant="admin" />
     </div>
   );
 }

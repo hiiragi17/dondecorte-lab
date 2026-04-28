@@ -56,7 +56,7 @@ export default async function EditLivePage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="live" targetId={live.id} />
+      <MemoSection targetType="live" targetId={live.id} variant="admin" />
     </div>
   );
 }

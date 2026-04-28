@@ -56,7 +56,11 @@ export default async function EditArticlePage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="article" targetId={article.id} />
+      <MemoSection
+        targetType="article"
+        targetId={article.id}
+        variant="admin"
+      />
     </div>
   );
 }

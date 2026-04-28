@@ -55,7 +55,7 @@ export default async function EditRadioPage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="radio" targetId={radio.id} />
+      <MemoSection targetType="radio" targetId={radio.id} variant="admin" />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getRadio as fetchRadio } from "@/lib/queries/radios";
 import type { CastEntry } from "@/lib/types";
@@ -108,6 +109,8 @@ export default async function RadioDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+
+      <MemoSection targetType="radio" targetId={radio.id} />
     </div>
   );
 }

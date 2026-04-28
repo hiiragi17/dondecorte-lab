@@ -56,7 +56,7 @@ export default async function EditTopicPage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="topic" targetId={topic.id} />
+      <MemoSection targetType="topic" targetId={topic.id} variant="admin" />
     </div>
   );
 }

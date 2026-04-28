@@ -56,7 +56,11 @@ export default async function EditTvPage({ params }: Props) {
         />
       </div>
 
-      <MemoSection targetType="tv_show" targetId={tvShow.id} />
+      <MemoSection
+        targetType="tv_show"
+        targetId={tvShow.id}
+        variant="admin"
+      />
     </div>
   );
 }
