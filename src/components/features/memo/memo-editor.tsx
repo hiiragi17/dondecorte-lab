@@ -21,7 +21,7 @@ type Props = {
 };
 
 const TEXTAREA_CLASS =
-  "w-full resize-y rounded-md border border-brand-border-dark bg-brand-bg-dark px-3 py-2 text-sm text-brand-cream outline-none transition focus:border-brand-sky";
+  "w-full resize-y rounded-md border border-brand-border-dark bg-brand-bg-dark px-3 py-2 text-sm text-brand-cream outline-none transition-colors duration-150 focus:border-brand-sky-light focus:outline focus:outline-1 focus:outline-brand-sky-light";
 
 export function MemoEditor({ targetType, targetId, memos }: Props) {
   return (

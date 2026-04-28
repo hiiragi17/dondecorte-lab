@@ -17,15 +17,15 @@
   --color-brand-sky-hover: #A8D8EA;
   --color-brand-sky-dark: #4A96B3;
 
-  /* テキスト・装飾 */
+  /* テキスト・装飾（WCAG AA 対応） */
   --color-brand-cream: #F0DFC8;
-  --color-brand-gold: #D4B896;
-  --color-brand-muted: #A68B6B;
+  --color-brand-gold: #E0C8A4;
+  --color-brand-muted: #C4A07E;
 
-  /* ダークモード背景系 */
+  /* ダークモード背景系（WCAG AA 対応） */
   --color-brand-bg-dark: #1A120B;
-  --color-brand-card-dark: #2C1E14;
-  --color-brand-border-dark: #3D2B1E;
+  --color-brand-card-dark: #352417;
+  --color-brand-border-dark: #4E3828;
 
   /* ライトモード背景系 */
   --color-brand-bg-light: #FBF7F1;

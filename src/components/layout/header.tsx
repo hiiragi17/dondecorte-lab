@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/videos", label: "動画" },
@@ -11,28 +14,42 @@ const NAV_ITEMS = [
   { href: "/artists", label: "芸人" },
 ];
 
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function PublicHeader() {
+  const pathname = usePathname();
+
   return (
-    <header className="sticky top-0 z-30 border-b border-brand-border-dark bg-brand-bg-dark/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+    <header className="sticky top-0 z-30 border-b border-brand-border-dark bg-brand-card-dark/95 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
         <Link
           href="/"
-          className="text-base font-bold tracking-wide text-brand-cream transition hover:text-brand-sky-light md:text-lg"
+          className="text-[17px] font-bold tracking-wide text-brand-cream transition-colors hover:text-brand-sky-light"
         >
           DonDecorte Lab
         </Link>
         <nav className="hidden md:block">
           <ul className="flex items-center gap-5 text-sm">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="text-brand-gold transition hover:text-brand-sky-light"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={
+                      active
+                        ? "inline-block border-b-[1.5px] border-brand-sky-light pb-[2px] text-brand-sky-light transition-colors duration-150"
+                        : "inline-block border-b-[1.5px] border-transparent pb-[2px] text-brand-gold transition-colors duration-150 hover:text-brand-sky-light"
+                    }
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </div>
