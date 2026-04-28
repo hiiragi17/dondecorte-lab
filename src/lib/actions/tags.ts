@@ -125,13 +125,21 @@ export async function updateTag(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase.from("tags").update(values).eq("id", id);
+  const { data, error } = await supabase
+    .from("tags")
+    .update(values)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (error.code === "23505") {
       return { fieldErrors: uniqueViolationFieldErrors(error) };
     }
     return { error: `タグの更新に失敗しました: ${error.message}` };
+  }
+  if (!data) {
+    return { error: "対象のタグが見つかりません" };
   }
 
   revalidatePath("/admin/tags");
@@ -153,10 +161,18 @@ export async function deleteTag(formData: FormData): Promise<void> {
     throw new Error("認証が必要です");
   }
 
-  const { error } = await supabase.from("tags").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("tags")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     throw new Error(`タグの削除に失敗しました: ${error.message}`);
+  }
+  if (!data) {
+    throw new Error("対象のタグが見つかりません");
   }
 
   revalidatePath("/admin/tags");
