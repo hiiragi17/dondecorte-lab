@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tag, TagSummary, TagWithCount } from "@/lib/types/tag";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function listTags(): Promise<TagWithCount[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -41,6 +44,8 @@ export async function listTagSummaries(): Promise<TagSummary[]> {
 }
 
 export async function getTag(id: string): Promise<Tag | null> {
+  if (!UUID_PATTERN.test(id)) return null;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tags")
