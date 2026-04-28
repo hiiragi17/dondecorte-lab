@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LiveForm } from "@/components/features/live/live-form";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { updateLive } from "@/lib/actions/lives";
 import { listArtistSummaries } from "@/lib/queries/artists";
 import { listComboSummaries } from "@/lib/queries/combos";
@@ -54,6 +55,8 @@ export default async function EditLivePage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection targetType="live" targetId={live.id} variant="admin" />
     </div>
   );
 }

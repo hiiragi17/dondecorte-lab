@@ -1,5 +1,4 @@
 import { listMemos } from "@/lib/queries/memos";
-import { createClient } from "@/lib/supabase/server";
 import type { ContentType } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 import { MemoEditor } from "./memo-editor";
@@ -7,6 +6,7 @@ import { MemoEditor } from "./memo-editor";
 type Props = {
   targetType: ContentType;
   targetId: string;
+  variant?: "public" | "admin";
 };
 
 function formatTimestamp(value: string): string {
@@ -24,15 +24,12 @@ function formatTimestamp(value: string): string {
   });
 }
 
-export async function MemoSection({ targetType, targetId }: Props) {
-  const [memos, supabase] = await Promise.all([
-    listMemos(targetType, targetId),
-    createClient(),
-  ]);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const canEdit = Boolean(user);
+export async function MemoSection({
+  targetType,
+  targetId,
+  variant = "public",
+}: Props) {
+  const memos = await listMemos(targetType, targetId);
 
   const items = memos.map((memo) => ({
     id: memo.id,
@@ -40,22 +37,39 @@ export async function MemoSection({ targetType, targetId }: Props) {
     timestamp: formatTimestamp(memo.updated_at ?? memo.created_at),
   }));
 
+  if (variant === "admin") {
+    return (
+      <section
+        className="rounded-lg border border-brand-border-light bg-brand-card-light p-6"
+        aria-label="管理者の感想"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-brand-brown-dark md:text-lg">
+            管理者の感想
+          </h2>
+          <span className="text-xs text-brand-brown-light">
+            {items.length}件
+          </span>
+        </div>
+        <MemoEditor targetType={targetType} targetId={targetId} memos={items} />
+      </section>
+    );
+  }
+
   return (
     <section
       className="mt-10 rounded-lg border border-brand-border-dark bg-brand-card-dark p-4"
-      aria-label="メモ"
+      aria-label="管理者の感想"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-brand-cream md:text-lg">
-          メモ
+          管理者の感想
         </h2>
         <span className="text-xs text-brand-muted">{items.length}件</span>
       </div>
 
-      {canEdit ? (
-        <MemoEditor targetType={targetType} targetId={targetId} memos={items} />
-      ) : items.length === 0 ? (
-        <p className="text-sm text-brand-muted">まだメモはありません。</p>
+      {items.length === 0 ? (
+        <p className="text-sm text-brand-muted">まだ感想はありません。</p>
       ) : (
         <ul className="space-y-3">
           {items.map((memo) => (

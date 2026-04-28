@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { VideoForm } from "@/components/features/video/video-form";
 import { updateVideo } from "@/lib/actions/videos";
 import { listArtistSummaries } from "@/lib/queries/artists";
@@ -53,6 +54,8 @@ export default async function EditVideoPage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection targetType="video" targetId={video.id} variant="admin" />
     </div>
   );
 }
