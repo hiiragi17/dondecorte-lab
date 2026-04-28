@@ -51,7 +51,7 @@ export async function createMemo(
 
   if (!targetType) return { error: "対象種別が不正です" };
   if (!UUID_PATTERN.test(targetId)) return { error: "対象IDが不正です" };
-  if (!content) return { fieldError: "メモを入力してください" };
+  if (!content) return { fieldError: "感想を入力してください" };
   if (content.length > MEMO_MAX_LENGTH) {
     return { fieldError: `${MEMO_MAX_LENGTH}文字以内で入力してください` };
   }
@@ -69,7 +69,7 @@ export async function createMemo(
   });
 
   if (error) {
-    return { error: `メモの登録に失敗しました: ${error.message}` };
+    return { error: `感想の登録に失敗しました: ${error.message}` };
   }
 
   revalidateTarget(targetType, targetId);
@@ -85,10 +85,10 @@ export async function updateMemo(
   const targetId = String(formData.get("target_id") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
 
-  if (!UUID_PATTERN.test(id)) return { error: "メモIDが不正です" };
+  if (!UUID_PATTERN.test(id)) return { error: "感想IDが不正です" };
   if (!targetType) return { error: "対象種別が不正です" };
   if (!UUID_PATTERN.test(targetId)) return { error: "対象IDが不正です" };
-  if (!content) return { fieldError: "メモを入力してください" };
+  if (!content) return { fieldError: "感想を入力してください" };
   if (content.length > MEMO_MAX_LENGTH) {
     return { fieldError: `${MEMO_MAX_LENGTH}文字以内で入力してください` };
   }
@@ -107,10 +107,10 @@ export async function updateMemo(
     .maybeSingle();
 
   if (error) {
-    return { error: `メモの更新に失敗しました: ${error.message}` };
+    return { error: `感想の更新に失敗しました: ${error.message}` };
   }
   if (!data) {
-    return { error: "対象のメモが見つかりませんでした" };
+    return { error: "対象の感想が見つかりませんでした" };
   }
 
   revalidateTarget(data.target_type as ContentType, data.target_id as string);
@@ -120,7 +120,7 @@ export async function updateMemo(
 export async function deleteMemo(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "").trim();
 
-  if (!UUID_PATTERN.test(id)) throw new Error("メモIDが不正です");
+  if (!UUID_PATTERN.test(id)) throw new Error("感想IDが不正です");
 
   const supabase = await createClient();
   const {
@@ -136,10 +136,10 @@ export async function deleteMemo(formData: FormData): Promise<void> {
     .maybeSingle();
 
   if (error) {
-    throw new Error(`メモの削除に失敗しました: ${error.message}`);
+    throw new Error(`感想の削除に失敗しました: ${error.message}`);
   }
   if (!data) {
-    throw new Error("対象のメモが見つかりませんでした");
+    throw new Error("対象の感想が見つかりませんでした");
   }
 
   revalidateTarget(data.target_type as ContentType, data.target_id as string);

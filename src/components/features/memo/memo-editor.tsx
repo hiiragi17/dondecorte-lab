@@ -28,7 +28,7 @@ export function MemoEditor({ targetType, targetId, memos }: Props) {
     <div className="space-y-4">
       <MemoCreateForm targetType={targetType} targetId={targetId} />
       {memos.length === 0 ? (
-        <p className="text-sm text-brand-brown-light">まだメモはありません。</p>
+        <p className="text-sm text-brand-brown-light">まだ感想はありません。</p>
       ) : (
         <ul className="space-y-3">
           {memos.map((memo) => (
@@ -70,7 +70,7 @@ function MemoCreateForm({
         name="content"
         rows={3}
         defaultValue=""
-        placeholder="メモを追加..."
+        placeholder="感想を追加..."
         className={TEXTAREA_CLASS}
         disabled={pending}
       />
@@ -157,7 +157,7 @@ function MemoView({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm("このメモを削除しますか？")) remove(memo.id);
+              if (window.confirm("この感想を削除しますか？")) remove(memo.id);
             }}
             disabled={pending}
             className="text-[11px] text-red-600 transition hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"

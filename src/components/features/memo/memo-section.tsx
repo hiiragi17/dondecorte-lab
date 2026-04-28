@@ -41,11 +41,11 @@ export async function MemoSection({
     return (
       <section
         className="rounded-lg border border-brand-border-light bg-brand-card-light p-6"
-        aria-label="メモ"
+        aria-label="管理者の感想"
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-brand-brown-dark md:text-lg">
-            メモ
+            管理者の感想
           </h2>
           <span className="text-xs text-brand-brown-light">
             {items.length}件
@@ -59,17 +59,17 @@ export async function MemoSection({
   return (
     <section
       className="mt-10 rounded-lg border border-brand-border-dark bg-brand-card-dark p-4"
-      aria-label="メモ"
+      aria-label="管理者の感想"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-brand-cream md:text-lg">
-          メモ
+          管理者の感想
         </h2>
         <span className="text-xs text-brand-muted">{items.length}件</span>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-brand-muted">まだメモはありません。</p>
+        <p className="text-sm text-brand-muted">まだ感想はありません。</p>
       ) : (
         <ul className="space-y-3">
           {items.map((memo) => (
