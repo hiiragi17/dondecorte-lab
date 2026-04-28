@@ -18,6 +18,7 @@ const CARDS: DashboardCard[] = [
   { label: "記事", table: "articles", href: "/admin/articles" },
   { label: "テレビ", table: "tv_shows", href: "/admin/tv" },
   { label: "トピック", table: "topics", href: "/admin/topics" },
+  { label: "タグ", table: "tags", href: "/admin/tags" },
 ];
 
 async function fetchCounts() {

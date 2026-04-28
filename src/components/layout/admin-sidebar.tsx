@@ -20,6 +20,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/articles", label: "記事（Articles）" },
   { href: "/admin/tv", label: "テレビ（TV）" },
   { href: "/admin/topics", label: "トピック（Topics）" },
+  { href: "/admin/tags", label: "タグ（Tags）" },
 ];
 
 function isActive(pathname: string, href: string) {
