@@ -17,6 +17,13 @@ create table tags (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
+  -- アプリ側（src/lib/actions/tags.ts）と同じ制約をDBレベルでも担保する
+  check (char_length(btrim(name)) between 1 and 50),
+  check (char_length(slug) between 1 and 50),
+  check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  check (description is null or char_length(description) <= 200),
+  check (color is null or color ~* '^#(?:[0-9a-f]{3}|[0-9a-f]{6})$'),
+
   unique (name),
   unique (slug)
 );

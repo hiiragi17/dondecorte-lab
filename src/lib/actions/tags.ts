@@ -16,6 +16,17 @@ const UUID_PATTERN =
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
+function uniqueViolationFieldErrors(error: {
+  message: string;
+  details?: string | null;
+}): TagFormState["fieldErrors"] {
+  const detail = `${error.message} ${error.details ?? ""}`;
+  if (detail.includes("tags_slug_key") || detail.includes("(slug)")) {
+    return { slug: "同じスラッグのタグが既に存在します" };
+  }
+  return { name: "同じ名前のタグが既に存在します" };
+}
+
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -84,11 +95,7 @@ export async function createTag(
 
   if (error) {
     if (error.code === "23505") {
-      return {
-        fieldErrors: {
-          name: "同じ名前またはスラッグのタグが既に存在します",
-        },
-      };
+      return { fieldErrors: uniqueViolationFieldErrors(error) };
     }
     return { error: `タグの登録に失敗しました: ${error.message}` };
   }
@@ -122,11 +129,7 @@ export async function updateTag(
 
   if (error) {
     if (error.code === "23505") {
-      return {
-        fieldErrors: {
-          name: "同じ名前またはスラッグのタグが既に存在します",
-        },
-      };
+      return { fieldErrors: uniqueViolationFieldErrors(error) };
     }
     return { error: `タグの更新に失敗しました: ${error.message}` };
   }
