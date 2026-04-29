@@ -25,6 +25,7 @@ insert into videos (
 on conflict (youtube_video_id) do update set
   title = excluded.title,
   youtube_url = excluded.youtube_url,
+  youtube_channel_id = excluded.youtube_channel_id,
   thumbnail_url = excluded.thumbnail_url,
   published_at = excluded.published_at,
   description = excluded.description,

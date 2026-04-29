@@ -10,6 +10,8 @@
 --
 -- 各ファイルは ON CONFLICT 句により再実行しても安全（idempotent）。
 
+begin;
+
 \ir seeds/01_artists.sql
 \ir seeds/02_comedy_groups.sql
 \ir seeds/03_comedy_group_members.sql
@@ -17,3 +19,5 @@
 \ir seeds/05_videos.sql
 \ir seeds/06_lives.sql
 \ir seeds/07_radios.sql
+
+commit;

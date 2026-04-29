@@ -44,6 +44,7 @@ insert into achievements (
     'M-1グランプリ 2019', '準々決勝進出', 2019, 40
   )
 on conflict (id) do update set
+  comedy_group_id = excluded.comedy_group_id,
   title = excluded.title,
   result = excluded.result,
   year = excluded.year,
@@ -59,6 +60,7 @@ insert into achievements (
     'R-1グランプリ 2026', 'ファイナルステージ進出', 2026, 100
   )
 on conflict (id) do update set
+  artist_id = excluded.artist_id,
   title = excluded.title,
   result = excluded.result,
   year = excluded.year,
