@@ -1,0 +1,36 @@
+-- ============================================
+-- 05. videos（YouTube動画）
+-- ============================================
+-- ドンデコルテ公式チャンネル（UC4y-_Xwudf7gB5sXsbipDkQ）の動画。
+--
+-- ※ 動画は基本的に YouTube Data API による自動同期で投入する想定だが、
+--    seed.sql では代表動画の枠だけ用意し、個別の YouTube ID は API 同期後に
+--    UPDATE する運用とする。
+--    ここでは仮データを置かず、代わりに API 同期スクリプトのプレースホルダとして
+--    空のままにする。実データは管理画面 or バッチから投入してください。
+--
+-- 投入したい場合のサンプル:
+-- insert into videos (
+--   id, title, youtube_url, youtube_video_id, youtube_channel_id,
+--   thumbnail_url, published_at, description
+-- ) values (
+--   gen_random_uuid(),
+--   '【漫才】ドンデコルテ「○○○」',
+--   'https://www.youtube.com/watch?v=XXXXXXXXXXX',
+--   'XXXXXXXXXXX',
+--   'UC4y-_Xwudf7gB5sXsbipDkQ',
+--   'https://i.ytimg.com/vi/XXXXXXXXXXX/hqdefault.jpg',
+--   '2025-12-21 21:00:00+09',
+--   'M-1グランプリ2025 1stラウンドのネタ等'
+-- )
+-- on conflict (youtube_video_id) do update set
+--   title = excluded.title,
+--   thumbnail_url = excluded.thumbnail_url,
+--   published_at = excluded.published_at,
+--   description = excluded.description,
+--   updated_at = now();
+--
+-- 投入後は video_casts に出演登録（comedy_group_id = ドンデコルテ）も忘れずに。
+
+-- 現状は no-op
+select 1 where false;
