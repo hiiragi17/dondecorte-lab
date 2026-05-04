@@ -3,12 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
-import { VideoGrid } from "@/components/features/video/video-grid";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { VideoPlayer } from "@/components/features/video/video-player";
-import {
-  getVideo as fetchVideo,
-  listRelatedVideos,
-} from "@/lib/queries/videos";
+import { getRelatedContents } from "@/lib/queries/related-contents";
+import { getVideo as fetchVideo } from "@/lib/queries/videos";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 
@@ -82,7 +80,12 @@ export default async function VideoDetailPage({ params }: Props) {
   const video = await getVideo(id);
   if (!video) notFound();
 
-  const related = await listRelatedVideos(video.id, RELATED_LIMIT);
+  const related = await getRelatedContents(
+    "video",
+    video.id,
+    video.casts,
+    RELATED_LIMIT
+  );
   const published = formatDate(video.published_at);
 
   return (
@@ -146,14 +149,14 @@ export default async function VideoDetailPage({ params }: Props) {
 
       <MemoSection targetType="video" targetId={video.id} />
 
-      {related.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="mb-4 text-lg font-semibold text-brand-cream md:text-xl">
-            関連動画
-          </h2>
-          <VideoGrid videos={related} />
-        </section>
-      ) : null}
+      <RelatedContents
+        videos={related.videos}
+        lives={related.lives}
+        radios={related.radios}
+        tvShows={related.tvShows}
+        articles={related.articles}
+        topics={related.topics}
+      />
     </div>
   );
 }

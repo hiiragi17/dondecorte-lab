@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getLive as fetchLive } from "@/lib/queries/lives";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
 import { normalizeExternalUrl } from "@/lib/utils/url";
@@ -18,6 +20,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(live: {
   description: string | null;
@@ -64,6 +67,12 @@ export default async function LiveDetailPage({ params }: Props) {
   const startTime = formatTime(live.start_time);
   const safeUrl = normalizeExternalUrl(live.url);
   const description = live.description?.trim() ? live.description : null;
+  const related = await getRelatedContents(
+    "live",
+    live.id,
+    live.casts,
+    RELATED_LIMIT
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -124,6 +133,15 @@ export default async function LiveDetailPage({ params }: Props) {
       ) : null}
 
       <MemoSection targetType="live" targetId={live.id} />
+
+      <RelatedContents
+        videos={related.videos}
+        lives={related.lives}
+        radios={related.radios}
+        tvShows={related.tvShows}
+        articles={related.articles}
+        topics={related.topics}
+      />
     </div>
   );
 }

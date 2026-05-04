@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getArticle as fetchArticle } from "@/lib/queries/articles";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 
@@ -17,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(article: {
   casts: CastEntry[];
@@ -57,6 +60,12 @@ export default async function ArticleDetailPage({ params }: Props) {
   if (!article) notFound();
 
   const published = formatDate(article.published_at);
+  const related = await getRelatedContents(
+    "article",
+    article.id,
+    article.casts,
+    RELATED_LIMIT
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -106,6 +115,15 @@ export default async function ArticleDetailPage({ params }: Props) {
       </p>
 
       <MemoSection targetType="article" targetId={article.id} />
+
+      <RelatedContents
+        videos={related.videos}
+        lives={related.lives}
+        radios={related.radios}
+        tvShows={related.tvShows}
+        articles={related.articles}
+        topics={related.topics}
+      />
     </div>
   );
 }

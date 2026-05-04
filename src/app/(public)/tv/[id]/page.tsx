@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import { getTvShow as fetchTvShow } from "@/lib/queries/tv-shows";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
@@ -17,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(tvShow: {
   description: string | null;
@@ -61,6 +64,12 @@ export default async function TvDetailPage({ params }: Props) {
 
   const airDate = formatDate(tvShow.air_date);
   const airTime = formatTime(tvShow.air_time);
+  const related = await getRelatedContents(
+    "tv_show",
+    tvShow.id,
+    tvShow.casts,
+    RELATED_LIMIT
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -121,6 +130,15 @@ export default async function TvDetailPage({ params }: Props) {
       ) : null}
 
       <MemoSection targetType="tv_show" targetId={tvShow.id} />
+
+      <RelatedContents
+        videos={related.videos}
+        lives={related.lives}
+        radios={related.radios}
+        tvShows={related.tvShows}
+        articles={related.articles}
+        topics={related.topics}
+      />
     </div>
   );
 }
