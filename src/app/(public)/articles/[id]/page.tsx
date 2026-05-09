@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getArticle as fetchArticle } from "@/lib/queries/articles";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 
@@ -17,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(article: {
   casts: CastEntry[];
@@ -56,6 +59,11 @@ export default async function ArticleDetailPage({ params }: Props) {
   const article = await getArticle(id);
   if (!article) notFound();
 
+  const related = await getRelatedContents(
+    article.casts,
+    { type: "article", id: article.id },
+    RELATED_LIMIT
+  );
   const published = formatDate(article.published_at);
 
   return (
@@ -106,6 +114,8 @@ export default async function ArticleDetailPage({ params }: Props) {
       </p>
 
       <MemoSection targetType="article" targetId={article.id} />
+
+      <RelatedContents contents={related} />
     </div>
   );
 }
