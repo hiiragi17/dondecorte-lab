@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getRadio as fetchRadio } from "@/lib/queries/radios";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
 
@@ -17,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(radio: {
   description: string | null;
@@ -57,6 +60,11 @@ export default async function RadioDetailPage({ params }: Props) {
   const radio = await getRadio(id);
   if (!radio) notFound();
 
+  const related = await getRelatedContents(
+    radio.casts,
+    { type: "radio", id: radio.id },
+    RELATED_LIMIT
+  );
   const published = formatDate(radio.published_at);
 
   return (
@@ -111,6 +119,8 @@ export default async function RadioDetailPage({ params }: Props) {
       ) : null}
 
       <MemoSection targetType="radio" targetId={radio.id} />
+
+      <RelatedContents contents={related} />
     </div>
   );
 }
