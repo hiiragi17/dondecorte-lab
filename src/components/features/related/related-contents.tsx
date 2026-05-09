@@ -10,6 +10,29 @@ type Props = {
   contents: RelatedContentsType;
 };
 
+const BUSINESS_TIMEZONE = "Asia/Tokyo";
+
+function todayInBusinessTimezone(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+}
+
+function liveVariant(
+  eventDate: string | null,
+  today: string
+): "upcoming" | "past" {
+  if (!eventDate) return "past";
+  return eventDate >= today ? "upcoming" : "past";
+}
+
 export function RelatedContents({ contents }: Props) {
   const { videos, lives, radios, articles, tvShows, topics } = contents;
   const total =
@@ -21,6 +44,8 @@ export function RelatedContents({ contents }: Props) {
     topics.length;
 
   if (total === 0) return null;
+
+  const today = todayInBusinessTimezone();
 
   return (
     <section className="mt-10 space-y-8">
@@ -51,7 +76,7 @@ export function RelatedContents({ contents }: Props) {
           <ul className="space-y-3">
             {lives.map((l) => (
               <li key={l.id}>
-                <LiveCard live={l} variant="past" />
+                <LiveCard live={l} variant={liveVariant(l.event_date, today)} />
               </li>
             ))}
           </ul>
