@@ -71,9 +71,9 @@ export default async function Home() {
     recentContentRes.status === "fulfilled" ? recentContentRes.value : [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-5">
-      <section className="mb-10 border-b border-brand-border-dark pt-14 pb-12">
-        <h1 className="text-3xl font-bold text-brand-cream">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-5">
+      <section className="mb-8 border-b border-brand-border-dark pt-10 pb-8 sm:mb-10 sm:pt-14 sm:pb-12">
+        <h1 className="text-2xl font-bold text-brand-cream sm:text-3xl">
           DonDecorte Lab
         </h1>
         <p

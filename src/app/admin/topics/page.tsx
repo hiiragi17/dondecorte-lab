@@ -30,7 +30,7 @@ export default async function AdminTopicsPage() {
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-brand-border-light bg-brand-card-light">
+      <div className="overflow-x-auto rounded-lg border border-brand-border-light bg-brand-card-light">
         {topics.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-brand-brown-light">
             まだトピックが登録されていません。
