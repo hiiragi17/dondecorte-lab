@@ -97,20 +97,33 @@ export function AdminMobileMenu() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    const mql = window.matchMedia("(min-width: 768px)");
+    const onMediaChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setOpen(false);
+    };
     document.addEventListener("keydown", onKey);
+    mql.addEventListener("change", onMediaChange);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
+      mql.removeEventListener("change", onMediaChange);
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
+
+  const handleOpen = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+      return;
+    }
+    setOpen(true);
+  };
 
   return (
     <div className="md:hidden">
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         aria-label="メニューを開く"
         aria-expanded={open}
         aria-controls="admin-mobile-drawer"
