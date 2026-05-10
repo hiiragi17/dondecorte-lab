@@ -155,7 +155,7 @@ export function AdminMobileMenu() {
           className="fixed inset-0 z-50"
         >
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-brand-brown-dark/40"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
