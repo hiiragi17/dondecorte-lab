@@ -28,7 +28,7 @@ function sortKey(item: TimelineItem): string {
   return item.date ?? item.createdAt;
 }
 
-export async function listTimeline(limit = 200): Promise<TimelineItem[]> {
+export async function listTimeline(limit?: number): Promise<TimelineItem[]> {
   const supabase = await createClient();
 
   const [videos, lives, radios, articles, tvShows, topics] = await Promise.all([
@@ -36,38 +36,32 @@ export async function listTimeline(limit = 200): Promise<TimelineItem[]> {
       .from("videos")
       .select(`id, title, published_at, created_at, video_casts(${CAST_SUBSELECT})`)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
     supabase
       .from("lives")
       .select(`id, title, event_date, created_at, live_casts(${CAST_SUBSELECT})`)
       .order("event_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
     supabase
       .from("radios")
       .select(`id, title, published_at, created_at, radio_casts(${CAST_SUBSELECT})`)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
     supabase
       .from("articles")
       .select(`id, title, published_at, created_at, article_casts(${CAST_SUBSELECT})`)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
     supabase
       .from("tv_shows")
       .select(`id, title, air_date, created_at, tv_show_casts(${CAST_SUBSELECT})`)
       .order("air_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
     supabase
       .from("topics")
       .select(`id, title, topic_date, created_at, topic_casts(${CAST_SUBSELECT})`)
       .order("topic_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit),
+      .order("created_at", { ascending: false }),
   ]);
 
   const errors = [videos, lives, radios, articles, tvShows, topics]
@@ -128,6 +122,10 @@ export async function listTimeline(limit = 200): Promise<TimelineItem[]> {
     })),
   ];
 
-  items.sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
-  return items.slice(0, limit);
+  items.sort((a, b) => {
+    const aKey = sortKey(a);
+    const bKey = sortKey(b);
+    return aKey < bKey ? 1 : aKey > bKey ? -1 : 0;
+  });
+  return typeof limit === "number" ? items.slice(0, limit) : items;
 }
