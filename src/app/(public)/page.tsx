@@ -256,7 +256,7 @@ function VideoThumbnailPlaceholder({ title }: { title: string }) {
 function RecentContentSection({ items }: { items: RecentContentItem[] }) {
   return (
     <section className="mb-10 md:mb-14">
-      <SectionHeader title="最近追加されたコンテンツ" />
+      <SectionHeader title="最近追加されたコンテンツ" href="/timeline" />
       {items.length === 0 ? (
         <p className="rounded-lg border border-brand-border-dark bg-brand-card-dark px-4 py-6 text-sm text-brand-muted">
           まだコンテンツが登録されていません。
