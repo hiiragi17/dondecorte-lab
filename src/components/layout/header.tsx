@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
+  { href: "/timeline", label: "タイムライン" },
   { href: "/videos", label: "動画" },
   { href: "/lives", label: "ライブ" },
   { href: "/radios", label: "ラジオ" },
