@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { Radio, RadioWithCasts } from "@/lib/types/radio";
 
 function toRadioBase(row: Record<string, unknown>): Radio {
@@ -15,13 +19,32 @@ function toRadioBase(row: Record<string, unknown>): Radio {
   };
 }
 
-export async function listRadios(): Promise<Radio[]> {
+export async function listRadios(options: ListOptions = {}): Promise<Radio[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "radio_casts",
+      "radio_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("radios")
     .select("*")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("published_at", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ラジオ一覧の取得に失敗しました: ${error.message}`);
@@ -30,9 +53,24 @@ export async function listRadios(): Promise<Radio[]> {
   return (data ?? []) as Radio[];
 }
 
-export async function listRadiosWithCasts(): Promise<RadioWithCasts[]> {
+export async function listRadiosWithCasts(
+  options: ListOptions = {}
+): Promise<RadioWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "radio_casts",
+      "radio_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("radios")
     .select(
       `*,
@@ -46,8 +84,14 @@ export async function listRadiosWithCasts(): Promise<RadioWithCasts[]> {
          unit:units(id, name)
        )`
     )
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("published_at", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ラジオ一覧の取得に失敗しました: ${error.message}`);

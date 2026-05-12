@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { ArticleCard } from "@/components/features/article/article-card";
+import { ListFilterBar } from "@/components/shared/list-filter-bar";
+import {
+  parsePerformerParam,
+  parseSortParam,
+} from "@/lib/queries/_list-options";
 import { listArticlesWithCasts } from "@/lib/queries/articles";
+import { listAllPerformers } from "@/lib/queries/performers";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +22,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ArticlesPage() {
-  const articles = await listArticlesWithCasts();
+type SearchParams = Promise<{
+  sort?: string | string[];
+  performer?: string | string[];
+}>;
+
+export default async function ArticlesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const sort = parseSortParam(params.sort);
+  const performer = parsePerformerParam(params.performer);
+
+  const [articles, performers] = await Promise.all([
+    listArticlesWithCasts({ sort, performer }),
+    listAllPerformers(),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:py-12">
@@ -29,6 +51,8 @@ export default async function ArticlesPage() {
           ドンデコルテさん関連の記事・インタビュー。本文は転載せず、出典元へのリンクのみ掲載しています。
         </p>
       </header>
+
+      <ListFilterBar performers={performers} />
 
       {articles.length === 0 ? (
         <p className="rounded-lg border border-brand-border-dark bg-brand-card-dark px-4 py-6 text-sm text-brand-muted">
