@@ -13,8 +13,16 @@ describe("getSiteUrl", () => {
   });
 
   afterEach(() => {
-    process.env.NEXT_PUBLIC_SITE_URL = original.siteUrl;
-    process.env.VERCEL_URL = original.vercelUrl;
+    if (original.siteUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_SITE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_SITE_URL = original.siteUrl;
+    }
+    if (original.vercelUrl === undefined) {
+      delete process.env.VERCEL_URL;
+    } else {
+      process.env.VERCEL_URL = original.vercelUrl;
+    }
   });
 
   it("NEXT_PUBLIC_SITE_URL を優先して origin を返す", () => {

@@ -10,11 +10,14 @@ describe("formatDate", () => {
     expect(formatDate("2026-01-03")).toBe("2026年1月3日");
   });
 
-  it("ISO 8601 形式の文字列を Asia/Tokyo の日付に整形する", () => {
-    const result = formatDate("2026-05-12T00:00:00.000Z");
-    expect(result).toContain("2026");
-    expect(result).toContain("5");
-    expect(result).toContain("12");
+  it("UTC の ISO 8601 文字列を Asia/Tokyo の日付に変換する", () => {
+    // 2026-05-11T15:00:00Z は JST で 2026-05-12T00:00:00
+    expect(formatDate("2026-05-11T15:00:00.000Z")).toBe("2026年5月12日");
+  });
+
+  it("UTC の深夜は JST では翌日として扱われる", () => {
+    // 2026-05-11T16:00:00Z は JST で 2026-05-12T01:00:00
+    expect(formatDate("2026-05-11T16:00:00.000Z")).toBe("2026年5月12日");
   });
 
   it("null や空文字に対して null を返す", () => {
@@ -36,9 +39,9 @@ describe("formatTime", () => {
     expect(formatTime("19:30:45")).toBe("19:30");
   });
 
-  it("ISO 8601 形式の文字列を Asia/Tokyo の HH:MM に整形する", () => {
-    const result = formatTime("2026-05-12T10:30:00.000Z");
-    expect(result).toMatch(/^\d{2}:\d{2}$/);
+  it("UTC の ISO 8601 文字列を Asia/Tokyo の HH:MM に変換する", () => {
+    // 2026-05-12T10:30:00Z は JST で 19:30
+    expect(formatTime("2026-05-12T10:30:00.000Z")).toBe("19:30");
   });
 
   it("null や空文字に対して null を返す", () => {
