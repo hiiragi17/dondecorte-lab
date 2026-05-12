@@ -52,6 +52,9 @@ export async function getIdsForPerformer<K extends string>(
   return Array.from(new Set(ids));
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function parsePerformerParam(
   raw: string | string[] | null | undefined
 ): PerformerFilter | null {
@@ -61,7 +64,7 @@ export function parsePerformerParam(
   if (sep < 0) return null;
   const type = value.slice(0, sep);
   const id = value.slice(sep + 1);
-  if (!id) return null;
+  if (!UUID_PATTERN.test(id)) return null;
   if (type !== "artist" && type !== "comedy_group" && type !== "unit") {
     return null;
   }
