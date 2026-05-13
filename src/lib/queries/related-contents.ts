@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { createClient } from "@/lib/supabase/server";
 import type { CastEntry, ContentType } from "@/lib/types";
 import type { ArticleWithCasts } from "@/lib/types/article";
 import type { LiveWithCasts } from "@/lib/types/live";
@@ -17,6 +17,15 @@ export type RelatedContents = {
   topics: TopicWithCasts[];
 };
 
+const EMPTY: RelatedContents = {
+  videos: [],
+  lives: [],
+  radios: [],
+  articles: [],
+  tvShows: [],
+  topics: [],
+};
+
 const CAST_SUBSELECT = `
   id,
   artist_id,
@@ -30,7 +39,7 @@ const CAST_SUBSELECT = `
 type Row = Record<string, unknown>;
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-type CastTableName =
+type CastTable =
   | "video_casts"
   | "live_casts"
   | "radio_casts"
@@ -38,44 +47,40 @@ type CastTableName =
   | "tv_show_casts"
   | "topic_casts";
 
-function castsOf(record: Row, key: string): CastEntry[] {
-  return mapCasts(record[key] as CastRow[] | null | undefined);
-}
-
-function partitionCasts(casts: CastEntry[]) {
+function partitionCasts(casts: CastEntry[]): {
+  artistIds: string[];
+  comedyGroupIds: string[];
+  unitIds: string[];
+} {
   const artistIds: string[] = [];
   const comedyGroupIds: string[] = [];
   const unitIds: string[] = [];
   for (const c of casts) {
     if (c.type === "artist") artistIds.push(c.id);
     else if (c.type === "comedy_group") comedyGroupIds.push(c.id);
-    else unitIds.push(c.id);
+    else if (c.type === "unit") unitIds.push(c.id);
   }
   return { artistIds, comedyGroupIds, unitIds };
 }
 
 async function listMatchingParentIds<K extends string>(
   supabase: SupabaseClient,
-  castTable: CastTableName,
+  castTable: CastTable,
   parentIdField: K,
-  artistIds: string[],
-  comedyGroupIds: string[],
-  unitIds: string[]
+  partitioned: ReturnType<typeof partitionCasts>
 ): Promise<string[]> {
-  if (
-    artistIds.length === 0 &&
-    comedyGroupIds.length === 0 &&
-    unitIds.length === 0
-  ) {
-    return [];
-  }
-
+  const { artistIds, comedyGroupIds, unitIds } = partitioned;
   const filters: string[] = [];
-  if (artistIds.length > 0)
+  if (artistIds.length > 0) {
     filters.push(`artist_id.in.(${artistIds.join(",")})`);
-  if (comedyGroupIds.length > 0)
+  }
+  if (comedyGroupIds.length > 0) {
     filters.push(`comedy_group_id.in.(${comedyGroupIds.join(",")})`);
-  if (unitIds.length > 0) filters.push(`unit_id.in.(${unitIds.join(",")})`);
+  }
+  if (unitIds.length > 0) {
+    filters.push(`unit_id.in.(${unitIds.join(",")})`);
+  }
+  if (filters.length === 0) return [];
 
   const { data, error } = await supabase
     .from(castTable)
@@ -95,152 +100,107 @@ async function listMatchingParentIds<K extends string>(
   return Array.from(new Set(ids));
 }
 
+function castsOf(record: Row, key: string) {
+  return mapCasts(record[key] as CastRow[] | null | undefined);
+}
+
 export async function getRelatedContents(
-  contentType: ContentType,
-  excludeId: string,
   casts: CastEntry[],
-  limitPerType: number
+  exclude: { type: ContentType; id: string },
+  limit: number
 ): Promise<RelatedContents> {
-  const { artistIds, comedyGroupIds, unitIds } = partitionCasts(casts);
-
-  const empty: RelatedContents = {
-    videos: [],
-    lives: [],
-    radios: [],
-    articles: [],
-    tvShows: [],
-    topics: [],
-  };
-
-  if (
-    artistIds.length === 0 &&
-    comedyGroupIds.length === 0 &&
-    unitIds.length === 0
-  ) {
-    return empty;
-  }
+  if (casts.length === 0) return EMPTY;
 
   const supabase = await createClient();
+  const partitioned = partitionCasts(casts);
 
   const [videoIds, liveIds, radioIds, articleIds, tvShowIds, topicIds] =
     await Promise.all([
-      listMatchingParentIds(
-        supabase,
-        "video_casts",
-        "video_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
-      ),
-      listMatchingParentIds(
-        supabase,
-        "live_casts",
-        "live_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
-      ),
-      listMatchingParentIds(
-        supabase,
-        "radio_casts",
-        "radio_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
-      ),
+      listMatchingParentIds(supabase, "video_casts", "video_id", partitioned),
+      listMatchingParentIds(supabase, "live_casts", "live_id", partitioned),
+      listMatchingParentIds(supabase, "radio_casts", "radio_id", partitioned),
       listMatchingParentIds(
         supabase,
         "article_casts",
         "article_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
+        partitioned
       ),
       listMatchingParentIds(
         supabase,
         "tv_show_casts",
         "tv_show_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
+        partitioned
       ),
-      listMatchingParentIds(
-        supabase,
-        "topic_casts",
-        "topic_id",
-        artistIds,
-        comedyGroupIds,
-        unitIds
-      ),
+      listMatchingParentIds(supabase, "topic_casts", "topic_id", partitioned),
     ]);
 
-  const filterIds = (ids: string[], type: ContentType) =>
-    contentType === type ? ids.filter((id) => id !== excludeId) : ids;
+  const filterIds = (ids: string[], excludeType: ContentType) =>
+    exclude.type === excludeType ? ids.filter((id) => id !== exclude.id) : ids;
 
-  const targetVideoIds = filterIds(videoIds, "video");
-  const targetLiveIds = filterIds(liveIds, "live");
-  const targetRadioIds = filterIds(radioIds, "radio");
-  const targetArticleIds = filterIds(articleIds, "article");
-  const targetTvShowIds = filterIds(tvShowIds, "tv_show");
-  const targetTopicIds = filterIds(topicIds, "topic");
+  const videoTargets = filterIds(videoIds, "video");
+  const liveTargets = filterIds(liveIds, "live");
+  const radioTargets = filterIds(radioIds, "radio");
+  const articleTargets = filterIds(articleIds, "article");
+  const tvShowTargets = filterIds(tvShowIds, "tv_show");
+  const topicTargets = filterIds(topicIds, "topic");
 
   const [videosRes, livesRes, radiosRes, articlesRes, tvShowsRes, topicsRes] =
     await Promise.all([
-      targetVideoIds.length > 0
+      videoTargets.length > 0
         ? supabase
             .from("videos")
             .select(`*, video_casts(${CAST_SUBSELECT})`)
-            .in("id", targetVideoIds)
+            .in("id", videoTargets)
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
-      targetLiveIds.length > 0
+      liveTargets.length > 0
         ? supabase
             .from("lives")
             .select(`*, live_casts(${CAST_SUBSELECT})`)
-            .in("id", targetLiveIds)
+            .in("id", liveTargets)
             .order("event_date", { ascending: false, nullsFirst: false })
             .order("start_time", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
-      targetRadioIds.length > 0
+      radioTargets.length > 0
         ? supabase
             .from("radios")
             .select(`*, radio_casts(${CAST_SUBSELECT})`)
-            .in("id", targetRadioIds)
+            .in("id", radioTargets)
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
-      targetArticleIds.length > 0
+      articleTargets.length > 0
         ? supabase
             .from("articles")
             .select(`*, article_casts(${CAST_SUBSELECT})`)
-            .in("id", targetArticleIds)
+            .in("id", articleTargets)
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
-      targetTvShowIds.length > 0
+      tvShowTargets.length > 0
         ? supabase
             .from("tv_shows")
             .select(`*, tv_show_casts(${CAST_SUBSELECT})`)
-            .in("id", targetTvShowIds)
+            .in("id", tvShowTargets)
             .order("air_date", { ascending: false, nullsFirst: false })
             .order("air_time", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
-      targetTopicIds.length > 0
+      topicTargets.length > 0
         ? supabase
             .from("topics")
             .select(`*, topic_casts(${CAST_SUBSELECT})`)
-            .in("id", targetTopicIds)
+            .in("id", topicTargets)
             .order("topic_date", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
-            .limit(limitPerType)
+            .limit(limit)
         : Promise.resolve({ data: [], error: null }),
     ]);
 
@@ -262,19 +222,21 @@ export async function getRelatedContents(
     );
   }
 
-  const videos: VideoWithCasts[] = ((videosRes.data ?? []) as Row[]).map((r) => ({
-    id: r.id as string,
-    title: r.title as string,
-    youtube_url: (r.youtube_url as string | null) ?? null,
-    youtube_video_id: (r.youtube_video_id as string | null) ?? null,
-    youtube_channel_id: (r.youtube_channel_id as string | null) ?? null,
-    thumbnail_url: (r.thumbnail_url as string | null) ?? null,
-    published_at: (r.published_at as string | null) ?? null,
-    description: (r.description as string | null) ?? null,
-    created_at: r.created_at as string,
-    updated_at: r.updated_at as string,
-    casts: castsOf(r, "video_casts"),
-  }));
+  const videos: VideoWithCasts[] = ((videosRes.data ?? []) as Row[]).map(
+    (r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      youtube_url: (r.youtube_url as string | null) ?? null,
+      youtube_video_id: (r.youtube_video_id as string | null) ?? null,
+      youtube_channel_id: (r.youtube_channel_id as string | null) ?? null,
+      thumbnail_url: (r.thumbnail_url as string | null) ?? null,
+      published_at: (r.published_at as string | null) ?? null,
+      description: (r.description as string | null) ?? null,
+      created_at: r.created_at as string,
+      updated_at: r.updated_at as string,
+      casts: castsOf(r, "video_casts"),
+    })
+  );
 
   const lives: LiveWithCasts[] = ((livesRes.data ?? []) as Row[]).map((r) => ({
     id: r.id as string,
@@ -290,17 +252,19 @@ export async function getRelatedContents(
     casts: castsOf(r, "live_casts"),
   }));
 
-  const radios: RadioWithCasts[] = ((radiosRes.data ?? []) as Row[]).map((r) => ({
-    id: r.id as string,
-    title: r.title as string,
-    platform: (r.platform as string | null) ?? null,
-    url: (r.url as string | null) ?? null,
-    published_at: (r.published_at as string | null) ?? null,
-    description: (r.description as string | null) ?? null,
-    created_at: r.created_at as string,
-    updated_at: r.updated_at as string,
-    casts: castsOf(r, "radio_casts"),
-  }));
+  const radios: RadioWithCasts[] = ((radiosRes.data ?? []) as Row[]).map(
+    (r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      platform: (r.platform as string | null) ?? null,
+      url: (r.url as string | null) ?? null,
+      published_at: (r.published_at as string | null) ?? null,
+      description: (r.description as string | null) ?? null,
+      created_at: r.created_at as string,
+      updated_at: r.updated_at as string,
+      casts: castsOf(r, "radio_casts"),
+    })
+  );
 
   const articles: ArticleWithCasts[] = ((articlesRes.data ?? []) as Row[]).map(
     (r) => ({
@@ -331,17 +295,19 @@ export async function getRelatedContents(
     })
   );
 
-  const topics: TopicWithCasts[] = ((topicsRes.data ?? []) as Row[]).map((r) => ({
-    id: r.id as string,
-    title: r.title as string,
-    content: (r.content as string | null) ?? null,
-    url: (r.url as string | null) ?? null,
-    source: (r.source as string | null) ?? null,
-    topic_date: (r.topic_date as string | null) ?? null,
-    created_at: r.created_at as string,
-    updated_at: r.updated_at as string,
-    casts: castsOf(r, "topic_casts"),
-  }));
+  const topics: TopicWithCasts[] = ((topicsRes.data ?? []) as Row[]).map(
+    (r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      content: (r.content as string | null) ?? null,
+      url: (r.url as string | null) ?? null,
+      source: (r.source as string | null) ?? null,
+      topic_date: (r.topic_date as string | null) ?? null,
+      created_at: r.created_at as string,
+      updated_at: r.updated_at as string,
+      casts: castsOf(r, "topic_casts"),
+    })
+  );
 
   return { videos, lives, radios, articles, tvShows, topics };
 }

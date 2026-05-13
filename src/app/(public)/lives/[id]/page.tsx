@@ -63,16 +63,15 @@ export default async function LiveDetailPage({ params }: Props) {
   const live = await getLive(id);
   if (!live) notFound();
 
+  const related = await getRelatedContents(
+    live.casts,
+    { type: "live", id: live.id },
+    RELATED_LIMIT
+  );
   const eventDate = formatDate(live.event_date);
   const startTime = formatTime(live.start_time);
   const safeUrl = normalizeExternalUrl(live.url);
   const description = live.description?.trim() ? live.description : null;
-  const related = await getRelatedContents(
-    "live",
-    live.id,
-    live.casts,
-    RELATED_LIMIT
-  );
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -134,14 +133,7 @@ export default async function LiveDetailPage({ params }: Props) {
 
       <MemoSection targetType="live" targetId={live.id} />
 
-      <RelatedContents
-        videos={related.videos}
-        lives={related.lives}
-        radios={related.radios}
-        tvShows={related.tvShows}
-        articles={related.articles}
-        topics={related.topics}
-      />
+      <RelatedContents contents={related} />
     </div>
   );
 }

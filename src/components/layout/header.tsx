@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
+  { href: "/timeline", label: "タイムライン" },
   { href: "/videos", label: "動画" },
   { href: "/lives", label: "ライブ" },
   { href: "/radios", label: "ラジオ" },
@@ -24,7 +25,7 @@ export function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-brand-border-dark bg-brand-card-dark/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-5">
         <Link
           href="/"
           className="text-[17px] font-bold tracking-wide text-brand-cream transition-colors hover:text-brand-sky-light"

@@ -62,14 +62,13 @@ export default async function TvDetailPage({ params }: Props) {
   const tvShow = await getTvShow(id);
   if (!tvShow) notFound();
 
-  const airDate = formatDate(tvShow.air_date);
-  const airTime = formatTime(tvShow.air_time);
   const related = await getRelatedContents(
-    "tv_show",
-    tvShow.id,
     tvShow.casts,
+    { type: "tv_show", id: tvShow.id },
     RELATED_LIMIT
   );
+  const airDate = formatDate(tvShow.air_date);
+  const airTime = formatTime(tvShow.air_time);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -131,14 +130,7 @@ export default async function TvDetailPage({ params }: Props) {
 
       <MemoSection targetType="tv_show" targetId={tvShow.id} />
 
-      <RelatedContents
-        videos={related.videos}
-        lives={related.lives}
-        radios={related.radios}
-        tvShows={related.tvShows}
-        articles={related.articles}
-        topics={related.topics}
-      />
+      <RelatedContents contents={related} />
     </div>
   );
 }

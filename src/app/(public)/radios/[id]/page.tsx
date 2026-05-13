@@ -60,13 +60,12 @@ export default async function RadioDetailPage({ params }: Props) {
   const radio = await getRadio(id);
   if (!radio) notFound();
 
-  const published = formatDate(radio.published_at);
   const related = await getRelatedContents(
-    "radio",
-    radio.id,
     radio.casts,
+    { type: "radio", id: radio.id },
     RELATED_LIMIT
   );
+  const published = formatDate(radio.published_at);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -121,14 +120,7 @@ export default async function RadioDetailPage({ params }: Props) {
 
       <MemoSection targetType="radio" targetId={radio.id} />
 
-      <RelatedContents
-        videos={related.videos}
-        lives={related.lives}
-        radios={related.radios}
-        tvShows={related.tvShows}
-        articles={related.articles}
-        topics={related.topics}
-      />
+      <RelatedContents contents={related} />
     </div>
   );
 }

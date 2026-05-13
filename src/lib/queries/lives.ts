@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { Live, LiveWithCasts } from "@/lib/types/live";
 
 function toLiveBase(row: Record<string, unknown>): Live {
@@ -17,13 +21,32 @@ function toLiveBase(row: Record<string, unknown>): Live {
   };
 }
 
-export async function listLives(): Promise<Live[]> {
+export async function listLives(options: ListOptions = {}): Promise<Live[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "live_casts",
+      "live_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("lives")
     .select("*")
-    .order("event_date", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("event_date", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
@@ -32,9 +55,24 @@ export async function listLives(): Promise<Live[]> {
   return (data ?? []) as Live[];
 }
 
-export async function listLivesWithCasts(): Promise<LiveWithCasts[]> {
+export async function listLivesWithCasts(
+  options: ListOptions = {}
+): Promise<LiveWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "live_casts",
+      "live_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("lives")
     .select(
       `*,
@@ -48,9 +86,15 @@ export async function listLivesWithCasts(): Promise<LiveWithCasts[]> {
          unit:units(id, name)
        )`
     )
-    .order("event_date", { ascending: false, nullsFirst: false })
-    .order("start_time", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("event_date", { ascending, nullsFirst: false })
+    .order("start_time", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);

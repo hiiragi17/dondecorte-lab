@@ -62,13 +62,12 @@ export default async function TopicDetailPage({ params }: Props) {
   const topic = await getTopic(id);
   if (!topic) notFound();
 
-  const topicDate = formatDate(topic.topic_date);
   const related = await getRelatedContents(
-    "topic",
-    topic.id,
     topic.casts,
+    { type: "topic", id: topic.id },
     RELATED_LIMIT
   );
+  const topicDate = formatDate(topic.topic_date);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:py-10">
@@ -123,14 +122,7 @@ export default async function TopicDetailPage({ params }: Props) {
 
       <MemoSection targetType="topic" targetId={topic.id} />
 
-      <RelatedContents
-        videos={related.videos}
-        lives={related.lives}
-        radios={related.radios}
-        tvShows={related.tvShows}
-        articles={related.articles}
-        topics={related.topics}
-      />
+      <RelatedContents contents={related} />
     </div>
   );
 }

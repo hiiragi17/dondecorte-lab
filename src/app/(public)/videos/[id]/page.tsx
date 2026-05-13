@@ -81,9 +81,8 @@ export default async function VideoDetailPage({ params }: Props) {
   if (!video) notFound();
 
   const related = await getRelatedContents(
-    "video",
-    video.id,
     video.casts,
+    { type: "video", id: video.id },
     RELATED_LIMIT
   );
   const published = formatDate(video.published_at);
@@ -149,14 +148,7 @@ export default async function VideoDetailPage({ params }: Props) {
 
       <MemoSection targetType="video" targetId={video.id} />
 
-      <RelatedContents
-        videos={related.videos}
-        lives={related.lives}
-        radios={related.radios}
-        tvShows={related.tvShows}
-        articles={related.articles}
-        topics={related.topics}
-      />
+      <RelatedContents contents={related} />
     </div>
   );
 }

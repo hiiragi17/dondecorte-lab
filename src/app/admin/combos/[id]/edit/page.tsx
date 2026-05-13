@@ -43,7 +43,7 @@ export default async function EditComboPage({ params }: Props) {
         </h1>
       </div>
 
-      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
+      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <ComboForm
           action={action}
           artists={artists}

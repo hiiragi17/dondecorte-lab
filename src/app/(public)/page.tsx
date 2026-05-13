@@ -71,9 +71,9 @@ export default async function Home() {
     recentContentRes.status === "fulfilled" ? recentContentRes.value : [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-5">
-      <section className="mb-10 border-b border-brand-border-dark pt-14 pb-12">
-        <h1 className="text-3xl font-bold text-brand-cream">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-5">
+      <section className="mb-8 border-b border-brand-border-dark pt-10 pb-8 sm:mb-10 sm:pt-14 sm:pb-12">
+        <h1 className="text-2xl font-bold text-brand-cream sm:text-3xl">
           DonDecorte Lab
         </h1>
         <p
@@ -256,7 +256,7 @@ function VideoThumbnailPlaceholder({ title }: { title: string }) {
 function RecentContentSection({ items }: { items: RecentContentItem[] }) {
   return (
     <section className="mb-10 md:mb-14">
-      <SectionHeader title="最近追加されたコンテンツ" />
+      <SectionHeader title="最近追加されたコンテンツ" href="/timeline" />
       {items.length === 0 ? (
         <p className="rounded-lg border border-brand-border-dark bg-brand-card-dark px-4 py-6 text-sm text-brand-muted">
           まだコンテンツが登録されていません。

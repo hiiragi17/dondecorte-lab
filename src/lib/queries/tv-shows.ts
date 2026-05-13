@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { TvShow, TvShowWithCasts } from "@/lib/types/tv-show";
 
 function toTvShowBase(row: Record<string, unknown>): TvShow {
@@ -16,13 +20,34 @@ function toTvShowBase(row: Record<string, unknown>): TvShow {
   };
 }
 
-export async function listTvShows(): Promise<TvShow[]> {
+export async function listTvShows(
+  options: ListOptions = {}
+): Promise<TvShow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "tv_show_casts",
+      "tv_show_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("tv_shows")
     .select("*")
-    .order("air_date", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("air_date", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`TV番組一覧の取得に失敗しました: ${error.message}`);
@@ -31,9 +56,24 @@ export async function listTvShows(): Promise<TvShow[]> {
   return (data ?? []) as TvShow[];
 }
 
-export async function listTvShowsWithCasts(): Promise<TvShowWithCasts[]> {
+export async function listTvShowsWithCasts(
+  options: ListOptions = {}
+): Promise<TvShowWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "tv_show_casts",
+      "tv_show_id",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("tv_shows")
     .select(
       `*,
@@ -47,9 +87,15 @@ export async function listTvShowsWithCasts(): Promise<TvShowWithCasts[]> {
          unit:units(id, name)
        )`
     )
-    .order("air_date", { ascending: false, nullsFirst: false })
-    .order("air_time", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("air_date", { ascending, nullsFirst: false })
+    .order("air_time", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`TV番組一覧の取得に失敗しました: ${error.message}`);
