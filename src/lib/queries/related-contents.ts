@@ -88,7 +88,10 @@ async function listMatchingParentIds<K extends string>(
     .or(filters.join(","));
 
   if (error) {
-    throw new Error(`関連コンテンツの取得に失敗しました: ${error.message}`);
+    console.warn(
+      `関連コンテンツ(${castTable})の取得に失敗しました: ${error.message}`
+    );
+    return [];
   }
 
   const ids = ((data ?? []) as Array<Record<K, string>>).map(
@@ -212,7 +215,11 @@ export async function getRelatedContents(
     .map((r) => r.error)
     .filter((e): e is NonNullable<typeof e> => e !== null);
   if (errors.length > 0) {
-    throw new Error(`関連コンテンツの取得に失敗しました: ${errors[0].message}`);
+    console.warn(
+      `関連コンテンツの取得に一部失敗しました: ${errors
+        .map((e) => e.message)
+        .join("; ")}`
+    );
   }
 
   const videos: VideoWithCasts[] = ((videosRes.data ?? []) as Row[]).map(
