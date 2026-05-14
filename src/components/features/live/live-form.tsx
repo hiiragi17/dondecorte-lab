@@ -136,6 +136,11 @@ export function LiveForm({
           {...register("event_date")}
           className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
         />
+        {fieldErrors?.event_date && (
+          <p className="mt-1 text-xs text-brand-gold" role="alert">
+            {fieldErrors.event_date}
+          </p>
+        )}
       </div>
 
       <div>

@@ -138,15 +138,26 @@ export function ArticleForm({
           htmlFor="url"
           className="block text-sm font-medium text-brand-brown-dark"
         >
-          URL
+          URL <span className="text-brand-gold">*</span>
         </label>
         <input
           id="url"
           type="url"
-          {...register("url")}
+          {...register("url", {
+            required: "URLを入力してください",
+            pattern: {
+              value: /^https?:\/\/.+/,
+              message: "URLの形式が不正です（http/https のみ）",
+            },
+          })}
           placeholder="https://..."
           className={inputWithPlaceholderClass}
         />
+        {(clientErrors.url?.message || fieldErrors?.url) && (
+          <p className="mt-1 text-xs text-brand-gold" role="alert">
+            {clientErrors.url?.message ?? fieldErrors?.url}
+          </p>
+        )}
         <p className="mt-0.5 text-xs text-brand-brown-light">
           記事本文の転載不可。元記事へのリンクのみ登録してください。
         </p>
@@ -193,9 +204,20 @@ export function ArticleForm({
         <textarea
           id="content"
           rows={4}
-          {...register("content")}
+          {...register("content", {
+            maxLength: {
+              value: 500,
+              message:
+                "本文の転載は禁止です。要約のみ500文字以内で入力してください",
+            },
+          })}
           className={inputClass}
         />
+        {(clientErrors.content?.message || fieldErrors?.content) && (
+          <p className="mt-1 text-xs text-brand-gold" role="alert">
+            {clientErrors.content?.message ?? fieldErrors?.content}
+          </p>
+        )}
         <p className="mt-0.5 text-xs text-brand-brown-light">
           本文転載不可。自分用のメモや要約のみ記入可能です。
         </p>
