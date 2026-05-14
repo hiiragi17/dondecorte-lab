@@ -9,7 +9,22 @@ import type { LiveFormState, LiveInput } from "@/lib/types/live";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const EVENT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const EVENT_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function isValidEventDate(value: string): boolean {
+  const match = EVENT_DATE_PATTERN.exec(value);
+  if (!match) return false;
+  const [, y, m, d] = match;
+  const year = Number(y);
+  const month = Number(m);
+  const day = Number(d);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
 
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -65,7 +80,7 @@ function parseFormData(formData: FormData): {
   }
 
   const event_date = toNullableString(formData.get("event_date"));
-  if (event_date && !EVENT_DATE_PATTERN.test(event_date)) {
+  if (event_date && !isValidEventDate(event_date)) {
     fieldErrors.event_date = "開催日はYYYY-MM-DD形式で入力してください";
   }
 

@@ -65,6 +65,24 @@ describe("createLive", () => {
     expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 
+  it("event_date が存在しない日付（2026-02-30 など）の場合はエラーを返す", async () => {
+    const fd = buildFormData({
+      title: "テストライブ",
+      event_date: "2026-02-30",
+    });
+    const result = await createLive({}, fd);
+    expect(result.fieldErrors?.event_date).toBe(
+      "開催日はYYYY-MM-DD形式で入力してください"
+    );
+
+    const fd2 = buildFormData({
+      title: "テストライブ",
+      event_date: "2026-13-01",
+    });
+    const result2 = await createLive({}, fd2);
+    expect(result2.fieldErrors?.event_date).toBeDefined();
+  });
+
   it("event_date が空でも作成は進む（必須ではない）", async () => {
     const insertSelectSingle = vi.fn().mockResolvedValue({
       data: { id: "11111111-1111-4111-8111-111111111111" },
