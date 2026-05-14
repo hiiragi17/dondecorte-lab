@@ -9,6 +9,8 @@ import type { LiveFormState, LiveInput } from "@/lib/types/live";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const EVENT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -63,6 +65,10 @@ function parseFormData(formData: FormData): {
   }
 
   const event_date = toNullableString(formData.get("event_date"));
+  if (event_date && !EVENT_DATE_PATTERN.test(event_date)) {
+    fieldErrors.event_date = "開催日はYYYY-MM-DD形式で入力してください";
+  }
+
   const startTimeInput = String(formData.get("start_time") ?? "").trim();
   const start_time =
     event_date && startTimeInput ? `${event_date}T${startTimeInput}:00` : null;

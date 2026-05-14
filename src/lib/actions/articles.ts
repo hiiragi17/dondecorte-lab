@@ -9,6 +9,17 @@ import type { ArticleFormState, ArticleInput } from "@/lib/types/article";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const CONTENT_MAX_LENGTH = 500;
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function toNullableString(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -62,12 +73,24 @@ function parseFormData(formData: FormData): {
     fieldErrors.title = "200文字以内で入力してください";
   }
 
+  const url = toNullableString(formData.get("url"));
+  if (!url) {
+    fieldErrors.url = "URLを入力してください";
+  } else if (!isValidHttpUrl(url)) {
+    fieldErrors.url = "URLの形式が不正です（http/https のみ）";
+  }
+
+  const content = toNullableString(formData.get("content"));
+  if (content && content.length > CONTENT_MAX_LENGTH) {
+    fieldErrors.content = `本文の転載は禁止です。要約のみ${CONTENT_MAX_LENGTH}文字以内で入力してください`;
+  }
+
   const values: ArticleInput = {
     title,
-    url: toNullableString(formData.get("url")),
+    url,
     source: toNullableString(formData.get("source")),
     published_at: toNullableString(formData.get("published_at")),
-    content: toNullableString(formData.get("content")),
+    content,
   };
 
   const { casts, error: castsError } = parseCasts(formData);
