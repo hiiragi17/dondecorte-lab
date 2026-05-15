@@ -86,13 +86,15 @@ async function getDondecorteComedyGroupId(
     .from("comedy_groups")
     .select("id")
     .eq("name", DONDECORTE_COMBO_NAME)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
 
   if (error) {
     throw new Error(`コンビ情報の取得に失敗しました: ${error.message}`);
   }
 
-  return (data?.id as string | undefined) ?? null;
+  const rows = (data ?? []) as Array<{ id: string }>;
+  return rows[0]?.id ?? null;
 }
 
 type CoCastRow = {

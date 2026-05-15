@@ -24,12 +24,14 @@ function buildQueryStub(responses: {
       return {
         select: () => ({
           eq: () => ({
-            maybeSingle: async () => ({
-              data:
-                responses.dondecorteId === null
-                  ? null
-                  : { id: responses.dondecorteId ?? DONDECORTE_ID },
-              error: null,
+            order: () => ({
+              limit: async () => ({
+                data:
+                  responses.dondecorteId === null
+                    ? []
+                    : [{ id: responses.dondecorteId ?? DONDECORTE_ID }],
+                error: null,
+              }),
             }),
           }),
         }),
