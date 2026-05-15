@@ -15,7 +15,7 @@
 
 ## 全体アーキテクチャ
 
-```
+```text
 ┌────────────┐   1. fetch HTML/JSON    ┌────────────┐
 │ Vercel Cron│ ──────────────────────► │   Fany     │
 │ (daily)    │                         │ (live一覧) │
@@ -76,8 +76,10 @@ create table push_subscriptions (
   created_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now()
 );
--- RLS: insert/select は anon でも可（自分専用アプリだが、家族/友人にも配れるよう汎用化）。
--- delete は service role のみ。
+-- RLS:
+--   insert は anon 可（誰でも自分の端末を購読登録できる）
+--   select / delete は service_role のみ（endpoint / p256dh / auth は機微情報のため anon に読ませない）
+--   通知送信時の subscription 一覧取得はサーバ側（Server Action / Route Handler）から service_role キーで実行
 ```
 
 > 自分専用アプリなので user_id への紐付けは省略。複数端末（iPhone / 自宅 PC）で複数 subscription が並ぶ想定。
@@ -162,11 +164,33 @@ create table live_presales (
 
 別 Cron `/api/cron/notify` を 5〜15 分粒度で動かす:
 
-1. `live_presales` から `starts_at <= now() AND notified_open_at IS NULL` を抽出 → 「先行抽選開始」通知 → `notified_open_at = now()`
-2. `ends_at - now() <= 2h AND notified_close_soon_at IS NULL` → 「締切間近」通知
-3. （任意）ライブ当日朝にリマインド通知
+**重要: SELECT してから UPDATE する 2 ステップは、Cron 重複起動やリトライで多重送信を引き起こす。
+必ず単一の `UPDATE ... WHERE ... AND notified_*_at IS NULL RETURNING *` で原子的に「クレーム」した行に対してだけ通知を送る。**
+
+```sql
+-- 先行抽選開始
+update live_presales
+set notified_open_at = now()
+where starts_at <= now()
+  and notified_open_at is null
+returning *;
+
+-- 締切間近
+update live_presales
+set notified_close_soon_at = now()
+where ends_at is not null
+  and ends_at - now() <= interval '2 hours'
+  and notified_close_soon_at is null
+returning *;
+```
+
+1. 先行抽選開始の UPDATE → RETURNING 行に対して通知送信
+2. 締切間近の UPDATE → RETURNING 行に対して通知送信
+3. （任意）ライブ当日朝にリマインド通知（同じく `notified_morning_at` 等を追加して原子的に処理）
 
 通知本文の組み立てとプッシュ送信は `src/lib/push/sender.ts` を再利用。`push_subscriptions` 全件にループ送信、404/410 を捨てる。
+
+> 通知送信が失敗した場合の補償（再送）は別途検討。最低限、送信ログを `notification_logs` に残しておけば失敗行は手動で `notified_*_at = NULL` に戻して再走できる。
 
 ---
 
