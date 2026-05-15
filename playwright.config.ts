@@ -1,7 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnv } from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
 
-const PORT = Number(process.env.PORT ?? 3000);
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
+const envTestPath = path.resolve(__dirname, ".env.test");
+if (fs.existsSync(envTestPath)) {
+  loadEnv({ path: envTestPath });
+}
+
+const defaultPort = 3000;
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${defaultPort}`;
+
+const parsedPort = Number(new URL(baseURL).port);
+const port = Number.isFinite(parsedPort) && parsedPort > 0
+  ? parsedPort
+  : defaultPort;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -21,7 +35,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    command: `pnpm dev --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
