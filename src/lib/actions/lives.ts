@@ -112,9 +112,10 @@ async function replaceCasts(
   casts: CastEntry[]
 ): Promise<{ error?: string }> {
   const { error: deleteError } = await supabase
-    .from("live_casts")
+    .from("casts")
     .delete()
-    .eq("live_id", liveId);
+    .eq("content_type", "live")
+    .eq("content_id", liveId);
 
   if (deleteError) {
     return { error: `出演者の削除に失敗しました: ${deleteError.message}` };
@@ -123,15 +124,14 @@ async function replaceCasts(
   if (casts.length === 0) return {};
 
   const rows = casts.map((c) => ({
-    live_id: liveId,
+    content_type: "live",
+    content_id: liveId,
     artist_id: c.type === "artist" ? c.id : null,
     comedy_group_id: c.type === "comedy_group" ? c.id : null,
     unit_id: c.type === "unit" ? c.id : null,
   }));
 
-  const { error: insertError } = await supabase
-    .from("live_casts")
-    .insert(rows);
+  const { error: insertError } = await supabase.from("casts").insert(rows);
 
   if (insertError) {
     return { error: `出演者の追加に失敗しました: ${insertError.message}` };

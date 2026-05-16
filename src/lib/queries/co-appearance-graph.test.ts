@@ -15,8 +15,8 @@ const DONDECORTE_ID = "dd-id";
 type AnyRow = Record<string, unknown>;
 
 function buildQueryStub(responses: {
-  ownParents: Record<string, string[]>;
-  coCasts: Record<string, AnyRow[]>;
+  ownContents: Array<{ content_type: string; content_id: string }>;
+  coCasts: AnyRow[];
   dondecorteId?: string | null;
 }) {
   supabaseMock.from.mockImplementation((table: string) => {
@@ -38,33 +38,30 @@ function buildQueryStub(responses: {
       };
     }
 
-    return {
-      select: (cols: string) => {
-        if (cols.includes("artist:artists")) {
+    if (table === "casts") {
+      return {
+        select: (cols: string) => {
+          // 出演者埋め込みの有無で 2 種類のクエリを判別する
+          if (cols.includes("artist:artists")) {
+            return {
+              in: async () => ({ data: responses.coCasts, error: null }),
+            };
+          }
           return {
-            in: async () => ({
-              data: responses.coCasts[table] ?? [],
-              error: null,
-            }),
+            eq: async () => ({ data: responses.ownContents, error: null }),
           };
-        }
-        return {
-          eq: async () => ({
-            data: (responses.ownParents[table] ?? []).map((id) => {
-              const field = cols.trim();
-              return { [field]: id };
-            }),
-            error: null,
-          }),
-        };
-      },
-    };
+        },
+      };
+    }
+
+    throw new Error(`unexpected table: ${table}`);
   });
 }
 
-function ddRow(parentField: string, parentId: string): AnyRow {
+function ddRow(contentType: string, contentId: string): AnyRow {
   return {
-    [parentField]: parentId,
+    content_type: contentType,
+    content_id: contentId,
     artist_id: null,
     comedy_group_id: DONDECORTE_ID,
     unit_id: null,
@@ -75,13 +72,14 @@ function ddRow(parentField: string, parentId: string): AnyRow {
 }
 
 function comboRow(
-  parentField: string,
-  parentId: string,
+  contentType: string,
+  contentId: string,
   id: string,
   name: string
 ): AnyRow {
   return {
-    [parentField]: parentId,
+    content_type: contentType,
+    content_id: contentId,
     artist_id: null,
     comedy_group_id: id,
     unit_id: null,
@@ -92,13 +90,14 @@ function comboRow(
 }
 
 function artistRow(
-  parentField: string,
-  parentId: string,
+  contentType: string,
+  contentId: string,
   id: string,
   name: string
 ): AnyRow {
   return {
-    [parentField]: parentId,
+    content_type: contentType,
+    content_id: contentId,
     artist_id: id,
     comedy_group_id: null,
     unit_id: null,
@@ -109,13 +108,14 @@ function artistRow(
 }
 
 function unitRow(
-  parentField: string,
-  parentId: string,
+  contentType: string,
+  contentId: string,
   id: string,
   name: string
 ): AnyRow {
   return {
-    [parentField]: parentId,
+    content_type: contentType,
+    content_id: contentId,
     artist_id: null,
     comedy_group_id: null,
     unit_id: id,
@@ -131,7 +131,7 @@ beforeEach(() => {
 
 describe("getCoAppearanceGraph", () => {
   it("ドンデコルテが見つからない場合は found=false を返す", async () => {
-    buildQueryStub({ ownParents: {}, coCasts: {}, dondecorteId: null });
+    buildQueryStub({ ownContents: [], coCasts: [], dondecorteId: null });
 
     const result = await getCoAppearanceGraph();
     expect(result.found).toBe(false);
@@ -141,28 +141,21 @@ describe("getCoAppearanceGraph", () => {
 
   it("共演データからノードとエッジを生成する", async () => {
     buildQueryStub({
-      ownParents: {
-        video_casts: ["v1", "v2"],
-        live_casts: ["l1"],
-        radio_casts: [],
-        article_casts: [],
-        tv_show_casts: [],
-        topic_casts: [],
-      },
-      coCasts: {
-        video_casts: [
-          ddRow("video_id", "v1"),
-          comboRow("video_id", "v1", "combo-a", "コンビA"),
-          ddRow("video_id", "v2"),
-          comboRow("video_id", "v2", "combo-a", "コンビA"),
-          artistRow("video_id", "v2", "artist-x", "芸人X"),
-        ],
-        live_casts: [
-          ddRow("live_id", "l1"),
-          comboRow("live_id", "l1", "combo-b", "コンビB"),
-          unitRow("live_id", "l1", "unit-1", "ユニット1"),
-        ],
-      },
+      ownContents: [
+        { content_type: "video", content_id: "v1" },
+        { content_type: "video", content_id: "v2" },
+        { content_type: "live", content_id: "l1" },
+      ],
+      coCasts: [
+        ddRow("video", "v1"),
+        comboRow("video", "v1", "combo-a", "コンビA"),
+        ddRow("video", "v2"),
+        comboRow("video", "v2", "combo-a", "コンビA"),
+        artistRow("video", "v2", "artist-x", "芸人X"),
+        ddRow("live", "l1"),
+        comboRow("live", "l1", "combo-b", "コンビB"),
+        unitRow("live", "l1", "unit-1", "ユニット1"),
+      ],
     });
 
     const result = await getCoAppearanceGraph();
@@ -197,17 +190,8 @@ describe("getCoAppearanceGraph", () => {
 
   it("共演者がいない場合は中心ノードのみを返す", async () => {
     buildQueryStub({
-      ownParents: {
-        video_casts: ["v1"],
-        live_casts: [],
-        radio_casts: [],
-        article_casts: [],
-        tv_show_casts: [],
-        topic_casts: [],
-      },
-      coCasts: {
-        video_casts: [ddRow("video_id", "v1")],
-      },
+      ownContents: [{ content_type: "video", content_id: "v1" }],
+      coCasts: [ddRow("video", "v1")],
     });
 
     const result = await getCoAppearanceGraph();

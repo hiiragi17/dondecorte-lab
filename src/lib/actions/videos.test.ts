@@ -71,14 +71,15 @@ describe("createVideo", () => {
     });
     const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
     const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteChain = vi.fn(() => ({ eq: deleteEq }));
+    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
+    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
 
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === "videos") {
         return { insert: insertChain };
       }
-      if (table === "video_casts") {
+      if (table === "casts") {
         return { delete: deleteChain };
       }
       throw new Error(`unexpected table: ${table}`);
@@ -102,12 +103,13 @@ describe("createVideo", () => {
     });
     const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
     const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteChain = vi.fn(() => ({ eq: deleteEq }));
+    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
+    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
 
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === "videos") return { insert: insertChain };
-      if (table === "video_casts") return { delete: deleteChain };
+      if (table === "casts") return { delete: deleteChain };
       throw new Error(`unexpected table: ${table}`);
     });
 

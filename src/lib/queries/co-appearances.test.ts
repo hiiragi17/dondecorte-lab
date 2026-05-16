@@ -15,8 +15,8 @@ const DONDECORTE_ID = "dd-id";
 type AnyRow = Record<string, unknown>;
 
 function buildQueryStub(responses: {
-  ownParents: Record<string, string[]>;
-  coCasts: Record<string, AnyRow[]>;
+  ownContents: Array<{ content_type: string; content_id: string }>;
+  coCasts: AnyRow[];
   dondecorteId?: string | null;
 }) {
   supabaseMock.from.mockImplementation((table: string) => {
@@ -38,28 +38,78 @@ function buildQueryStub(responses: {
       };
     }
 
-    return {
-      select: (cols: string) => {
-        if (cols.includes("artist:artists")) {
+    if (table === "casts") {
+      return {
+        select: (cols: string) => {
+          // 出演者埋め込みの有無で 2 種類のクエリを判別する
+          if (cols.includes("artist:artists")) {
+            return {
+              in: async () => ({ data: responses.coCasts, error: null }),
+            };
+          }
           return {
-            in: async () => ({
-              data: responses.coCasts[table] ?? [],
-              error: null,
-            }),
+            eq: async () => ({ data: responses.ownContents, error: null }),
           };
-        }
-        return {
-          eq: async () => ({
-            data: (responses.ownParents[table] ?? []).map((id) => {
-              const field = cols.trim();
-              return { [field]: id };
-            }),
-            error: null,
-          }),
-        };
-      },
-    };
+        },
+      };
+    }
+
+    throw new Error(`unexpected table: ${table}`);
   });
+}
+
+function comboRow(
+  contentType: string,
+  contentId: string,
+  id: string,
+  name: string
+): AnyRow {
+  return {
+    content_type: contentType,
+    content_id: contentId,
+    artist_id: null,
+    comedy_group_id: id,
+    unit_id: null,
+    artist: null,
+    comedy_group: { id, name },
+    unit: null,
+  };
+}
+
+function artistRow(
+  contentType: string,
+  contentId: string,
+  id: string,
+  name: string
+): AnyRow {
+  return {
+    content_type: contentType,
+    content_id: contentId,
+    artist_id: id,
+    comedy_group_id: null,
+    unit_id: null,
+    artist: { id, name },
+    comedy_group: null,
+    unit: null,
+  };
+}
+
+function unitRow(
+  contentType: string,
+  contentId: string,
+  id: string,
+  name: string
+): AnyRow {
+  return {
+    content_type: contentType,
+    content_id: contentId,
+    artist_id: null,
+    comedy_group_id: null,
+    unit_id: id,
+    artist: null,
+    comedy_group: null,
+    unit: { id, name },
+  };
 }
 
 beforeEach(() => {
@@ -69,8 +119,8 @@ beforeEach(() => {
 describe("getCoAppearanceRanking", () => {
   it("ドンデコルテが見つからない場合は found=false を返す", async () => {
     buildQueryStub({
-      ownParents: {},
-      coCasts: {},
+      ownContents: [],
+      coCasts: [],
       dondecorteId: null,
     });
 
@@ -83,74 +133,19 @@ describe("getCoAppearanceRanking", () => {
 
   it("コンビ・芸人・ユニットそれぞれを共演回数でランキングする", async () => {
     buildQueryStub({
-      ownParents: {
-        video_casts: ["v1", "v2"],
-        live_casts: ["l1"],
-        radio_casts: [],
-        article_casts: [],
-        tv_show_casts: [],
-        topic_casts: [],
-      },
-      coCasts: {
-        video_casts: [
-          {
-            video_id: "v1",
-            artist_id: null,
-            comedy_group_id: DONDECORTE_ID,
-            unit_id: null,
-            artist: null,
-            comedy_group: { id: DONDECORTE_ID, name: "ドンデコルテ" },
-            unit: null,
-          },
-          {
-            video_id: "v1",
-            artist_id: null,
-            comedy_group_id: "combo-a",
-            unit_id: null,
-            artist: null,
-            comedy_group: { id: "combo-a", name: "コンビA" },
-            unit: null,
-          },
-          {
-            video_id: "v2",
-            artist_id: null,
-            comedy_group_id: "combo-a",
-            unit_id: null,
-            artist: null,
-            comedy_group: { id: "combo-a", name: "コンビA" },
-            unit: null,
-          },
-          {
-            video_id: "v2",
-            artist_id: "artist-x",
-            comedy_group_id: null,
-            unit_id: null,
-            artist: { id: "artist-x", name: "芸人X" },
-            comedy_group: null,
-            unit: null,
-          },
-        ],
-        live_casts: [
-          {
-            live_id: "l1",
-            artist_id: null,
-            comedy_group_id: "combo-b",
-            unit_id: null,
-            artist: null,
-            comedy_group: { id: "combo-b", name: "コンビB" },
-            unit: null,
-          },
-          {
-            live_id: "l1",
-            artist_id: null,
-            comedy_group_id: null,
-            unit_id: "unit-1",
-            artist: null,
-            comedy_group: null,
-            unit: { id: "unit-1", name: "ユニット1" },
-          },
-        ],
-      },
+      ownContents: [
+        { content_type: "video", content_id: "v1" },
+        { content_type: "video", content_id: "v2" },
+        { content_type: "live", content_id: "l1" },
+      ],
+      coCasts: [
+        comboRow("video", "v1", DONDECORTE_ID, "ドンデコルテ"),
+        comboRow("video", "v1", "combo-a", "コンビA"),
+        comboRow("video", "v2", "combo-a", "コンビA"),
+        artistRow("video", "v2", "artist-x", "芸人X"),
+        comboRow("live", "l1", "combo-b", "コンビB"),
+        unitRow("live", "l1", "unit-1", "ユニット1"),
+      ],
     });
 
     const result = await getCoAppearanceRanking();
@@ -192,27 +187,8 @@ describe("getCoAppearanceRanking", () => {
 
   it("ドンデコルテ自身は集計対象から除外する", async () => {
     buildQueryStub({
-      ownParents: {
-        video_casts: ["v1"],
-        live_casts: [],
-        radio_casts: [],
-        article_casts: [],
-        tv_show_casts: [],
-        topic_casts: [],
-      },
-      coCasts: {
-        video_casts: [
-          {
-            video_id: "v1",
-            artist_id: null,
-            comedy_group_id: DONDECORTE_ID,
-            unit_id: null,
-            artist: null,
-            comedy_group: { id: DONDECORTE_ID, name: "ドンデコルテ" },
-            unit: null,
-          },
-        ],
-      },
+      ownContents: [{ content_type: "video", content_id: "v1" }],
+      coCasts: [comboRow("video", "v1", DONDECORTE_ID, "ドンデコルテ")],
     });
 
     const result = await getCoAppearanceRanking();

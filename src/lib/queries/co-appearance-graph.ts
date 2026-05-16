@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import {
-  CAST_TABLES,
   entryFromRow,
   getDondecorteComedyGroupId,
-  listCoCastRows,
-  listOwnParentIds,
+  listCastsForContents,
+  listDondecorteContents,
 } from "./_co-casts";
 
 export type CoAppearanceGraphNode = {
@@ -46,40 +45,39 @@ export async function getCoAppearanceGraph(): Promise<CoAppearanceGraph> {
 
   const dondecorteKey = `comedy_group:${dondecorteId}`;
 
-  const ownParentIdsPerTable = await Promise.all(
-    CAST_TABLES.map((spec) => listOwnParentIds(supabase, spec, dondecorteId))
-  );
-  const totalContentCount = ownParentIdsPerTable.reduce(
-    (sum, ids) => sum + ids.length,
-    0
+  const ownContents = await listDondecorteContents(supabase, dondecorteId);
+  const totalContentCount = ownContents.length;
+  const ownKeys = new Set(
+    ownContents.map((c) => `${c.contentType}:${c.contentId}`)
   );
 
-  const coCastRowsPerTable = await Promise.all(
-    CAST_TABLES.map((spec, index) =>
-      listCoCastRows(supabase, spec, ownParentIdsPerTable[index])
-    )
+  const rows = await listCastsForContents(
+    supabase,
+    ownContents.map((c) => c.contentId)
   );
 
   const performers = new Map<string, CastEntry>();
   const contentPerformers = new Map<string, Set<string>>();
 
-  CAST_TABLES.forEach((spec, index) => {
-    for (const row of coCastRowsPerTable[index]) {
-      const performer = entryFromRow(row);
-      if (!performer) continue;
+  for (const row of rows) {
+    const contentKey = `${row.content_type}:${row.content_id}`;
+    // content_id だけで取得しているため、ドンデコルテ出演コンテンツに
+    // 属する行のみを対象にする。
+    if (!ownKeys.has(contentKey)) continue;
 
-      const key = performerKey(performer);
-      performers.set(key, performer);
+    const performer = entryFromRow(row);
+    if (!performer) continue;
 
-      const contentKey = `${spec.contentType}:${row[spec.parentIdField]}`;
-      let members = contentPerformers.get(contentKey);
-      if (!members) {
-        members = new Set<string>();
-        contentPerformers.set(contentKey, members);
-      }
-      members.add(key);
+    const key = performerKey(performer);
+    performers.set(key, performer);
+
+    let members = contentPerformers.get(contentKey);
+    if (!members) {
+      members = new Set<string>();
+      contentPerformers.set(contentKey, members);
     }
-  });
+    members.add(key);
+  }
 
   const nodeCounts = new Map<string, number>();
   const edgeWeights = new Map<string, number>();

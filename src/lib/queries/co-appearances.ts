@@ -1,11 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry, ContentType } from "@/lib/types";
 import {
-  CAST_TABLES,
-  type CoCastRow,
   getDondecorteComedyGroupId,
-  listCoCastRows,
-  listOwnParentIds,
+  listCastsForContents,
+  listDondecorteContents,
   entryFromRow,
 } from "./_co-casts";
 
@@ -102,33 +100,28 @@ export async function getCoAppearanceRanking(): Promise<CoAppearanceRanking> {
 
   if (!dondecorteId) return EMPTY_RANKING;
 
-  const ownParentIdsPerTable = await Promise.all(
-    CAST_TABLES.map((spec) => listOwnParentIds(supabase, spec, dondecorteId))
+  const ownContents = await listDondecorteContents(supabase, dondecorteId);
+  const totalContentCount = ownContents.length;
+  const ownKeys = new Set(
+    ownContents.map((c) => `${c.contentType}:${c.contentId}`)
   );
 
-  const totalContentCount = ownParentIdsPerTable.reduce(
-    (sum, ids) => sum + ids.length,
-    0
-  );
-
-  const coCastRowsPerTable = await Promise.all(
-    CAST_TABLES.map((spec, index) =>
-      listCoCastRows(supabase, spec, ownParentIdsPerTable[index])
-    )
+  const rows = await listCastsForContents(
+    supabase,
+    ownContents.map((c) => c.contentId)
   );
 
   const acc: Accumulator = new Map();
 
-  CAST_TABLES.forEach((spec, index) => {
-    const rows = coCastRowsPerTable[index];
-    for (const row of rows) {
-      if (row.comedy_group_id === dondecorteId) continue;
-      const performer = entryFromRow(row as CoCastRow);
-      if (!performer) continue;
-      const parentId = row[spec.parentIdField];
-      accumulate(acc, performer, spec.contentType, parentId);
-    }
-  });
+  for (const row of rows) {
+    // content_id だけで取得しているため、ドンデコルテ出演コンテンツに
+    // 属する行のみを集計対象にする。
+    if (!ownKeys.has(`${row.content_type}:${row.content_id}`)) continue;
+    if (row.comedy_group_id === dondecorteId) continue;
+    const performer = entryFromRow(row);
+    if (!performer) continue;
+    accumulate(acc, performer, row.content_type, row.content_id);
+  }
 
   const combos: CoAppearanceEntry[] = [];
   const artists: CoAppearanceEntry[] = [];
