@@ -13,6 +13,9 @@ const CAST_TABLE_BY_CONTENT = {
 
 const CONTENT_TYPES = Object.keys(CAST_TABLE_BY_CONTENT) as ContentType[];
 
+type CastTable = (typeof CAST_TABLE_BY_CONTENT)[ContentType];
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
 const CAST_SUBSELECT = `
   artist_id,
   comedy_group_id,
@@ -21,6 +24,10 @@ const CAST_SUBSELECT = `
   comedy_group:comedy_groups(id, name),
   unit:units(id, name)
 `;
+
+// PostgREST は 1 リクエストあたりの返却行数に上限があるため、
+// 全行を range で分割取得して集計漏れを防ぐ。
+const PAGE_SIZE = 1000;
 
 export type AppearanceRankingEntry = {
   performer: CastEntry;
@@ -57,29 +64,47 @@ export function aggregateAppearanceRanking(
   );
 }
 
+async function selectAllCastRows(
+  supabase: SupabaseClient,
+  table: CastTable
+): Promise<CastRow[]> {
+  const rows: CastRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(CAST_SUBSELECT)
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      throw new Error(
+        `出演回数ランキングの取得に失敗しました: ${error.message}`
+      );
+    }
+
+    const page = (data ?? []) as unknown as CastRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
+}
+
 export async function listAppearanceRanking(): Promise<
   AppearanceRankingEntry[]
 > {
   const supabase = await createClient();
 
-  const results = await Promise.all(
+  const castRowsByContentType = await Promise.all(
     CONTENT_TYPES.map((contentType) =>
-      supabase.from(CAST_TABLE_BY_CONTENT[contentType]).select(CAST_SUBSELECT)
+      selectAllCastRows(supabase, CAST_TABLE_BY_CONTENT[contentType])
     )
   );
 
-  const failed = results.find((result) => result.error);
-  if (failed?.error) {
-    throw new Error(
-      `出演回数ランキングの取得に失敗しました: ${failed.error.message}`
-    );
-  }
-
   const castsByContentType = {} as Record<ContentType, CastEntry[]>;
   CONTENT_TYPES.forEach((contentType, index) => {
-    castsByContentType[contentType] = mapCasts(
-      results[index].data as CastRow[] | null
-    );
+    castsByContentType[contentType] = mapCasts(castRowsByContentType[index]);
   });
 
   return aggregateAppearanceRanking(castsByContentType);
