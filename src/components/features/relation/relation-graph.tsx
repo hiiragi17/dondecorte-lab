@@ -48,6 +48,13 @@ const NODE_FILL: Record<CastType, string> = {
 
 const CENTER_FILL = "#F0DFC8";
 
+const GRAPH_BG_COLOR = "#2C1E14";
+const NODE_STROKE_COLOR = GRAPH_BG_COLOR;
+const HOVER_STROKE_COLOR = CENTER_FILL;
+const HIGHLIGHT_COLOR = NODE_FILL.comedy_group;
+const LINK_COLOR = "#5A4434";
+const LABEL_COLOR = "#D4B896";
+
 type SimNode = SimulationNodeDatum & CoAppearanceGraphNode;
 type SimLink = SimulationLinkDatum<SimNode> & { weight: number };
 
@@ -228,7 +235,7 @@ export function RelationGraph({ graph }: { graph: CoAppearanceGraph }) {
           role="img"
           aria-label="ドンデコルテさんの共演相関図"
         >
-          <rect width={WIDTH} height={HEIGHT} fill="#2C1E14" />
+          <rect width={WIDTH} height={HEIGHT} fill={GRAPH_BG_COLOR} />
           <g transform={transform.toString()}>
             <g>
               {links.map((edge, index) => {
@@ -243,7 +250,7 @@ export function RelationGraph({ graph }: { graph: CoAppearanceGraph }) {
                     y1={source.y ?? 0}
                     x2={target.x ?? 0}
                     y2={target.y ?? 0}
-                    stroke={active && hoveredId ? "#6BB8D4" : "#5A4434"}
+                    stroke={active && hoveredId ? HIGHLIGHT_COLOR : LINK_COLOR}
                     strokeWidth={1 + (edge.weight / maxWeight) * 3.5}
                     strokeOpacity={active ? (hoveredId ? 0.85 : 0.45) : 0.08}
                   />
@@ -278,17 +285,17 @@ export function RelationGraph({ graph }: { graph: CoAppearanceGraph }) {
                       fill={fill}
                       stroke={
                         hoveredId === node.id
-                          ? "#F0DFC8"
+                          ? HOVER_STROKE_COLOR
                           : node.isCenter
-                            ? "#6BB8D4"
-                            : "#2C1E14"
+                            ? HIGHLIGHT_COLOR
+                            : NODE_STROKE_COLOR
                       }
                       strokeWidth={node.isCenter ? 3 : 1.5}
                     />
                     <text
                       y={radius + 13}
                       textAnchor="middle"
-                      fill={node.isCenter ? "#F0DFC8" : "#D4B896"}
+                      fill={node.isCenter ? CENTER_FILL : LABEL_COLOR}
                       fontSize={node.isCenter ? 14 : 11}
                       fontWeight={node.isCenter ? 700 : 500}
                     >
