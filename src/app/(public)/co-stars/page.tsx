@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getContentTypeLabel } from "@/components/shared/content-type-badge";
 import {
   getCoAppearanceRanking,
   type CoAppearanceBreakdown,
@@ -15,14 +16,14 @@ const DESCRIPTION =
 
 const TOP_LIMIT = 20;
 
-const CONTENT_TYPE_SHORT_LABEL: Record<ContentType, string> = {
-  video: "動画",
-  live: "ライブ",
-  radio: "ラジオ",
-  article: "記事",
-  tv_show: "TV",
-  topic: "トピック",
-};
+const CONTENT_TYPE_ORDER: ContentType[] = [
+  "video",
+  "live",
+  "radio",
+  "article",
+  "tv_show",
+  "topic",
+];
 
 const PERFORMER_PATH: Record<CastType, string> = {
   artist: "artists",
@@ -182,9 +183,9 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 function BreakdownLine({ breakdown }: { breakdown: CoAppearanceBreakdown }) {
-  const parts = (Object.keys(CONTENT_TYPE_SHORT_LABEL) as ContentType[])
-    .filter((type) => breakdown[type] > 0)
-    .map((type) => `${CONTENT_TYPE_SHORT_LABEL[type]} ${breakdown[type]}`);
+  const parts = CONTENT_TYPE_ORDER.filter(
+    (type) => breakdown[type] > 0
+  ).map((type) => `${getContentTypeLabel(type)} ${breakdown[type]}`);
 
   if (parts.length === 0) return null;
 
