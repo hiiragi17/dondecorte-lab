@@ -5,7 +5,7 @@ import path from "node:path";
 
 const envTestPath = path.resolve(__dirname, ".env.test");
 if (fs.existsSync(envTestPath)) {
-  loadEnv({ path: envTestPath });
+  loadEnv({ path: envTestPath, quiet: true });
 }
 
 const defaultPort = 3000;
