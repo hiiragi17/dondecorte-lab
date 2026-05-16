@@ -59,6 +59,12 @@ export default async function CoStarsPage() {
             集計対象: ドンデコルテさんの登録コンテンツ {ranking.totalContentCount} 件
           </p>
         ) : null}
+        <Link
+          href="/co-stars/graph"
+          className="mt-3 inline-block text-sm text-brand-sky-light transition hover:underline"
+        >
+          共演ネットワークの相関図を見る →
+        </Link>
       </header>
 
       {!ranking.found ? (
