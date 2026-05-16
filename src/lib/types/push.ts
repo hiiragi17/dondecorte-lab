@@ -29,3 +29,9 @@ export type PushBroadcastResult = {
   failed: number;
   removed: number;
 };
+
+// 管理画面の購読端末一覧で扱う表示用の列のみ（p256dh/auth は含めない）
+export type PushSubscriptionListItem = Pick<
+  PushSubscriptionRow,
+  "id" | "user_agent" | "created_at" | "last_seen_at"
+>;

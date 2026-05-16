@@ -10,7 +10,13 @@ export function TestPushButton() {
   const handleClick = () => {
     setState({});
     startTransition(async () => {
-      setState(await sendTestPush());
+      try {
+        setState(await sendTestPush());
+      } catch {
+        setState({
+          error: "テスト通知の送信に失敗しました。時間をおいて再試行してください。",
+        });
+      }
     });
   };
 
@@ -20,7 +26,7 @@ export function TestPushButton() {
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:opacity-50"
+        className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:opacity-50"
       >
         {pending ? "送信中…" : "テスト通知を送信"}
       </button>

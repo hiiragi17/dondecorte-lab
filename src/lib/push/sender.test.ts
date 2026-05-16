@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PushSubscriptionRow } from "@/lib/types/push";
 
 vi.mock("server-only", () => ({}));
@@ -18,12 +18,14 @@ const eqSpy = vi.fn();
 const deleteSpy = vi.fn(() => ({ eq: eqSpy }));
 const selectSpy = vi.fn();
 
+const originalEnv = { ...process.env };
+
 function buildSubscription(
   overrides: Partial<PushSubscriptionRow> = {}
 ): PushSubscriptionRow {
   return {
     id: "11111111-1111-4111-8111-111111111111",
-    endpoint: "https://push.example.com/abc",
+    endpoint: "https://fcm.googleapis.com/fcm/send/abc",
     p256dh: "p256dh-key",
     auth: "auth-secret",
     user_agent: "Test UA",
@@ -48,6 +50,10 @@ beforeEach(() => {
   webpushMock.sendNotification.mockResolvedValue(undefined);
 });
 
+afterEach(() => {
+  process.env = { ...originalEnv };
+});
+
 describe("sendPush", () => {
   it("送信に成功したら ok:true を返し、行は削除しない", async () => {
     const sub = buildSubscription();
@@ -62,6 +68,17 @@ describe("sendPush", () => {
       JSON.stringify({ title: "T", body: "B" })
     );
     expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("許可されていないホストの endpoint は送信せずエラーを返す", async () => {
+    const sub = buildSubscription({
+      endpoint: "https://attacker.example.com/abc",
+    });
+
+    const result = await sendPush(sub, { title: "T", body: "B" });
+
+    expect(result).toMatchObject({ ok: false, gone: false });
+    expect(webpushMock.sendNotification).not.toHaveBeenCalled();
   });
 
   it("410 が返ったら gone:true で push_subscriptions から削除する", async () => {
@@ -89,6 +106,18 @@ describe("sendPush", () => {
     expect(deleteSpy).toHaveBeenCalled();
   });
 
+  it("失効 endpoint の削除に失敗したら gone:false を返す", async () => {
+    webpushMock.sendNotification.mockRejectedValueOnce(goneError(410));
+    eqSpy.mockResolvedValueOnce({ error: { message: "db error" } });
+
+    const result = await sendPush(buildSubscription(), {
+      title: "T",
+      body: "B",
+    });
+
+    expect(result).toMatchObject({ ok: false, gone: false });
+  });
+
   it("失効以外のエラーは gone:false で削除しない", async () => {
     webpushMock.sendNotification.mockRejectedValueOnce(goneError(500));
 
@@ -106,9 +135,13 @@ describe("broadcastPush", () => {
   it("成功・失効・失敗の件数を集計する", async () => {
     selectSpy.mockResolvedValueOnce({
       data: [
-        buildSubscription({ endpoint: "https://push.example.com/ok" }),
-        buildSubscription({ endpoint: "https://push.example.com/gone" }),
-        buildSubscription({ endpoint: "https://push.example.com/fail" }),
+        buildSubscription({ endpoint: "https://fcm.googleapis.com/fcm/send/ok" }),
+        buildSubscription({
+          endpoint: "https://fcm.googleapis.com/fcm/send/gone",
+        }),
+        buildSubscription({
+          endpoint: "https://fcm.googleapis.com/fcm/send/fail",
+        }),
       ],
       error: null,
     });

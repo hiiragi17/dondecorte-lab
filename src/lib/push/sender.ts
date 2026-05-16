@@ -1,5 +1,6 @@
 import "server-only";
 import webpush from "web-push";
+import { isAllowedPushEndpoint } from "@/lib/push/endpoint";
 import { adminClient } from "@/lib/supabase/admin";
 import type {
   PushBroadcastResult,
@@ -35,6 +36,15 @@ export async function sendPush(
   subscription: PushSubscriptionRow,
   payload: PushPayload
 ): Promise<SendPushResult> {
+  // SSRF 対策: 未知のホスト宛にサーバから送信させない（endpoint.ts の解説参照）。
+  if (!isAllowedPushEndpoint(subscription.endpoint)) {
+    return {
+      ok: false,
+      gone: false,
+      error: "許可されていないプッシュサービスの endpoint です",
+    };
+  }
+
   configureVapid();
 
   try {
@@ -51,10 +61,19 @@ export async function sendPush(
     const gone = statusCode === 404 || statusCode === 410;
 
     if (gone) {
-      await adminClient
+      const { error: deleteError } = await adminClient
         .from("push_subscriptions")
         .delete()
         .eq("endpoint", subscription.endpoint);
+
+      // 削除に失敗した場合は行が残るため removed として数えない。
+      if (deleteError) {
+        return {
+          ok: false,
+          gone: false,
+          error: `失効した endpoint の削除に失敗しました: ${deleteError.message}`,
+        };
+      }
     }
 
     return {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAllowedPushEndpoint } from "@/lib/push/endpoint";
 import { adminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -29,6 +30,14 @@ export async function POST(request: Request) {
   if (!endpoint || !p256dh || !auth) {
     return NextResponse.json(
       { error: "subscription の形式が不正です" },
+      { status: 400 }
+    );
+  }
+
+  // SSRF 対策: 主要ブラウザのプッシュサービス以外の endpoint は登録させない。
+  if (!isAllowedPushEndpoint(endpoint)) {
+    return NextResponse.json(
+      { error: "サポートされていないプッシュサービスです" },
       { status: 400 }
     );
   }

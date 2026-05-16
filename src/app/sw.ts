@@ -56,7 +56,12 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const data = event.notification.data as { url?: string } | undefined;
-  const targetUrl = new URL(data?.url ?? "/", self.location.origin).href;
+  // payload の url は信頼できないため、必ず同一オリジンに限定する。
+  const parsed = new URL(data?.url ?? "/", self.location.origin);
+  const targetUrl =
+    parsed.origin === self.location.origin
+      ? parsed.href
+      : `${self.location.origin}/`;
 
   event.waitUntil(
     (async () => {

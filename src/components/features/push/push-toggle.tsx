@@ -106,11 +106,14 @@ export function PushToggle() {
       if (subscription) {
         const { endpoint } = subscription;
         await subscription.unsubscribe();
-        await fetch("/api/push/unsubscribe", {
+        const res = await fetch("/api/push/unsubscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint }),
         });
+        if (!res.ok) {
+          setError("サーバ側の購読解除に失敗しました（端末側は解除済みです）");
+        }
       }
       setStatus("unsubscribed");
     } catch (err) {
@@ -157,7 +160,7 @@ export function PushToggle() {
               type="button"
               onClick={subscribe}
               disabled={pending}
-              className="shrink-0 rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark disabled:opacity-50"
+              className="shrink-0 rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-brand-cream transition hover:bg-brand-sky-dark disabled:opacity-50"
             >
               {pending ? "処理中…" : "通知をオンにする"}
             </button>
