@@ -47,23 +47,14 @@ export async function getCoAppearanceGraph(): Promise<CoAppearanceGraph> {
 
   const ownContents = await listDondecorteContents(supabase, dondecorteId);
   const totalContentCount = ownContents.length;
-  const ownKeys = new Set(
-    ownContents.map((c) => `${c.contentType}:${c.contentId}`)
-  );
 
-  const rows = await listCastsForContents(
-    supabase,
-    ownContents.map((c) => c.contentId)
-  );
+  const rows = await listCastsForContents(supabase, ownContents);
 
   const performers = new Map<string, CastEntry>();
   const contentPerformers = new Map<string, Set<string>>();
 
   for (const row of rows) {
     const contentKey = `${row.content_type}:${row.content_id}`;
-    // content_id だけで取得しているため、ドンデコルテ出演コンテンツに
-    // 属する行のみを対象にする。
-    if (!ownKeys.has(contentKey)) continue;
 
     const performer = entryFromRow(row);
     if (!performer) continue;

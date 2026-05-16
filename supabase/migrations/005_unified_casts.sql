@@ -106,7 +106,52 @@ create trigger trg_topics_delete_casts before delete on topics
   for each row execute function delete_casts_on_content_delete('topic');
 
 -- ============================================
--- 5. RLS（読み取りは公開、書き込みは認証ユーザーのみ）
+-- 5. 親コンテンツの存在チェック（旧 cast テーブルの外部キー相当）
+-- ============================================
+-- ポリモーフィックなため content 側へ FK を張れない。INSERT / UPDATE 時に
+-- content_id が content_type に対応する親テーブルに存在するかをトリガーで
+-- 検証し、旧 cast テーブルの外部キー制約と同等の整合性を担保する。
+create or replace function validate_cast_content()
+returns trigger
+language plpgsql
+as $$
+declare
+  content_exists boolean;
+begin
+  case new.content_type
+    when 'video' then
+      select exists(select 1 from videos where id = new.content_id) into content_exists;
+    when 'live' then
+      select exists(select 1 from lives where id = new.content_id) into content_exists;
+    when 'radio' then
+      select exists(select 1 from radios where id = new.content_id) into content_exists;
+    when 'article' then
+      select exists(select 1 from articles where id = new.content_id) into content_exists;
+    when 'tv_show' then
+      select exists(select 1 from tv_shows where id = new.content_id) into content_exists;
+    when 'topic' then
+      select exists(select 1 from topics where id = new.content_id) into content_exists;
+    else
+      raise exception 'casts.content_type が不正です: %', new.content_type;
+  end case;
+
+  if not content_exists then
+    raise exception 'casts.content_id (%) が % テーブルに存在しません',
+      new.content_id, new.content_type;
+  end if;
+
+  return new;
+end;
+$$;
+
+comment on function validate_cast_content() is
+  'casts の content_id が content_type に対応する親テーブルに存在することを検証する（旧 cast テーブルの外部キー相当）';
+
+create trigger trg_casts_validate_content before insert or update on casts
+  for each row execute function validate_cast_content();
+
+-- ============================================
+-- 6. RLS（読み取りは公開、書き込みは認証ユーザーのみ）
 -- ============================================
 alter table casts enable row level security;
 
@@ -116,7 +161,7 @@ create policy casts_update on casts for update to authenticated using (true) wit
 create policy casts_delete on casts for delete to authenticated using (true);
 
 -- ============================================
--- 6. 旧 cast テーブルを削除
+-- 7. 旧 cast テーブルを削除
 -- ============================================
 -- 付随するインデックス・RLS ポリシーも一緒に削除される。
 drop table video_casts;

@@ -84,12 +84,22 @@ export async function listDondecorteContents(
 
 /**
  * 指定したコンテンツ群に出演する全 casts 行を取得する。
+ *
+ * PostgREST では複合キー (content_type, content_id) の IN 条件を直接
+ * 表現できないため content_id で取得し、ポリモーフィックモデルの論理キー
+ * (content_type, content_id) で JS 側で絞り込む（content_id が
+ * コンテンツ種別をまたいで衝突しても誤った行を拾わないようにするため）。
  */
 export async function listCastsForContents(
   supabase: SupabaseClient,
-  contentIds: string[]
+  refs: ContentRef[]
 ): Promise<CoCastRow[]> {
-  if (contentIds.length === 0) return [];
+  if (refs.length === 0) return [];
+
+  const contentIds = Array.from(new Set(refs.map((r) => r.contentId)));
+  const allowed = new Set(
+    refs.map((r) => `${r.contentType}:${r.contentId}`)
+  );
 
   const { data, error } = await supabase
     .from("casts")
@@ -100,7 +110,9 @@ export async function listCastsForContents(
     throw new Error(`共演者情報の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []) as unknown as CoCastRow[];
+  return ((data ?? []) as unknown as CoCastRow[]).filter((row) =>
+    allowed.has(`${row.content_type}:${row.content_id}`)
+  );
 }
 
 export function entryFromRow(row: CoCastRow): CastEntry | null {

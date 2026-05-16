@@ -193,13 +193,19 @@ export async function updateArticle(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("articles")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
     .eq("id", id);
 
   if (error) {
     return { error: `記事の更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定された記事が見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);

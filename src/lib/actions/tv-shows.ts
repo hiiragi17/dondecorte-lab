@@ -171,13 +171,19 @@ export async function updateTvShow(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("tv_shows")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
     .eq("id", id);
 
   if (error) {
     return { error: `TV番組の更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定されたTV番組が見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);

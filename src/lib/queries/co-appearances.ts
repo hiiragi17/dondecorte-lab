@@ -102,21 +102,12 @@ export async function getCoAppearanceRanking(): Promise<CoAppearanceRanking> {
 
   const ownContents = await listDondecorteContents(supabase, dondecorteId);
   const totalContentCount = ownContents.length;
-  const ownKeys = new Set(
-    ownContents.map((c) => `${c.contentType}:${c.contentId}`)
-  );
 
-  const rows = await listCastsForContents(
-    supabase,
-    ownContents.map((c) => c.contentId)
-  );
+  const rows = await listCastsForContents(supabase, ownContents);
 
   const acc: Accumulator = new Map();
 
   for (const row of rows) {
-    // content_id だけで取得しているため、ドンデコルテ出演コンテンツに
-    // 属する行のみを集計対象にする。
-    if (!ownKeys.has(`${row.content_type}:${row.content_id}`)) continue;
     if (row.comedy_group_id === dondecorteId) continue;
     const performer = entryFromRow(row);
     if (!performer) continue;

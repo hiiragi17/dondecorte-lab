@@ -145,6 +145,9 @@ describe("getCoAppearanceRanking", () => {
         artistRow("video", "v2", "artist-x", "芸人X"),
         comboRow("live", "l1", "combo-b", "コンビB"),
         unitRow("live", "l1", "unit-1", "ユニット1"),
+        // content_id "v1" は video のドンデコルテ出演コンテンツだが、
+        // content_type が "live" のため別コンテンツ。集計対象外になること。
+        comboRow("live", "v1", "combo-c", "コンビC"),
       ],
     });
 
@@ -152,6 +155,11 @@ describe("getCoAppearanceRanking", () => {
 
     expect(result.found).toBe(true);
     expect(result.totalContentCount).toBe(3);
+
+    // (live, v1) は (video, v1) と content_id が衝突するが別コンテンツ
+    expect(
+      result.combos.find((c) => c.performer.id === "combo-c")
+    ).toBeUndefined();
 
     expect(result.combos).toHaveLength(2);
     expect(result.combos[0]).toMatchObject({

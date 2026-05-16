@@ -170,13 +170,19 @@ export async function updateTopic(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("topics")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
     .eq("id", id);
 
   if (error) {
     return { error: `トピックの更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定されたトピックが見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);

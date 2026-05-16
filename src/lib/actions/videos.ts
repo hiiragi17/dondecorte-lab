@@ -185,13 +185,19 @@ export async function updateVideo(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("videos")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
     .eq("id", id);
 
   if (error) {
     return { error: `動画の更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定された動画が見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);

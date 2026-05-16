@@ -94,6 +94,12 @@ describe("createVideo", () => {
     expect(insertChain).toHaveBeenCalledWith(
       expect.objectContaining({ youtube_video_id: "abcDEF12345" })
     );
+    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
+    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
+    expect(deleteEqContent).toHaveBeenCalledWith(
+      "content_id",
+      "11111111-1111-4111-8111-111111111111"
+    );
   });
 
   it("youtube_url から動画IDを抽出する", async () => {
@@ -121,6 +127,12 @@ describe("createVideo", () => {
     await expect(createVideo({}, fd)).rejects.toThrow(/__REDIRECT__/);
     expect(insertChain).toHaveBeenCalledWith(
       expect.objectContaining({ youtube_video_id: "abcDEF12345" })
+    );
+    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
+    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
+    expect(deleteEqContent).toHaveBeenCalledWith(
+      "content_id",
+      "11111111-1111-4111-8111-111111111111"
     );
   });
 
