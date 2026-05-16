@@ -4,18 +4,9 @@ import { useRef, useState } from "react";
 import { getContentTypeLabel } from "@/components/shared/content-type-badge";
 import { PerformerTag } from "@/components/shared/performer-tags";
 import type { AppearanceRankingEntry } from "@/lib/queries/rankings";
-import type { ContentType } from "@/lib/types";
+import { CONTENT_TYPES, type ContentType } from "@/lib/types";
 
 type TabKey = "total" | ContentType;
-
-const CONTENT_TYPES: ContentType[] = [
-  "video",
-  "live",
-  "radio",
-  "article",
-  "tv_show",
-  "topic",
-];
 
 const TABS: TabKey[] = ["total", ...CONTENT_TYPES];
 

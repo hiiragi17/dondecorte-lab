@@ -1,6 +1,6 @@
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
 import { createClient } from "@/lib/supabase/server";
-import type { CastEntry, ContentType } from "@/lib/types";
+import { CONTENT_TYPES, type CastEntry, type ContentType } from "@/lib/types";
 
 const CAST_TABLE_BY_CONTENT = {
   video: "video_casts",
@@ -10,8 +10,6 @@ const CAST_TABLE_BY_CONTENT = {
   tv_show: "tv_show_casts",
   topic: "topic_casts",
 } as const satisfies Record<ContentType, string>;
-
-const CONTENT_TYPES = Object.keys(CAST_TABLE_BY_CONTENT) as ContentType[];
 
 type CastTable = (typeof CAST_TABLE_BY_CONTENT)[ContentType];
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -83,6 +81,8 @@ async function selectAllCastRows(
       );
     }
 
+    // Supabase は埋め込みリレーションを配列型として推論するため、
+    // CastRow[] への単一キャストでは型エラーになる（実行時の形状は一致する）。
     const page = (data ?? []) as unknown as CastRow[];
     rows.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -102,10 +102,15 @@ export async function listAppearanceRanking(): Promise<
     )
   );
 
-  const castsByContentType = {} as Record<ContentType, CastEntry[]>;
-  CONTENT_TYPES.forEach((contentType, index) => {
-    castsByContentType[contentType] = mapCasts(castRowsByContentType[index]);
-  });
+  const castsByContentType = CONTENT_TYPES.reduce<
+    Record<ContentType, CastEntry[]>
+  >(
+    (acc, contentType, index) => {
+      acc[contentType] = mapCasts(castRowsByContentType[index]);
+      return acc;
+    },
+    { video: [], live: [], radio: [], article: [], tv_show: [], topic: [] }
+  );
 
   return aggregateAppearanceRanking(castsByContentType);
 }

@@ -6,10 +6,13 @@ export type CastEntry = {
   name: string;
 };
 
-export type ContentType =
-  | "video"
-  | "live"
-  | "radio"
-  | "article"
-  | "tv_show"
-  | "topic";
+export const CONTENT_TYPES = [
+  "video",
+  "live",
+  "radio",
+  "article",
+  "tv_show",
+  "topic",
+] as const;
+
+export type ContentType = (typeof CONTENT_TYPES)[number];
