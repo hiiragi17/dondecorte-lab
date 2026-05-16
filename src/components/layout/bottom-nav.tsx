@@ -25,6 +25,7 @@ const MORE_ITEMS: NavItem[] = [
   { href: "/tv", label: "TV" },
   { href: "/topics", label: "トピック" },
   { href: "/co-stars", label: "共演分析" },
+  { href: "/rankings", label: "ランキング" },
 ];
 
 function isActive(pathname: string, href: string) {

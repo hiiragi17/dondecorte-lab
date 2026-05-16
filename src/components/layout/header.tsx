@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/units", label: "ユニット" },
   { href: "/artists", label: "芸人" },
   { href: "/co-stars", label: "共演分析" },
+  { href: "/rankings", label: "ランキング" },
 ];
 
 function isActive(pathname: string, href: string) {
