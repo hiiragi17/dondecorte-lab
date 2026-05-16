@@ -104,6 +104,7 @@ export function AppearanceRankingBoard({
         role="tabpanel"
         id="ranking-tabpanel"
         aria-labelledby={`ranking-tab-${active}`}
+        tabIndex={0}
       >
         {rows.length === 0 ? (
           <p className="rounded-lg border border-brand-border-dark bg-brand-card-dark px-4 py-6 text-sm text-brand-muted">
@@ -124,10 +125,7 @@ export function AppearanceRankingBoard({
                   ) : null}
                 </div>
                 <p className="shrink-0 text-right">
-                  <span
-                    className="text-lg font-bold text-brand-cream sm:text-xl"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  >
+                  <span className="text-lg font-bold tabular-nums text-brand-cream sm:text-xl">
                     {metricOf(entry, active)}
                   </span>
                   <span className="ml-0.5 text-xs text-brand-muted">回</span>
@@ -152,8 +150,8 @@ function RankBadge({ rank }: { rank: number }) {
           : "bg-brand-bg-dark text-brand-muted";
   return (
     <span
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${tone}`}
-      style={{ fontVariantNumeric: "tabular-nums" }}
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums ${tone}`}
+      aria-label={`${rank}位`}
     >
       {rank}
     </span>
@@ -168,10 +166,7 @@ function Breakdown({ counts }: { counts: Record<ContentType, number> }) {
       {items.map((type) => (
         <li key={type} className="text-xs text-brand-muted">
           {getContentTypeLabel(type)}
-          <span
-            className="ml-1 font-semibold text-brand-gold"
-            style={{ fontVariantNumeric: "tabular-nums" }}
-          >
+          <span className="ml-1 font-semibold tabular-nums text-brand-gold">
             {counts[type]}
           </span>
         </li>
