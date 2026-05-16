@@ -20,3 +20,56 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+type PushPayload = {
+  title?: string;
+  body?: string;
+  url?: string;
+  tag?: string;
+};
+
+self.addEventListener("push", (event) => {
+  let payload: PushPayload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json() as PushPayload;
+    } catch {
+      payload = { body: event.data.text() };
+    }
+  }
+
+  const title = payload.title ?? "DonDecorte Lab";
+  const url = payload.url ?? "/";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body ?? "",
+      tag: payload.tag,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const data = event.notification.data as { url?: string } | undefined;
+  const targetUrl = new URL(data?.url ?? "/", self.location.origin).href;
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of clientList) {
+        await client.focus();
+        await client.navigate(targetUrl);
+        return;
+      }
+      await self.clients.openWindow(targetUrl);
+    })()
+  );
+});

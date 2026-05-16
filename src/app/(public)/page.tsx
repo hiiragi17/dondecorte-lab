@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PushToggle } from "@/components/features/push/push-toggle";
 import { ContentTypeBadge } from "@/components/shared/content-type-badge";
 import {
   getLatestVideos,
@@ -84,6 +85,7 @@ export default async function Home() {
         </p>
       </section>
 
+      <PushToggle />
       <UpcomingLivesSection lives={upcomingLives} />
       <LatestVideosSection videos={latestVideos} />
       <RecentContentSection items={recentContent} />
