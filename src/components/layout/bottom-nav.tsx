@@ -24,6 +24,7 @@ const MORE_ITEMS: NavItem[] = [
   { href: "/articles", label: "記事" },
   { href: "/tv", label: "TV" },
   { href: "/topics", label: "トピック" },
+  { href: "/rankings", label: "ランキング" },
 ];
 
 function isActive(pathname: string, href: string) {

@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/combos", label: "コンビ" },
   { href: "/units", label: "ユニット" },
   { href: "/artists", label: "芸人" },
+  { href: "/rankings", label: "ランキング" },
 ];
 
 function isActive(pathname: string, href: string) {
