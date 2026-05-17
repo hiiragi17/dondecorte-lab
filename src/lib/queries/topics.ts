@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
 import {
   getIdsForPerformer,
   type ListOptions,
@@ -27,12 +27,7 @@ export async function listTopics(
 
   let allowedIds: string[] | null = null;
   if (options.performer) {
-    allowedIds = await getIdsForPerformer(
-      supabase,
-      "topic_casts",
-      "topic_id",
-      options.performer
-    );
+    allowedIds = await getIdsForPerformer(supabase, "topic", options.performer);
     if (allowedIds.length === 0) return [];
   }
 
@@ -63,29 +58,13 @@ export async function listTopicsWithCasts(
 
   let allowedIds: string[] | null = null;
   if (options.performer) {
-    allowedIds = await getIdsForPerformer(
-      supabase,
-      "topic_casts",
-      "topic_id",
-      options.performer
-    );
+    allowedIds = await getIdsForPerformer(supabase, "topic", options.performer);
     if (allowedIds.length === 0) return [];
   }
 
   let query = supabase
     .from("topics")
-    .select(
-      `*,
-       topic_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .order("topic_date", { ascending, nullsFirst: false })
     .order("created_at", { ascending });
 
@@ -99,29 +78,26 @@ export async function listTopicsWithCasts(
     throw new Error(`トピック一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.topic_casts as CastRow[] | null | undefined);
-    return { ...toTopicBase(record), casts };
-  });
+  const topics = (data ?? []).map((row) =>
+    toTopicBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "topic",
+    topics.map((t) => t.id)
+  );
+
+  return topics.map((topic) => ({
+    ...topic,
+    casts: castsByContent.get(topic.id) ?? [],
+  }));
 }
 
 export async function getTopic(id: string): Promise<TopicWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("topics")
-    .select(
-      `*,
-       topic_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -131,7 +107,9 @@ export async function getTopic(id: string): Promise<TopicWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.topic_casts as CastRow[] | null | undefined);
-  return { ...toTopicBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "topic", [id]);
+  return {
+    ...toTopicBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }

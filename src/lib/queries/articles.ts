@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
 import {
   getIdsForPerformer,
   type ListOptions,
@@ -29,8 +29,7 @@ export async function listArticles(
   if (options.performer) {
     allowedIds = await getIdsForPerformer(
       supabase,
-      "article_casts",
-      "article_id",
+      "article",
       options.performer
     );
     if (allowedIds.length === 0) return [];
@@ -65,8 +64,7 @@ export async function listArticlesWithCasts(
   if (options.performer) {
     allowedIds = await getIdsForPerformer(
       supabase,
-      "article_casts",
-      "article_id",
+      "article",
       options.performer
     );
     if (allowedIds.length === 0) return [];
@@ -74,18 +72,7 @@ export async function listArticlesWithCasts(
 
   let query = supabase
     .from("articles")
-    .select(
-      `*,
-       article_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .order("published_at", { ascending, nullsFirst: false })
     .order("created_at", { ascending });
 
@@ -99,29 +86,26 @@ export async function listArticlesWithCasts(
     throw new Error(`記事一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.article_casts as CastRow[] | null | undefined);
-    return { ...toArticleBase(record), casts };
-  });
+  const articles = (data ?? []).map((row) =>
+    toArticleBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "article",
+    articles.map((a) => a.id)
+  );
+
+  return articles.map((article) => ({
+    ...article,
+    casts: castsByContent.get(article.id) ?? [],
+  }));
 }
 
 export async function getArticle(id: string): Promise<ArticleWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("articles")
-    .select(
-      `*,
-       article_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -131,7 +115,9 @@ export async function getArticle(id: string): Promise<ArticleWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.article_casts as CastRow[] | null | undefined);
-  return { ...toArticleBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "article", [id]);
+  return {
+    ...toArticleBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }

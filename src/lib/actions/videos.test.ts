@@ -71,14 +71,15 @@ describe("createVideo", () => {
     });
     const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
     const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteChain = vi.fn(() => ({ eq: deleteEq }));
+    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
+    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
 
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === "videos") {
         return { insert: insertChain };
       }
-      if (table === "video_casts") {
+      if (table === "casts") {
         return { delete: deleteChain };
       }
       throw new Error(`unexpected table: ${table}`);
@@ -93,6 +94,12 @@ describe("createVideo", () => {
     expect(insertChain).toHaveBeenCalledWith(
       expect.objectContaining({ youtube_video_id: "abcDEF12345" })
     );
+    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
+    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
+    expect(deleteEqContent).toHaveBeenCalledWith(
+      "content_id",
+      "11111111-1111-4111-8111-111111111111"
+    );
   });
 
   it("youtube_url から動画IDを抽出する", async () => {
@@ -102,12 +109,13 @@ describe("createVideo", () => {
     });
     const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
     const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteChain = vi.fn(() => ({ eq: deleteEq }));
+    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
+    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
 
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === "videos") return { insert: insertChain };
-      if (table === "video_casts") return { delete: deleteChain };
+      if (table === "casts") return { delete: deleteChain };
       throw new Error(`unexpected table: ${table}`);
     });
 
@@ -119,6 +127,12 @@ describe("createVideo", () => {
     await expect(createVideo({}, fd)).rejects.toThrow(/__REDIRECT__/);
     expect(insertChain).toHaveBeenCalledWith(
       expect.objectContaining({ youtube_video_id: "abcDEF12345" })
+    );
+    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
+    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
+    expect(deleteEqContent).toHaveBeenCalledWith(
+      "content_id",
+      "11111111-1111-4111-8111-111111111111"
     );
   });
 

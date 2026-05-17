@@ -99,9 +99,10 @@ async function replaceCasts(
   casts: CastEntry[]
 ): Promise<{ error?: string }> {
   const { error: deleteError } = await supabase
-    .from("video_casts")
+    .from("casts")
     .delete()
-    .eq("video_id", videoId);
+    .eq("content_type", "video")
+    .eq("content_id", videoId);
 
   if (deleteError) {
     return { error: `出演者の削除に失敗しました: ${deleteError.message}` };
@@ -110,15 +111,14 @@ async function replaceCasts(
   if (casts.length === 0) return {};
 
   const rows = casts.map((c) => ({
-    video_id: videoId,
+    content_type: "video",
+    content_id: videoId,
     artist_id: c.type === "artist" ? c.id : null,
     comedy_group_id: c.type === "comedy_group" ? c.id : null,
     unit_id: c.type === "unit" ? c.id : null,
   }));
 
-  const { error: insertError } = await supabase
-    .from("video_casts")
-    .insert(rows);
+  const { error: insertError } = await supabase.from("casts").insert(rows);
 
   if (insertError) {
     return { error: `出演者の追加に失敗しました: ${insertError.message}` };
@@ -185,13 +185,19 @@ export async function updateVideo(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("videos")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update(
+      { ...values, updated_at: new Date().toISOString() },
+      { count: "exact" }
+    )
     .eq("id", id);
 
   if (error) {
     return { error: `動画の更新に失敗しました: ${error.message}` };
+  }
+  if (count !== 1) {
+    return { error: "指定された動画が見つかりません" };
   }
 
   const castsResult = await replaceCasts(supabase, id, casts);
