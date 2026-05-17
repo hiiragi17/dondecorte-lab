@@ -2,7 +2,7 @@ import type { YoutubeVideo } from "./types";
 
 const API_BASE = "https://www.googleapis.com/youtube/v3";
 const MAX_RESULTS_PER_PAGE = 50;
-const DEFAULT_MAX_PAGES = 10;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 // 画質の高い順。利用可能な最初のものを採用する
 const THUMBNAIL_PRIORITY = ["maxres", "standard", "high", "medium", "default"];
@@ -56,7 +56,26 @@ async function youtubeRequest<T>(
     url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url, { headers: { accept: "application/json" } });
+  // 外部APIのハングでsyncが固まらないようタイムアウトを設ける
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        `YouTube API リクエストがタイムアウトしました (${REQUEST_TIMEOUT_MS}ms)`
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const body = await response.text();
@@ -88,14 +107,20 @@ export async function fetchChannelVideos(
   channelId: string,
   options: { maxPages?: number } = {}
 ): Promise<YoutubeVideo[]> {
-  const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+  // maxPages 未指定なら全ページ取得（チャンネル全動画の取りこぼしを防ぐ）。
+  // 指定時のみページ数を制限し、0以下/不正値なら何も取得しない
+  const maxPages = options.maxPages;
+  if (maxPages !== undefined && !(maxPages >= 1)) {
+    return [];
+  }
+
   const playlistId = await fetchUploadsPlaylistId(channelId);
 
   const videos: YoutubeVideo[] = [];
   let pageToken: string | undefined;
   let page = 0;
 
-  do {
+  while (maxPages === undefined || page < maxPages) {
     const params: Record<string, string> = {
       part: "snippet,contentDetails",
       playlistId,
@@ -128,9 +153,10 @@ export async function fetchChannelVideos(
       });
     }
 
-    pageToken = data.nextPageToken;
     page += 1;
-  } while (pageToken && page < maxPages);
+    if (!data.nextPageToken) break;
+    pageToken = data.nextPageToken;
+  }
 
   return videos;
 }

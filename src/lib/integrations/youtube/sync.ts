@@ -40,49 +40,28 @@ export async function syncChannelVideos(
     return { fetched: 0, inserted: 0, skipped: 0, insertedVideoIds: [] };
   }
 
-  const { data: existing, error: selectError } = await adminClient
+  // upsert + ignoreDuplicates で「未登録のみ挿入」をアトミックに行う。
+  // SELECT→INSERT 方式だと並行実行時に unique 制約違反でバッチ全体が失敗しうる
+  const { data: insertedRows, error } = await adminClient
     .from("videos")
-    .select("youtube_video_id")
-    .in(
-      "youtube_video_id",
-      videos.map((v) => v.youtubeVideoId)
-    );
+    .upsert(videos.map(toVideoRow), {
+      onConflict: "youtube_video_id",
+      ignoreDuplicates: true,
+    })
+    .select("youtube_video_id");
 
-  if (selectError) {
-    throw new Error(`既存動画の確認に失敗しました: ${selectError.message}`);
+  if (error) {
+    throw new Error(`動画の保存に失敗しました: ${error.message}`);
   }
 
-  const existingIds = new Set(
-    (existing ?? [])
-      .map((row) => row.youtube_video_id)
-      .filter((id): id is string => Boolean(id))
-  );
-
-  const newVideos = videos.filter(
-    (video) => !existingIds.has(video.youtubeVideoId)
-  );
-
-  if (newVideos.length === 0) {
-    return {
-      fetched: videos.length,
-      inserted: 0,
-      skipped: videos.length,
-      insertedVideoIds: [],
-    };
-  }
-
-  const { error: insertError } = await adminClient
-    .from("videos")
-    .insert(newVideos.map(toVideoRow));
-
-  if (insertError) {
-    throw new Error(`動画の保存に失敗しました: ${insertError.message}`);
-  }
+  const insertedVideoIds = (insertedRows ?? [])
+    .map((row) => row.youtube_video_id)
+    .filter((id): id is string => Boolean(id));
 
   return {
     fetched: videos.length,
-    inserted: newVideos.length,
-    skipped: videos.length - newVideos.length,
-    insertedVideoIds: newVideos.map((v) => v.youtubeVideoId),
+    inserted: insertedVideoIds.length,
+    skipped: videos.length - insertedVideoIds.length,
+    insertedVideoIds,
   };
 }

@@ -20,26 +20,21 @@ function buildVideo(id: string): YoutubeVideo {
   };
 }
 
+// upsert(...).select(...) のチェーンをモックする。
+// inserted には「実際に挿入された行（重複は除外済み）」を渡す
 function setupAdmin(
   options: {
-    existing?: Array<{ youtube_video_id: string | null }>;
-    selectError?: { message: string } | null;
-    insertError?: { message: string } | null;
+    inserted?: Array<{ youtube_video_id: string | null }>;
+    upsertError?: { message: string } | null;
   } = {}
 ) {
-  const inMock = vi.fn().mockResolvedValue({
-    data: options.existing ?? [],
-    error: options.selectError ?? null,
+  const selectMock = vi.fn().mockResolvedValue({
+    data: options.inserted ?? [],
+    error: options.upsertError ?? null,
   });
-  const selectMock = vi.fn(() => ({ in: inMock }));
-  const insertMock = vi
-    .fn()
-    .mockResolvedValue({ error: options.insertError ?? null });
-  adminClientMock.from.mockReturnValue({
-    select: selectMock,
-    insert: insertMock,
-  });
-  return { inMock, selectMock, insertMock };
+  const upsertMock = vi.fn(() => ({ select: selectMock }));
+  adminClientMock.from.mockReturnValue({ upsert: upsertMock });
+  return { upsertMock, selectMock };
 }
 
 beforeEach(() => {
@@ -49,7 +44,7 @@ beforeEach(() => {
 describe("syncChannelVideos", () => {
   it("動画が0件なら何も保存しない", async () => {
     fetchChannelVideosMock.mockResolvedValue([]);
-    const { selectMock, insertMock } = setupAdmin();
+    const { upsertMock } = setupAdmin();
 
     const result = await syncChannelVideos("UC_abc");
 
@@ -59,18 +54,18 @@ describe("syncChannelVideos", () => {
       skipped: 0,
       insertedVideoIds: [],
     });
-    expect(selectMock).not.toHaveBeenCalled();
-    expect(insertMock).not.toHaveBeenCalled();
+    expect(upsertMock).not.toHaveBeenCalled();
   });
 
-  it("未登録の動画だけを保存する", async () => {
+  it("upsert に全件を渡し、挿入された分のみを inserted として集計する", async () => {
     fetchChannelVideosMock.mockResolvedValue([
       buildVideo("a"),
       buildVideo("b"),
       buildVideo("c"),
     ]);
-    const { insertMock } = setupAdmin({
-      existing: [{ youtube_video_id: "b" }],
+    // b は既存のため upsert で挿入されず、a/c のみ返る
+    const { upsertMock } = setupAdmin({
+      inserted: [{ youtube_video_id: "a" }, { youtube_video_id: "c" }],
     });
 
     const result = await syncChannelVideos("UC_abc");
@@ -81,36 +76,47 @@ describe("syncChannelVideos", () => {
       skipped: 1,
       insertedVideoIds: ["a", "c"],
     });
-    expect(insertMock).toHaveBeenCalledWith([
-      expect.objectContaining({
-        youtube_video_id: "a",
-        youtube_url: "https://www.youtube.com/watch?v=a",
-        youtube_channel_id: "UC_abc",
-      }),
-      expect.objectContaining({ youtube_video_id: "c" }),
-    ]);
+    expect(upsertMock).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          youtube_video_id: "a",
+          youtube_url: "https://www.youtube.com/watch?v=a",
+          youtube_channel_id: "UC_abc",
+        }),
+        expect.objectContaining({ youtube_video_id: "b" }),
+        expect.objectContaining({ youtube_video_id: "c" }),
+      ],
+      { onConflict: "youtube_video_id", ignoreDuplicates: true }
+    );
   });
 
-  it("取得結果内の重複を除外する", async () => {
+  it("取得結果内の重複を除外してから upsert する", async () => {
     fetchChannelVideosMock.mockResolvedValue([
       buildVideo("a"),
       buildVideo("a"),
       buildVideo("b"),
     ]);
-    const { insertMock } = setupAdmin();
+    const { upsertMock } = setupAdmin({
+      inserted: [{ youtube_video_id: "a" }, { youtube_video_id: "b" }],
+    });
 
     const result = await syncChannelVideos("UC_abc");
 
     expect(result.fetched).toBe(2);
     expect(result.inserted).toBe(2);
-    expect(insertMock).toHaveBeenCalledTimes(1);
+    expect(upsertMock).toHaveBeenCalledTimes(1);
+    expect(upsertMock).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ youtube_video_id: "a" }),
+        expect.objectContaining({ youtube_video_id: "b" }),
+      ],
+      { onConflict: "youtube_video_id", ignoreDuplicates: true }
+    );
   });
 
-  it("全て登録済みなら insert を呼ばない", async () => {
+  it("全て登録済みなら inserted=0 を返す", async () => {
     fetchChannelVideosMock.mockResolvedValue([buildVideo("a")]);
-    const { insertMock } = setupAdmin({
-      existing: [{ youtube_video_id: "a" }],
-    });
+    const { upsertMock } = setupAdmin({ inserted: [] });
 
     const result = await syncChannelVideos("UC_abc");
 
@@ -120,24 +126,15 @@ describe("syncChannelVideos", () => {
       skipped: 1,
       insertedVideoIds: [],
     });
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it("既存動画の確認に失敗したら例外を投げる", async () => {
-    fetchChannelVideosMock.mockResolvedValue([buildVideo("a")]);
-    setupAdmin({ selectError: { message: "select boom" } });
-
-    await expect(syncChannelVideos("UC_abc")).rejects.toThrow(
-      "既存動画の確認に失敗しました: select boom"
-    );
+    expect(upsertMock).toHaveBeenCalledTimes(1);
   });
 
   it("保存に失敗したら例外を投げる", async () => {
     fetchChannelVideosMock.mockResolvedValue([buildVideo("a")]);
-    setupAdmin({ insertError: { message: "insert boom" } });
+    setupAdmin({ upsertError: { message: "upsert boom" } });
 
     await expect(syncChannelVideos("UC_abc")).rejects.toThrow(
-      "動画の保存に失敗しました: insert boom"
+      "動画の保存に失敗しました: upsert boom"
     );
   });
 });

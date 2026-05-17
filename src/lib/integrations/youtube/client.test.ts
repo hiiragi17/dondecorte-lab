@@ -55,6 +55,17 @@ describe("fetchUploadsPlaylistId", () => {
       /YouTube API.*403/
     );
   });
+
+  it("リクエストがタイムアウトしたら専用エラーを投げる", async () => {
+    global.fetch = vi.fn().mockRejectedValue(
+      Object.assign(new Error("This operation was aborted"), {
+        name: "AbortError",
+      })
+    );
+    await expect(fetchUploadsPlaylistId("UC_abc")).rejects.toThrow(
+      "タイムアウト"
+    );
+  });
 });
 
 describe("fetchChannelVideos", () => {
@@ -136,7 +147,7 @@ describe("fetchChannelVideos", () => {
     });
   });
 
-  it("maxPages を超えてページを辿らない", async () => {
+  it("maxPages を指定すると、その枚数でページ巡回を打ち切る", async () => {
     const fetchMock = vi.fn().mockImplementation((input: URL) => {
       const url = input.toString();
       if (url.includes("/channels")) {
@@ -169,5 +180,55 @@ describe("fetchChannelVideos", () => {
 
     // channels 1回 + playlistItems 2回
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("maxPages 未指定なら nextPageToken が尽きるまで全ページ取得する", async () => {
+    let playlistCalls = 0;
+    const fetchMock = vi.fn().mockImplementation((input: URL) => {
+      const url = input.toString();
+      if (url.includes("/channels")) {
+        return Promise.resolve(
+          mockResponse({
+            items: [
+              {
+                contentDetails: { relatedPlaylists: { uploads: "UU_abc" } },
+              },
+            ],
+          })
+        );
+      }
+      playlistCalls += 1;
+      return Promise.resolve(
+        mockResponse({
+          // 3ページ目で nextPageToken を返さない
+          nextPageToken: playlistCalls < 3 ? `PAGE${playlistCalls}` : undefined,
+          items: [
+            {
+              contentDetails: {
+                videoId: `vid${playlistCalls}`,
+                videoPublishedAt: null,
+              },
+              snippet: { title: `動画${playlistCalls}` },
+            },
+          ],
+        })
+      );
+    });
+    global.fetch = fetchMock;
+
+    const result = await fetchChannelVideos("UC_abc");
+
+    expect(result).toHaveLength(3);
+    expect(playlistCalls).toBe(3);
+  });
+
+  it("maxPages が 0 ならリクエストせず空配列を返す", async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock;
+
+    await expect(
+      fetchChannelVideos("UC_abc", { maxPages: 0 })
+    ).resolves.toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
