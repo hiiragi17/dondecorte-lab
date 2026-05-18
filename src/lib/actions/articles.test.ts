@@ -103,6 +103,9 @@ describe("createArticle", () => {
       title: "テスト",
       url: "https://example.com/article",
       content: "短い要約",
+      cast_type: ["artist"],
+      cast_id: ["22222222-2222-4222-8222-222222222222"],
+      cast_name: ["出演者A"],
     });
     await expect(createArticle({}, fd)).rejects.toThrow(/__REDIRECT__/);
     expect(supabaseMock.rpc).toHaveBeenCalledWith(
@@ -115,8 +118,12 @@ describe("createArticle", () => {
           url: "https://example.com/article",
           content: "短い要約",
         }),
+        p_casts: [
+          { type: "artist", id: "22222222-2222-4222-8222-222222222222" },
+        ],
       })
     );
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 });
 
@@ -138,6 +145,24 @@ describe("updateArticle", () => {
       fd
     );
     expect(result.fieldErrors?.url).toBeDefined();
+  });
+
+  it("RPC が not found を返した場合は既存メッセージを返す", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0002", message: "not found" },
+    });
+
+    const fd = buildFormData({
+      title: "テスト",
+      url: "https://example.com",
+    });
+    const result = await updateArticle(
+      "11111111-1111-4111-8111-111111111111",
+      {},
+      fd
+    );
+    expect(result.error).toBe("指定された記事が見つかりません");
   });
 });
 

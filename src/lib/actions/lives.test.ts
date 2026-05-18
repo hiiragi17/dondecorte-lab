@@ -153,6 +153,56 @@ describe("updateLive", () => {
     );
     expect(result.fieldErrors?.event_date).toBeDefined();
   });
+
+  it("RPC を呼び出して更新する（redirectまで進む）", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
+      error: null,
+    });
+
+    const fd = buildFormData({ title: "更新後ライブ" });
+    await expect(
+      updateLive("11111111-1111-4111-8111-111111111111", {}, fd)
+    ).rejects.toThrow(/__REDIRECT__/);
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
+      expect.objectContaining({
+        p_content_type: "live",
+        p_content_id: "11111111-1111-4111-8111-111111111111",
+      })
+    );
+    expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+
+  it("RPC が not found を返した場合は既存メッセージを返す", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0002", message: "not found" },
+    });
+
+    const fd = buildFormData({ title: "テスト" });
+    const result = await updateLive(
+      "11111111-1111-4111-8111-111111111111",
+      {},
+      fd
+    );
+    expect(result.error).toBe("指定されたライブが見つかりません");
+  });
+
+  it("RPC が汎用エラーを返した場合は整形したメッセージを返す", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "23505", message: "duplicate key" },
+    });
+
+    const fd = buildFormData({ title: "テスト" });
+    const result = await updateLive(
+      "11111111-1111-4111-8111-111111111111",
+      {},
+      fd
+    );
+    expect(result.error).toBe("ライブの更新に失敗しました: duplicate key");
+  });
 });
 
 describe("deleteLive", () => {
