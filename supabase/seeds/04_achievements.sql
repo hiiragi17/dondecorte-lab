@@ -45,6 +45,8 @@ insert into achievements (
   )
 on conflict (id) do update set
   comedy_group_id = excluded.comedy_group_id,
+  artist_id = null,                            -- 反対側のFKをクリアし再実行で確実にコンビ実績へ修復
+  unit_id = null,
   title = excluded.title,
   result = excluded.result,
   year = excluded.year,
@@ -61,6 +63,8 @@ insert into achievements (
   )
 on conflict (id) do update set
   artist_id = excluded.artist_id,
+  comedy_group_id = null,                      -- 反対側のFKをクリアし再実行で確実に個人実績へ修復
+  unit_id = null,
   title = excluded.title,
   result = excluded.result,
   year = excluded.year,
