@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { VideoFormState, VideoInput } from "@/lib/types/video";
 import { extractYoutubeVideoId, YOUTUBE_ID_PATTERN } from "@/lib/utils/youtube";
+import { upsertContentWithCasts } from "./casts";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -93,40 +94,6 @@ function parseFormData(formData: FormData): {
   return { values, casts, fieldErrors };
 }
 
-async function replaceCasts(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  videoId: string,
-  casts: CastEntry[]
-): Promise<{ error?: string }> {
-  const { error: deleteError } = await supabase
-    .from("casts")
-    .delete()
-    .eq("content_type", "video")
-    .eq("content_id", videoId);
-
-  if (deleteError) {
-    return { error: `出演者の削除に失敗しました: ${deleteError.message}` };
-  }
-
-  if (casts.length === 0) return {};
-
-  const rows = casts.map((c) => ({
-    content_type: "video",
-    content_id: videoId,
-    artist_id: c.type === "artist" ? c.id : null,
-    comedy_group_id: c.type === "comedy_group" ? c.id : null,
-    unit_id: c.type === "unit" ? c.id : null,
-  }));
-
-  const { error: insertError } = await supabase.from("casts").insert(rows);
-
-  if (insertError) {
-    return { error: `出演者の追加に失敗しました: ${insertError.message}` };
-  }
-
-  return {};
-}
-
 export async function createVideo(
   _prev: VideoFormState,
   formData: FormData
@@ -143,21 +110,14 @@ export async function createVideo(
     return { error: "認証が必要です" };
   }
 
-  const { data, error } = await supabase
-    .from("videos")
-    .insert(values)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return {
-      error: `動画の登録に失敗しました: ${error?.message ?? "unknown"}`,
-    };
-  }
-
-  const castsResult = await replaceCasts(supabase, data.id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "video",
+    contentId: null,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return { error: `動画の登録に失敗しました: ${result.error}` };
   }
 
   revalidatePath("/admin/videos");
@@ -185,24 +145,18 @@ export async function updateVideo(
     return { error: "認証が必要です" };
   }
 
-  const { error, count } = await supabase
-    .from("videos")
-    .update(
-      { ...values, updated_at: new Date().toISOString() },
-      { count: "exact" }
-    )
-    .eq("id", id);
-
-  if (error) {
-    return { error: `動画の更新に失敗しました: ${error.message}` };
-  }
-  if (count !== 1) {
-    return { error: "指定された動画が見つかりません" };
-  }
-
-  const castsResult = await replaceCasts(supabase, id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "video",
+    contentId: id,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return {
+      error: result.notFound
+        ? "指定された動画が見つかりません"
+        : `動画の更新に失敗しました: ${result.error}`,
+    };
   }
 
   revalidatePath("/admin/videos");

@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 const supabaseMock = vi.hoisted(() => ({
   auth: { getUser: vi.fn() },
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
   supabaseMock.from.mockReset();
+  supabaseMock.rpc.mockReset();
 });
 
 describe("createArticle", () => {
@@ -91,36 +93,37 @@ describe("createArticle", () => {
     expect(result.error).toBe("認証が必要です");
   });
 
-  it("バリデーション通過時は records を挿入して redirect する", async () => {
-    const insertSelectSingle = vi.fn().mockResolvedValue({
-      data: { id: "11111111-1111-4111-8111-111111111111" },
+  it("バリデーション通過時は RPC を呼び出して redirect する", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
       error: null,
-    });
-    const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
-    const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
-    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
-    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
-
-    supabaseMock.from.mockImplementation((table: string) => {
-      if (table === "articles") return { insert: insertChain };
-      if (table === "casts") return { delete: deleteChain };
-      throw new Error(`unexpected table: ${table}`);
     });
 
     const fd = buildFormData({
       title: "テスト",
       url: "https://example.com/article",
       content: "短い要約",
+      cast_type: ["artist"],
+      cast_id: ["22222222-2222-4222-8222-222222222222"],
+      cast_name: ["出演者A"],
     });
     await expect(createArticle({}, fd)).rejects.toThrow(/__REDIRECT__/);
-    expect(insertChain).toHaveBeenCalledWith(
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
       expect.objectContaining({
-        title: "テスト",
-        url: "https://example.com/article",
-        content: "短い要約",
+        p_content_type: "article",
+        p_content_id: null,
+        p_content: expect.objectContaining({
+          title: "テスト",
+          url: "https://example.com/article",
+          content: "短い要約",
+        }),
+        p_casts: [
+          { type: "artist", id: "22222222-2222-4222-8222-222222222222" },
+        ],
       })
     );
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 });
 
@@ -142,6 +145,24 @@ describe("updateArticle", () => {
       fd
     );
     expect(result.fieldErrors?.url).toBeDefined();
+  });
+
+  it("RPC が not found を返した場合は既存メッセージを返す", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0002", message: "not found" },
+    });
+
+    const fd = buildFormData({
+      title: "テスト",
+      url: "https://example.com",
+    });
+    const result = await updateArticle(
+      "11111111-1111-4111-8111-111111111111",
+      {},
+      fd
+    );
+    expect(result.error).toBe("指定された記事が見つかりません");
   });
 });
 

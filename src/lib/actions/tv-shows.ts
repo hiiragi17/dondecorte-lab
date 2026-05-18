@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { TvShowFormState, TvShowInput } from "@/lib/types/tv-show";
+import { upsertContentWithCasts } from "./casts";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -79,40 +80,6 @@ function parseFormData(formData: FormData): {
   return { values, casts, fieldErrors };
 }
 
-async function replaceCasts(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  tvShowId: string,
-  casts: CastEntry[]
-): Promise<{ error?: string }> {
-  const { error: deleteError } = await supabase
-    .from("casts")
-    .delete()
-    .eq("content_type", "tv_show")
-    .eq("content_id", tvShowId);
-
-  if (deleteError) {
-    return { error: `出演者の削除に失敗しました: ${deleteError.message}` };
-  }
-
-  if (casts.length === 0) return {};
-
-  const rows = casts.map((c) => ({
-    content_type: "tv_show",
-    content_id: tvShowId,
-    artist_id: c.type === "artist" ? c.id : null,
-    comedy_group_id: c.type === "comedy_group" ? c.id : null,
-    unit_id: c.type === "unit" ? c.id : null,
-  }));
-
-  const { error: insertError } = await supabase.from("casts").insert(rows);
-
-  if (insertError) {
-    return { error: `出演者の追加に失敗しました: ${insertError.message}` };
-  }
-
-  return {};
-}
-
 export async function createTvShow(
   _prev: TvShowFormState,
   formData: FormData
@@ -129,21 +96,14 @@ export async function createTvShow(
     return { error: "認証が必要です" };
   }
 
-  const { data, error } = await supabase
-    .from("tv_shows")
-    .insert(values)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return {
-      error: `TV番組の登録に失敗しました: ${error?.message ?? "unknown"}`,
-    };
-  }
-
-  const castsResult = await replaceCasts(supabase, data.id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "tv_show",
+    contentId: null,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return { error: `TV番組の登録に失敗しました: ${result.error}` };
   }
 
   revalidatePath("/admin/tv");
@@ -171,24 +131,18 @@ export async function updateTvShow(
     return { error: "認証が必要です" };
   }
 
-  const { error, count } = await supabase
-    .from("tv_shows")
-    .update(
-      { ...values, updated_at: new Date().toISOString() },
-      { count: "exact" }
-    )
-    .eq("id", id);
-
-  if (error) {
-    return { error: `TV番組の更新に失敗しました: ${error.message}` };
-  }
-  if (count !== 1) {
-    return { error: "指定されたTV番組が見つかりません" };
-  }
-
-  const castsResult = await replaceCasts(supabase, id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "tv_show",
+    contentId: id,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return {
+      error: result.notFound
+        ? "指定されたTV番組が見つかりません"
+        : `TV番組の更新に失敗しました: ${result.error}`,
+    };
   }
 
   revalidatePath("/admin/tv");
