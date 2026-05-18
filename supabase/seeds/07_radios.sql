@@ -36,8 +36,9 @@ on conflict (id) do update set
   updated_at = now();
 
 -- 出演登録（全てドンデコルテ）
-insert into radio_casts (radio_id, comedy_group_id)
-select id, '22222222-2222-4222-8222-000000000001'
+-- cast は #47 で単一 casts テーブル（content_type + content_id のポリモーフィック設計）に統合済み。
+insert into casts (content_type, content_id, comedy_group_id)
+select 'radio', id, '22222222-2222-4222-8222-000000000001'
 from radios
 where id in (
   '66666666-6666-4666-8666-000000000001',

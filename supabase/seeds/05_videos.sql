@@ -32,11 +32,12 @@ on conflict (youtube_video_id) do update set
   updated_at = now();
 
 -- 出演登録
+-- cast は #47 で単一 casts テーブル（content_type + content_id のポリモーフィック設計）に統合済み。
 -- 注: youtube_video_id で引くこと。同じ動画が API 同期等により別UUIDで
 -- 既存登録されている場合、ON CONFLICT (youtube_video_id) は既存行の id を
 -- 保ったまま UPDATE するため、ハードコード UUID で引くと cast が紐付かない。
-insert into video_casts (video_id, comedy_group_id)
-select id, '22222222-2222-4222-8222-000000000001'
+insert into casts (content_type, content_id, comedy_group_id)
+select 'video', id, '22222222-2222-4222-8222-000000000001'
 from videos
 where youtube_video_id = 'T37pceaYiOg'
 on conflict do nothing;

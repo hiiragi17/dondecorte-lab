@@ -6,7 +6,7 @@
 -- - ツーマンライブ：カゲヤマ×ドンデコルテ、たくろう×ドンデコルテ
 -- - 大会：ダブルインパクト2026
 -- 日付・会場は FANY・お笑いナタリー・劇場公式X 等で確認。
--- live_casts でドンデコルテ（および共演コンビ）に紐付ける。
+-- casts でドンデコルテ（および共演コンビ）に紐付ける。
 
 -- ============================================
 -- 単独ライブ
@@ -126,9 +126,11 @@ on conflict (id) do update set
 -- ============================================
 -- 出演登録
 -- ============================================
--- 単独ライブ全てにドンデコルテを登録
-insert into live_casts (live_id, comedy_group_id)
-select id, '22222222-2222-4222-8222-000000000001'
+-- cast は #47 で単一 casts テーブル（content_type + content_id のポリモーフィック設計）に統合済み。
+
+-- 単独ライブ・ツーマン・大会の全てにドンデコルテを登録
+insert into casts (content_type, content_id, comedy_group_id)
+select 'live', id, '22222222-2222-4222-8222-000000000001'
 from lives
 where id in (
   '55555555-5555-4555-8555-000000000001',
@@ -147,16 +149,18 @@ where id in (
 on conflict do nothing;
 
 -- カゲヤマ×ドンデコルテ にカゲヤマを追加
-insert into live_casts (live_id, comedy_group_id)
+insert into casts (content_type, content_id, comedy_group_id)
 values (
+  'live',
   '55555555-5555-4555-8555-000000000101',
   '22222222-2222-4222-8222-000000000003'
 )
 on conflict do nothing;
 
 -- たくろう×ドンデコルテ にたくろうを追加
-insert into live_casts (live_id, comedy_group_id)
+insert into casts (content_type, content_id, comedy_group_id)
 values (
+  'live',
   '55555555-5555-4555-8555-000000000102',
   '22222222-2222-4222-8222-000000000002'
 )
