@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 const supabaseMock = vi.hoisted(() => ({
   auth: { getUser: vi.fn() },
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
   supabaseMock.from.mockReset();
+  supabaseMock.rpc.mockReset();
 });
 
 describe("createVideo", () => {
@@ -65,24 +67,9 @@ describe("createVideo", () => {
   });
 
   it("youtube_video_id が11文字の英数字なら受理する（redirectまで進む）", async () => {
-    const insertSelectSingle = vi.fn().mockResolvedValue({
-      data: { id: "11111111-1111-4111-8111-111111111111" },
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
       error: null,
-    });
-    const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
-    const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
-    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
-    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
-
-    supabaseMock.from.mockImplementation((table: string) => {
-      if (table === "videos") {
-        return { insert: insertChain };
-      }
-      if (table === "casts") {
-        return { delete: deleteChain };
-      }
-      throw new Error(`unexpected table: ${table}`);
     });
 
     const fd = buildFormData({
@@ -91,32 +78,20 @@ describe("createVideo", () => {
     });
 
     await expect(createVideo({}, fd)).rejects.toThrow(/__REDIRECT__/);
-    expect(insertChain).toHaveBeenCalledWith(
-      expect.objectContaining({ youtube_video_id: "abcDEF12345" })
-    );
-    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
-    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
-    expect(deleteEqContent).toHaveBeenCalledWith(
-      "content_id",
-      "11111111-1111-4111-8111-111111111111"
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
+      expect.objectContaining({
+        p_content_type: "video",
+        p_content_id: null,
+        p_content: expect.objectContaining({ youtube_video_id: "abcDEF12345" }),
+      })
     );
   });
 
   it("youtube_url から動画IDを抽出する", async () => {
-    const insertSelectSingle = vi.fn().mockResolvedValue({
-      data: { id: "11111111-1111-4111-8111-111111111111" },
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
       error: null,
-    });
-    const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
-    const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
-    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
-    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
-
-    supabaseMock.from.mockImplementation((table: string) => {
-      if (table === "videos") return { insert: insertChain };
-      if (table === "casts") return { delete: deleteChain };
-      throw new Error(`unexpected table: ${table}`);
     });
 
     const fd = buildFormData({
@@ -125,14 +100,13 @@ describe("createVideo", () => {
     });
 
     await expect(createVideo({}, fd)).rejects.toThrow(/__REDIRECT__/);
-    expect(insertChain).toHaveBeenCalledWith(
-      expect.objectContaining({ youtube_video_id: "abcDEF12345" })
-    );
-    expect(supabaseMock.from).toHaveBeenCalledWith("casts");
-    expect(deleteEqType).toHaveBeenCalledWith("content_type", "video");
-    expect(deleteEqContent).toHaveBeenCalledWith(
-      "content_id",
-      "11111111-1111-4111-8111-111111111111"
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
+      expect.objectContaining({
+        p_content_type: "video",
+        p_content_id: null,
+        p_content: expect.objectContaining({ youtube_video_id: "abcDEF12345" }),
+      })
     );
   });
 

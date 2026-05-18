@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 const supabaseMock = vi.hoisted(() => ({
   auth: { getUser: vi.fn() },
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
   supabaseMock.from.mockReset();
+  supabaseMock.rpc.mockReset();
 });
 
 describe("createLive", () => {
@@ -84,44 +86,29 @@ describe("createLive", () => {
   });
 
   it("event_date が空でも作成は進む（必須ではない）", async () => {
-    const insertSelectSingle = vi.fn().mockResolvedValue({
-      data: { id: "11111111-1111-4111-8111-111111111111" },
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
       error: null,
-    });
-    const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
-    const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
-    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
-    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
-
-    supabaseMock.from.mockImplementation((table: string) => {
-      if (table === "lives") return { insert: insertChain };
-      if (table === "casts") return { delete: deleteChain };
-      throw new Error(`unexpected table: ${table}`);
     });
 
     const fd = buildFormData({ title: "テスト" });
     await expect(createLive({}, fd)).rejects.toThrow(/__REDIRECT__/);
-    expect(insertChain).toHaveBeenCalledWith(
-      expect.objectContaining({ event_date: null, start_time: null })
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
+      expect.objectContaining({
+        p_content_type: "live",
+        p_content: expect.objectContaining({
+          event_date: null,
+          start_time: null,
+        }),
+      })
     );
   });
 
   it("event_date と start_time から ISO 形式の開始時刻を組み立てる", async () => {
-    const insertSelectSingle = vi.fn().mockResolvedValue({
-      data: { id: "11111111-1111-4111-8111-111111111111" },
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
       error: null,
-    });
-    const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
-    const insertChain = vi.fn(() => ({ select: insertSelect }));
-    const deleteEqContent = vi.fn().mockResolvedValue({ error: null });
-    const deleteEqType = vi.fn(() => ({ eq: deleteEqContent }));
-    const deleteChain = vi.fn(() => ({ eq: deleteEqType }));
-
-    supabaseMock.from.mockImplementation((table: string) => {
-      if (table === "lives") return { insert: insertChain };
-      if (table === "casts") return { delete: deleteChain };
-      throw new Error(`unexpected table: ${table}`);
     });
 
     const fd = buildFormData({
@@ -130,10 +117,14 @@ describe("createLive", () => {
       start_time: "19:30",
     });
     await expect(createLive({}, fd)).rejects.toThrow(/__REDIRECT__/);
-    expect(insertChain).toHaveBeenCalledWith(
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      "upsert_content_with_casts",
       expect.objectContaining({
-        event_date: "2026-05-14",
-        start_time: "2026-05-14T19:30:00",
+        p_content_type: "live",
+        p_content: expect.objectContaining({
+          event_date: "2026-05-14",
+          start_time: "2026-05-14T19:30:00",
+        }),
       })
     );
   });

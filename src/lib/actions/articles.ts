@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
 import type { ArticleFormState, ArticleInput } from "@/lib/types/article";
+import { upsertContentWithCasts } from "./casts";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -101,40 +102,6 @@ function parseFormData(formData: FormData): {
   return { values, casts, fieldErrors };
 }
 
-async function replaceCasts(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  articleId: string,
-  casts: CastEntry[]
-): Promise<{ error?: string }> {
-  const { error: deleteError } = await supabase
-    .from("casts")
-    .delete()
-    .eq("content_type", "article")
-    .eq("content_id", articleId);
-
-  if (deleteError) {
-    return { error: `出演者の削除に失敗しました: ${deleteError.message}` };
-  }
-
-  if (casts.length === 0) return {};
-
-  const rows = casts.map((c) => ({
-    content_type: "article",
-    content_id: articleId,
-    artist_id: c.type === "artist" ? c.id : null,
-    comedy_group_id: c.type === "comedy_group" ? c.id : null,
-    unit_id: c.type === "unit" ? c.id : null,
-  }));
-
-  const { error: insertError } = await supabase.from("casts").insert(rows);
-
-  if (insertError) {
-    return { error: `出演者の追加に失敗しました: ${insertError.message}` };
-  }
-
-  return {};
-}
-
 export async function createArticle(
   _prev: ArticleFormState,
   formData: FormData
@@ -151,21 +118,14 @@ export async function createArticle(
     return { error: "認証が必要です" };
   }
 
-  const { data, error } = await supabase
-    .from("articles")
-    .insert(values)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return {
-      error: `記事の登録に失敗しました: ${error?.message ?? "unknown"}`,
-    };
-  }
-
-  const castsResult = await replaceCasts(supabase, data.id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "article",
+    contentId: null,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return { error: `記事の登録に失敗しました: ${result.error}` };
   }
 
   revalidatePath("/admin/articles");
@@ -193,24 +153,18 @@ export async function updateArticle(
     return { error: "認証が必要です" };
   }
 
-  const { error, count } = await supabase
-    .from("articles")
-    .update(
-      { ...values, updated_at: new Date().toISOString() },
-      { count: "exact" }
-    )
-    .eq("id", id);
-
-  if (error) {
-    return { error: `記事の更新に失敗しました: ${error.message}` };
-  }
-  if (count !== 1) {
-    return { error: "指定された記事が見つかりません" };
-  }
-
-  const castsResult = await replaceCasts(supabase, id, casts);
-  if (castsResult.error) {
-    return { error: castsResult.error };
+  const result = await upsertContentWithCasts(supabase, {
+    contentType: "article",
+    contentId: id,
+    content: values,
+    casts,
+  });
+  if (result.error) {
+    return {
+      error: result.notFound
+        ? "指定された記事が見つかりません"
+        : `記事の更新に失敗しました: ${result.error}`,
+    };
   }
 
   revalidatePath("/admin/articles");
