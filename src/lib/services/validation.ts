@@ -18,8 +18,9 @@ export function toNullableString(
 }
 
 export function validateTitle(title: string): string | undefined {
-  if (!title) return "タイトルを入力してください";
-  if (title.length > TITLE_MAX_LENGTH) {
+  const trimmed = title.trim();
+  if (!trimmed) return "タイトルを入力してください";
+  if (trimmed.length > TITLE_MAX_LENGTH) {
     return `${TITLE_MAX_LENGTH}文字以内で入力してください`;
   }
   return undefined;

@@ -39,6 +39,10 @@ describe("validateTitle", () => {
     expect(validateTitle("")).toBe("タイトルを入力してください");
   });
 
+  it("空白のみならエラーメッセージを返す", () => {
+    expect(validateTitle("   ")).toBe("タイトルを入力してください");
+  });
+
   it("200文字を超えるとエラーメッセージを返す", () => {
     expect(validateTitle("あ".repeat(201))).toBe(
       "200文字以内で入力してください"
