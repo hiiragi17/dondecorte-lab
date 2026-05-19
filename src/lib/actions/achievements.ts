@@ -22,7 +22,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseFormData(formData: FormData): {
-  values: AchievementInput;
+  values: AchievementInput | null;
   fieldErrors: AchievementFormState["fieldErrors"];
 } {
   const fieldErrors: AchievementFormState["fieldErrors"] = {};
@@ -79,15 +79,44 @@ function parseFormData(formData: FormData): {
     fieldErrors.target_id = "対象のIDが不正です";
   }
 
-  const values: AchievementInput = {
-    artist_id: targetType === "artist" ? targetId : null,
-    comedy_group_id: targetType === "comedy_group" ? targetId : null,
-    unit_id: targetType === "unit" ? targetId : null,
-    title,
-    result,
-    year,
-    sort_order: sortOrderVal,
-  };
+  if (Object.keys(fieldErrors).length > 0) {
+    return { values: null, fieldErrors };
+  }
+
+  // ここまでで targetType は TARGET_TYPES のいずれかであることが保証される。
+  // AchievementInput は対象1種のみ非nullの判別共用体なので分岐して組み立てる。
+  let values: AchievementInput;
+  if (targetType === "comedy_group") {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: null,
+      comedy_group_id: targetId,
+      unit_id: null,
+    };
+  } else if (targetType === "unit") {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: null,
+      comedy_group_id: null,
+      unit_id: targetId,
+    };
+  } else {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: targetId,
+      comedy_group_id: null,
+      unit_id: null,
+    };
+  }
 
   return { values, fieldErrors };
 }
@@ -97,7 +126,7 @@ export async function createAchievement(
   formData: FormData
 ): Promise<AchievementFormState> {
   const { values, fieldErrors } = parseFormData(formData);
-  if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+  if (!values) {
     return { fieldErrors };
   }
 
@@ -130,7 +159,7 @@ export async function updateAchievement(
   }
 
   const { values, fieldErrors } = parseFormData(formData);
-  if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+  if (!values) {
     return { fieldErrors };
   }
 
