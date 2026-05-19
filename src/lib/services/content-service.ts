@@ -68,13 +68,12 @@ export async function saveContentWithCasts(params: {
 }
 
 /**
- * コンテンツ本体を削除する。エラー時は例外を投げる（action 側は薄く委譲する）。
- * verifyExists を true にすると削除件数を検証し、対象がなければ例外を投げる。
+ * コンテンツ本体を削除する。削除件数を検証し、対象が存在しなければ例外を投げる。
+ * エラー時はいずれも例外を投げ、action 側は薄く委譲する。
  */
 export async function deleteContent(params: {
   contentType: ContentType;
   id: string;
-  verifyExists?: boolean;
 }): Promise<void> {
   const { label, table } = CONTENT_META[params.contentType];
   const supabase = await createClient();
@@ -83,22 +82,15 @@ export async function deleteContent(params: {
     throw new Error("認証が必要です");
   }
 
-  if (params.verifyExists) {
-    const { error, count } = await supabase
-      .from(table)
-      .delete({ count: "exact" })
-      .eq("id", params.id);
-    if (error) {
-      throw new Error(`${label}の削除に失敗しました: ${error.message}`);
-    }
-    if (count !== 1) {
-      throw new Error(`指定された${label}が見つかりません`);
-    }
-    return;
-  }
+  const { error, count } = await supabase
+    .from(table)
+    .delete({ count: "exact" })
+    .eq("id", params.id);
 
-  const { error } = await supabase.from(table).delete().eq("id", params.id);
   if (error) {
     throw new Error(`${label}の削除に失敗しました: ${error.message}`);
+  }
+  if (count !== 1) {
+    throw new Error(`指定された${label}が見つかりません`);
   }
 }

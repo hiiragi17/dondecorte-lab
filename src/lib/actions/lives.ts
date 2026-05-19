@@ -112,8 +112,7 @@ export async function deleteLive(formData: FormData): Promise<void> {
     throw new Error("IDが不正です");
   }
 
-  // ライブのみ削除の空振り（対象が存在しない）を検知したいため存在を検証する
-  await deleteContent({ contentType: "live", id, verifyExists: true });
+  await deleteContent({ contentType: "live", id });
 
   revalidatePath("/admin/lives");
   redirect("/admin/lives");
