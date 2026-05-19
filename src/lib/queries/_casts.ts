@@ -26,7 +26,7 @@ const CAST_EMBED_SELECT = `
 `;
 
 export function mapCasts(rows: CastRow[] | null | undefined): CastEntry[] {
-  return (rows ?? []).flatMap((c) => {
+  return (rows ?? []).flatMap((c): CastEntry[] => {
     if (c.artist_id && c.artist) {
       return [{ type: "artist" as const, id: c.artist.id, name: c.artist.name }];
     }
