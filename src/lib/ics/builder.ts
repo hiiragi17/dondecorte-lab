@@ -25,6 +25,19 @@ const CRLF = "\r\n";
 const DEFAULT_TIMEZONE = "Asia/Tokyo";
 const DEFAULT_DURATION_MINUTES = 120;
 
+// Asia/Tokyo は通年 +09:00 で DST なし。strict parser 向けに VTIMEZONE を同梱する。
+const VTIMEZONE_ASIA_TOKYO: readonly string[] = [
+  "BEGIN:VTIMEZONE",
+  "TZID:Asia/Tokyo",
+  "BEGIN:STANDARD",
+  "DTSTART:19700101T000000",
+  "TZOFFSETFROM:+0900",
+  "TZOFFSETTO:+0900",
+  "TZNAME:JST",
+  "END:STANDARD",
+  "END:VTIMEZONE",
+];
+
 export function escapeIcsText(value: string): string {
   return value
     .replace(/\\/g, "\\\\")
@@ -88,11 +101,16 @@ function addDays(dateStr: string, days: number): string {
 }
 
 function normalizeTime(time: string): { hh: string; mm: string; ss: string } {
-  const parts = time.split(":");
+  const match = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) {
+    throw new Error(
+      `IcsEvent.startTime は HH:MM もしくは HH:MM:SS 形式で渡してください: ${time}`
+    );
+  }
   return {
-    hh: pad2(Number(parts[0] ?? 0)),
-    mm: pad2(Number(parts[1] ?? 0)),
-    ss: pad2(Number(parts[2] ?? 0)),
+    hh: pad2(Number(match[1])),
+    mm: pad2(Number(match[2])),
+    ss: pad2(Number(match[3] ?? 0)),
   };
 }
 
@@ -178,6 +196,10 @@ export function buildIcsCalendar(
   lines.push("METHOD:PUBLISH");
   lines.push(`X-WR-CALNAME:${escapeIcsText(options.calendarName)}`);
   lines.push(`X-WR-TIMEZONE:${timezone}`);
+
+  if (timezone === "Asia/Tokyo") {
+    lines.push(...VTIMEZONE_ASIA_TOKYO);
+  }
 
   for (const event of events) {
     lines.push(...buildEvent(event, { timezone, dtstamp }));

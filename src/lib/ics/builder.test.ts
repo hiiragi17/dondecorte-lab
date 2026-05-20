@@ -65,6 +65,34 @@ describe("buildIcsCalendar", () => {
     expect(ics).toContain("X-WR-TIMEZONE:Asia/Tokyo");
   });
 
+  it("Asia/Tokyo の VTIMEZONE 定義を含める", () => {
+    const ics = buildIcsCalendar([], baseOptions);
+    expect(ics).toContain("BEGIN:VTIMEZONE");
+    expect(ics).toContain("TZID:Asia/Tokyo");
+    expect(ics).toContain("TZOFFSETFROM:+0900");
+    expect(ics).toContain("TZOFFSETTO:+0900");
+    expect(ics).toContain("TZNAME:JST");
+    expect(ics).toContain("END:VTIMEZONE");
+    // VTIMEZONE は VEVENT より前に置く
+    const idxTz = ics.indexOf("BEGIN:VTIMEZONE");
+    const idxEvent = ics.indexOf("BEGIN:VEVENT");
+    if (idxEvent !== -1) {
+      expect(idxTz).toBeLessThan(idxEvent);
+    }
+  });
+
+  it("不正な startTime は例外を投げる (frontに分かりやすく失敗)", () => {
+    const event: IcsEvent = {
+      uid: "u",
+      date: "2026-06-01",
+      startTime: "2026-05-14T19:30:00+09:00",
+      summary: "ライブ",
+    };
+    expect(() => buildIcsCalendar([event], baseOptions)).toThrow(
+      /HH:MM/
+    );
+  });
+
   it("start_time あり: TZID 付き DTSTART / DTEND を出力する", () => {
     const event: IcsEvent = {
       uid: "live-1@example.com",

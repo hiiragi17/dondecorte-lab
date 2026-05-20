@@ -291,8 +291,11 @@ mkdir -p supabase/migrations
 2. 左サイドバー「他のカレンダー」→ 「+」 → 「URL で追加」
 3. 以下の URL を入力して追加:
    - 本番: `https://dondecorte-lab.vercel.app/lives.ics`
-   - ローカル: `http://localhost:3000/lives.ics`
 4. 「カレンダーを追加」
+
+> ⚠️ Google カレンダーは購読 URL に外部から到達できる必要があるため、
+> `http://localhost:3000/lives.ics` を直接購読することはできません。
+> ローカルで検証する場合は ngrok / Cloudflare Tunnel 等で公開 URL を払い出してください。
 
 ### 補足
 
