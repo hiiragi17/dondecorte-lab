@@ -92,6 +92,34 @@ export async function listLivesWithCasts(
   }));
 }
 
+export async function listLivesForCalendar(): Promise<LiveWithCasts[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lives")
+    .select("*")
+    .not("event_date", "is", null)
+    .order("event_date", { ascending: true, nullsFirst: false })
+    .order("start_time", { ascending: true, nullsFirst: false });
+
+  if (error) {
+    throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  const lives = (data ?? []).map((row) =>
+    toLiveBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "live",
+    lives.map((l) => l.id)
+  );
+
+  return lives.map((live) => ({
+    ...live,
+    casts: castsByContent.get(live.id) ?? [],
+  }));
+}
+
 export async function getLive(id: string): Promise<LiveWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
