@@ -281,6 +281,31 @@ mkdir -p supabase/migrations
 
 ---
 
+## Googleカレンダー購読 (ICS フィード)
+
+`/lives.ics` を Google カレンダーに URL 購読すると、ドンデコルテ出演ライブが自動でカレンダーに表示される。
+
+### 購読手順
+
+1. https://calendar.google.com を開く
+2. 左サイドバー「他のカレンダー」→ 「+」 → 「URL で追加」
+3. 以下の URL を入力して追加:
+   - 本番: `https://dondecorte-lab.vercel.app/lives.ics`
+4. 「カレンダーを追加」
+
+> ⚠️ Google カレンダーは購読 URL に外部から到達できる必要があるため、
+> `http://localhost:3000/lives.ics` を直接購読することはできません。
+> ローカルで検証する場合は ngrok / Cloudflare Tunnel 等で公開 URL を払い出してください。
+
+### 補足
+
+- Google 側の更新は数時間〜半日ラグがある（フィード方式の仕様）
+- `event_date` が設定されたライブのみ対象
+- `start_time` あり → 2 時間予定 / `start_time` なし → 終日予定
+- 即時反映が必要になったら issue #43（OAuth で直接書き込み）を検討
+
+---
+
 ## 実装順序チェックリスト
 
 ここまで完了したら、以下の順で実装を進める:
