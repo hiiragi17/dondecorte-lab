@@ -3,7 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AchievementInput, AchievementTargetType } from "@/lib/types/achievement";
+import type {
+  AchievementInput,
+  AchievementTargetType,
+} from "@/lib/types/achievement";
+
+type AchievementBaseInputRow = {
+  title: string;
+  result: string;
+  year: number;
+  sort_order: number;
+  artist_id: string | null;
+  comedy_group_id: string | null;
+  unit_id: string | null;
+};
 
 export type AchievementFormState = {
   error?: string;
@@ -137,7 +150,13 @@ export async function createAchievement(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase.from("achievements").insert(values);
+  // AchievementInput は discriminated union だが Supabase の insert 型は
+  // union の最初のアームに固定されてしまうため、DB の行型 (1 列だけ非 NULL は
+  // CHECK 制約で担保) に合わせて nullable に広げて渡す。
+  const insertPayload: AchievementBaseInputRow = values;
+  const { error } = await supabase
+    .from("achievements")
+    .insert(insertPayload);
 
   if (error) {
     return {
@@ -170,9 +189,10 @@ export async function updateAchievement(
     return { error: "認証が必要です" };
   }
 
+  const updatePayload: AchievementBaseInputRow = values;
   const { error } = await supabase
     .from("achievements")
-    .update(values)
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {
