@@ -9,10 +9,13 @@ function formatDateTime(iso: string | null): string {
 }
 
 export default async function AdminNotificationsPage() {
-  const { data } = await adminClient
+  const { data, error } = await adminClient
     .from("push_subscriptions")
     .select("id, user_agent, created_at, last_seen_at")
     .order("last_seen_at", { ascending: false });
+  if (error) {
+    throw new Error(`購読端末の取得に失敗しました: ${error.message}`);
+  }
   const subscriptions = data ?? [];
 
   return (

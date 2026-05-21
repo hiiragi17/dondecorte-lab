@@ -4,13 +4,39 @@ import type { PushSubscriptionJSON } from "@/lib/types/push";
 
 export const runtime = "nodejs";
 
+const MAX_ENDPOINT_LENGTH = 2048;
+const MAX_P256DH_LENGTH = 512;
+const MAX_AUTH_LENGTH = 256;
+
+// 未認証で叩ける書き込み口なので、保存できない / 送信不能なレコードが
+// 永続化されないよう厳しめに検証する（空キーや非 HTTPS endpoint を弾く）。
 function isValidSubscription(value: unknown): value is PushSubscriptionJSON {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  if (typeof v.endpoint !== "string" || v.endpoint.length === 0) return false;
+
+  if (
+    typeof v.endpoint !== "string" ||
+    v.endpoint.length === 0 ||
+    v.endpoint.length > MAX_ENDPOINT_LENGTH
+  ) {
+    return false;
+  }
+  try {
+    if (new URL(v.endpoint).protocol !== "https:") return false;
+  } catch {
+    return false;
+  }
+
   if (typeof v.keys !== "object" || v.keys === null) return false;
   const keys = v.keys as Record<string, unknown>;
-  return typeof keys.p256dh === "string" && typeof keys.auth === "string";
+  return (
+    typeof keys.p256dh === "string" &&
+    keys.p256dh.length > 0 &&
+    keys.p256dh.length <= MAX_P256DH_LENGTH &&
+    typeof keys.auth === "string" &&
+    keys.auth.length > 0 &&
+    keys.auth.length <= MAX_AUTH_LENGTH
+  );
 }
 
 export async function POST(request: Request) {

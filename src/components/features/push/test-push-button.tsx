@@ -10,14 +10,18 @@ export function TestPushButton() {
   const handleClick = () => {
     setMessage(null);
     startTransition(async () => {
-      const result = await sendTestPush();
-      if (result.ok) {
-        const { sent, removed, failed } = result.summary;
-        setMessage(
-          `送信 ${sent}件 / 失効削除 ${removed}件 / 失敗 ${failed}件`
-        );
-      } else {
-        setMessage(result.error);
+      try {
+        const result = await sendTestPush();
+        if (result.ok) {
+          const { sent, removed, failed } = result.summary;
+          setMessage(
+            `送信 ${sent}件 / 失効削除 ${removed}件 / 失敗 ${failed}件`
+          );
+        } else {
+          setMessage(result.error);
+        }
+      } catch {
+        setMessage("テスト通知の送信に失敗しました");
       }
     });
   };

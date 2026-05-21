@@ -79,11 +79,14 @@ export function PushToggle({ vapidPublicKey }: Props) {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await fetch("/api/push/unsubscribe", {
+        const res = await fetch("/api/push/unsubscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint }),
         });
+        if (!res.ok) {
+          throw new Error("購読の解除に失敗しました");
+        }
         await sub.unsubscribe();
       }
       setSubscribed(false);

@@ -27,8 +27,16 @@ function configureVapid(): void {
 type SubscriptionLike = Pick<PushSubscriptionRow, "endpoint" | "p256dh" | "auth">;
 
 // 失効した endpoint（404/410）は GC して二度と送らない。
+// 削除に失敗した場合は throw し、呼び出し側で「送信失敗」として扱う
+// （stale 行が残ったまま removed に計上されると以後のブロードキャストで毎回失敗するため）。
 async function deleteSubscription(endpoint: string): Promise<void> {
-  await adminClient.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  const { error } = await adminClient
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", endpoint);
+  if (error) {
+    throw new Error(`失効した購読端末の削除に失敗しました: ${error.message}`);
+  }
 }
 
 // 単一端末への送信。成功で true、endpoint 失効で削除して false、それ以外は throw。

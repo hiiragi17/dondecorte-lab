@@ -2,6 +2,7 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
+import type { PushPayload } from "@/lib/types/push";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -21,30 +22,29 @@ const serwist = new Serwist({
 
 serwist.addEventListeners();
 
-type PushPayload = {
-  title?: string;
-  body?: string;
-  url?: string;
-  tag?: string;
-};
+const DEFAULT_NOTIFICATION_TITLE = "DonDecorte Lab";
+const DEFAULT_NOTIFICATION_URL = "/";
+const NOTIFICATION_ICON = "/icon-192.png";
+const NOTIFICATION_BADGE = "/icon-192.png";
 
 self.addEventListener("push", (event) => {
-  let payload: PushPayload = {};
+  // 受信ペイロードは信頼できないため全フィールドを optional 扱いにする。
+  let payload: Partial<PushPayload> = {};
   try {
     payload = event.data?.json() ?? {};
   } catch {
     payload = { body: event.data?.text() };
   }
 
-  const title = payload.title ?? "DonDecorte Lab";
-  const url = payload.url ?? "/";
+  const title = payload.title ?? DEFAULT_NOTIFICATION_TITLE;
+  const url = payload.url ?? DEFAULT_NOTIFICATION_URL;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body ?? "",
       tag: payload.tag,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: NOTIFICATION_ICON,
+      badge: NOTIFICATION_BADGE,
       data: { url },
     })
   );
