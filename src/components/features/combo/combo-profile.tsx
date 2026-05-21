@@ -26,8 +26,8 @@ export function ComboProfile({ combo, members, achievements }: Props) {
   });
 
   return (
-    <header className="space-y-6">
-      <div className="flex flex-col gap-5 md:flex-row md:items-start">
+    <header>
+      <div className="mb-7 flex flex-col gap-5 border-b border-brand-border-dark pb-7 md:flex-row md:items-start">
         <div className="flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-brand-border-dark bg-brand-card-dark md:h-40 md:w-40">
           {combo.image_url ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -73,7 +73,7 @@ export function ComboProfile({ combo, members, achievements }: Props) {
       </div>
 
       {sortedMembers.length > 0 ? (
-        <section>
+        <section className="mb-7 border-b border-brand-border-dark pb-7">
           <h2 className="mb-3 text-sm font-semibold text-brand-cream md:text-base">
             メンバー
           </h2>
@@ -103,7 +103,7 @@ export function ComboProfile({ combo, members, achievements }: Props) {
       ) : null}
 
       {achievements.length > 0 ? (
-        <section>
+        <section className="mb-7 border-b border-brand-border-dark pb-7 last:mb-0 last:border-b-0 last:pb-0">
           <h2 className="mb-3 text-sm font-semibold text-brand-cream md:text-base">
             受賞歴
           </h2>

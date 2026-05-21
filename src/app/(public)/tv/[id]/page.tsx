@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import { getTvShow as fetchTvShow } from "@/lib/queries/tv-shows";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
@@ -16,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(tvShow: {
   description: string | null;
@@ -58,6 +62,11 @@ export default async function TvDetailPage({ params }: Props) {
   const tvShow = await getTvShow(id);
   if (!tvShow) notFound();
 
+  const related = await getRelatedContents(
+    tvShow.casts,
+    { type: "tv_show", id: tvShow.id },
+    RELATED_LIMIT
+  );
   const airDate = formatDate(tvShow.air_date);
   const airTime = formatTime(tvShow.air_time);
 
@@ -118,6 +127,10 @@ export default async function TvDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+
+      <MemoSection targetType="tv_show" targetId={tvShow.id} />
+
+      <RelatedContents contents={related} />
     </div>
   );
 }

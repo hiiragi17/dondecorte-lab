@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleForm } from "@/components/features/article/article-form";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { updateArticle } from "@/lib/actions/articles";
 import { listArtistSummaries } from "@/lib/queries/artists";
 import { listComboSummaries } from "@/lib/queries/combos";
@@ -42,7 +43,7 @@ export default async function EditArticlePage({ params }: Props) {
         </h1>
       </div>
 
-      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
+      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <ArticleForm
           key={article.id}
           action={action}
@@ -54,6 +55,12 @@ export default async function EditArticlePage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection
+        targetType="article"
+        targetId={article.id}
+        variant="admin"
+      />
     </div>
   );
 }

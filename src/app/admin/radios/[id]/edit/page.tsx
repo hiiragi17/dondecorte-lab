@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { RadioForm } from "@/components/features/radio/radio-form";
 import { updateRadio } from "@/lib/actions/radios";
 import { listArtistSummaries } from "@/lib/queries/artists";
@@ -42,7 +43,7 @@ export default async function EditRadioPage({ params }: Props) {
         </h1>
       </div>
 
-      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
+      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <RadioForm
           action={action}
           artists={artists}
@@ -53,6 +54,8 @@ export default async function EditRadioPage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection targetType="radio" targetId={radio.id} variant="admin" />
     </div>
   );
 }

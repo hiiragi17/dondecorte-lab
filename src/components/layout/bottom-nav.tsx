@@ -17,12 +17,15 @@ const PRIMARY_ITEMS: NavItem[] = [
 ];
 
 const MORE_ITEMS: NavItem[] = [
+  { href: "/timeline", label: "タイムライン" },
   { href: "/combos", label: "コンビ" },
   { href: "/units", label: "ユニット" },
   { href: "/radios", label: "ラジオ" },
   { href: "/articles", label: "記事" },
   { href: "/tv", label: "TV" },
   { href: "/topics", label: "トピック" },
+  { href: "/co-stars", label: "共演分析" },
+  { href: "/rankings", label: "ランキング" },
 ];
 
 function isActive(pathname: string, href: string) {

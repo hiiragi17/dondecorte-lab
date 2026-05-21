@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { TvShow, TvShowWithCasts } from "@/lib/types/tv-show";
 
 function toTvShowBase(row: Record<string, unknown>): TvShow {
@@ -16,13 +20,33 @@ function toTvShowBase(row: Record<string, unknown>): TvShow {
   };
 }
 
-export async function listTvShows(): Promise<TvShow[]> {
+export async function listTvShows(
+  options: ListOptions = {}
+): Promise<TvShow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "tv_show",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("tv_shows")
     .select("*")
-    .order("air_date", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("air_date", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`TV番組一覧の取得に失敗しました: ${error.message}`);
@@ -31,53 +55,59 @@ export async function listTvShows(): Promise<TvShow[]> {
   return (data ?? []) as TvShow[];
 }
 
-export async function listTvShowsWithCasts(): Promise<TvShowWithCasts[]> {
+export async function listTvShowsWithCasts(
+  options: ListOptions = {}
+): Promise<TvShowWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "tv_show",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("tv_shows")
-    .select(
-      `*,
-       tv_show_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
-    .order("air_date", { ascending: false, nullsFirst: false })
-    .order("air_time", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .select("*")
+    .order("air_date", { ascending, nullsFirst: false })
+    .order("air_time", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`TV番組一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.tv_show_casts as CastRow[] | null | undefined);
-    return { ...toTvShowBase(record), casts };
-  });
+  const tvShows = (data ?? []).map((row) =>
+    toTvShowBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "tv_show",
+    tvShows.map((t) => t.id)
+  );
+
+  return tvShows.map((tvShow) => ({
+    ...tvShow,
+    casts: castsByContent.get(tvShow.id) ?? [],
+  }));
 }
 
 export async function getTvShow(id: string): Promise<TvShowWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tv_shows")
-    .select(
-      `*,
-       tv_show_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -87,7 +117,9 @@ export async function getTvShow(id: string): Promise<TvShowWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.tv_show_casts as CastRow[] | null | undefined);
-  return { ...toTvShowBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "tv_show", [id]);
+  return {
+    ...toTvShowBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }

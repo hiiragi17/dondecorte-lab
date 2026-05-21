@@ -116,6 +116,39 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - PR本文は**日本語**で書く
 - assignee に `hiiragi17` を設定する
 - 関連する issue がある場合は本文に `Closes #<番号>` を含めて紐付ける
+- マージ後のブランチは自動削除（リポジトリ設定で `Automatically delete head branches` 有効化済み）
+
+## レビューコメント対応ルール
+
+PR には CodeRabbit / Codex などの bot レビューが付く。基本方針は以下:
+
+### 適用判断
+
+- **小さく明確な指摘**（typo / lint / markdown / 表記揺れ / docs の整合性等）→ 即座に修正コミット
+- **セキュリティ / データ整合性の指摘**（RLS、race condition、SQL injection 等）→ 妥当性を検証して修正
+- **アーキテクチャに影響する指摘**（責務分離、抽象化方針、依存関係の変更等）→ 自己判断せず `AskUserQuestion` で確認してから対応
+- **複数 bot から同一指摘**が来た場合は 1 つの commit でまとめて反映する
+
+### コミットメッセージ
+
+- レビュー反映の commit は `docs: <内容> にCodeRabbitレビュー指摘を反映` のように内容を要約
+- どの指摘を反映したか箇条書きで本文に残す（後追いしやすい）
+
+### 返信ポリシー
+
+- **bot / 人間問わず全てのレビューコメントにスレッド返信する**（`add_reply_to_pull_request_comment`）
+  - CodeRabbit が `✅ Addressed in commit XXXXXXX` を自動追記するからといって返信を省略しない（後から人間がスレッドを読んだ時に対応の意図が分かるようにするため）
+- 返信内容は「対応コミットの hash」+「何をどう変えたかの要約」を必ず含める
+- 修正対応した thread は可能なら resolve する（`resolve_review_thread`）
+- 「対応しない」判断をした場合は理由を明記してスレッド返信
+
+### スキップしてよいケース
+
+- bot の "Review in progress" の単なる進捗通知
+- "Generate unit tests" 等の docs-only PR では無意味なオプション提案
+- 既にコミット済みの修正と重複する指摘（返信で既対応を伝えるだけで OK）
+- 自分の返信が webhook で echo されてきたケース
+- bot がこちらの返信を確認して送ってくる「お礼 / 確認」自動返信（さらに返信すると無限ループになる）
 
 ## 詳細ドキュメント
 

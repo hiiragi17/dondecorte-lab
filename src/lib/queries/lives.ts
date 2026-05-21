@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { Live, LiveWithCasts } from "@/lib/types/live";
 
 function toLiveBase(row: Record<string, unknown>): Live {
@@ -17,13 +21,27 @@ function toLiveBase(row: Record<string, unknown>): Live {
   };
 }
 
-export async function listLives(): Promise<Live[]> {
+export async function listLives(options: ListOptions = {}): Promise<Live[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(supabase, "live", options.performer);
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("lives")
     .select("*")
-    .order("event_date", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("event_date", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
@@ -32,53 +50,81 @@ export async function listLives(): Promise<Live[]> {
   return (data ?? []) as Live[];
 }
 
-export async function listLivesWithCasts(): Promise<LiveWithCasts[]> {
+export async function listLivesWithCasts(
+  options: ListOptions = {}
+): Promise<LiveWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(supabase, "live", options.performer);
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("lives")
-    .select(
-      `*,
-       live_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
-    .order("event_date", { ascending: false, nullsFirst: false })
-    .order("start_time", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .select("*")
+    .order("event_date", { ascending, nullsFirst: false })
+    .order("start_time", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.live_casts as CastRow[] | null | undefined);
-    return { ...toLiveBase(record), casts };
-  });
+  const lives = (data ?? []).map((row) => toLiveBase(row as Record<string, unknown>));
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "live",
+    lives.map((l) => l.id)
+  );
+
+  return lives.map((live) => ({
+    ...live,
+    casts: castsByContent.get(live.id) ?? [],
+  }));
+}
+
+export async function listLivesForCalendar(): Promise<LiveWithCasts[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lives")
+    .select("*")
+    .not("event_date", "is", null)
+    .order("event_date", { ascending: true, nullsFirst: false })
+    .order("start_time", { ascending: true, nullsFirst: false });
+
+  if (error) {
+    throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  const lives = (data ?? []).map((row) =>
+    toLiveBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "live",
+    lives.map((l) => l.id)
+  );
+
+  return lives.map((live) => ({
+    ...live,
+    casts: castsByContent.get(live.id) ?? [],
+  }));
 }
 
 export async function getLive(id: string): Promise<LiveWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lives")
-    .select(
-      `*,
-       live_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -88,7 +134,9 @@ export async function getLive(id: string): Promise<LiveWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.live_casts as CastRow[] | null | undefined);
-  return { ...toLiveBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "live", [id]);
+  return {
+    ...toLiveBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }

@@ -139,7 +139,7 @@ export function ContentTabs({
       <div
         role="tablist"
         aria-label="出演コンテンツ"
-        className="mb-4 flex flex-wrap gap-1 overflow-x-auto border-b border-brand-border-dark"
+        className="mb-4 flex flex-nowrap gap-1 overflow-x-auto border-b border-brand-border-dark [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((tab, index) => {
           const isActive = tab.key === active;

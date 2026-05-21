@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getLive as fetchLive } from "@/lib/queries/lives";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
 import { normalizeExternalUrl } from "@/lib/utils/url";
@@ -17,6 +20,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(live: {
   description: string | null;
@@ -59,6 +63,11 @@ export default async function LiveDetailPage({ params }: Props) {
   const live = await getLive(id);
   if (!live) notFound();
 
+  const related = await getRelatedContents(
+    live.casts,
+    { type: "live", id: live.id },
+    RELATED_LIMIT
+  );
   const eventDate = formatDate(live.event_date);
   const startTime = formatTime(live.start_time);
   const safeUrl = normalizeExternalUrl(live.url);
@@ -121,6 +130,10 @@ export default async function LiveDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+
+      <MemoSection targetType="live" targetId={live.id} />
+
+      <RelatedContents contents={related} />
     </div>
   );
 }

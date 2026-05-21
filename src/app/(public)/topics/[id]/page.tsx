@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { MemoSection } from "@/components/features/memo/memo-section";
+import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
+import { getRelatedContents } from "@/lib/queries/related-contents";
 import { getTopic as fetchTopic } from "@/lib/queries/topics";
 import type { CastEntry } from "@/lib/types";
 import { formatDate } from "@/lib/utils/date";
@@ -16,6 +19,7 @@ type Props = {
 };
 
 const DESCRIPTION_MAX_LENGTH = 160;
+const RELATED_LIMIT = 6;
 
 function buildDescription(topic: {
   content: string | null;
@@ -58,6 +62,11 @@ export default async function TopicDetailPage({ params }: Props) {
   const topic = await getTopic(id);
   if (!topic) notFound();
 
+  const related = await getRelatedContents(
+    topic.casts,
+    { type: "topic", id: topic.id },
+    RELATED_LIMIT
+  );
   const topicDate = formatDate(topic.topic_date);
 
   return (
@@ -110,6 +119,10 @@ export default async function TopicDetailPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+
+      <MemoSection targetType="topic" targetId={topic.id} />
+
+      <RelatedContents contents={related} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { TopicForm } from "@/components/features/topic/topic-form";
 import { updateTopic } from "@/lib/actions/topics";
 import { listArtistSummaries } from "@/lib/queries/artists";
@@ -42,7 +43,7 @@ export default async function EditTopicPage({ params }: Props) {
         </h1>
       </div>
 
-      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
+      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <TopicForm
           key={topic.id}
           action={action}
@@ -54,6 +55,8 @@ export default async function EditTopicPage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection targetType="topic" targetId={topic.id} variant="admin" />
     </div>
   );
 }

@@ -3,7 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AchievementInput, AchievementTargetType } from "@/lib/types/achievement";
+import type {
+  AchievementInput,
+  AchievementTargetType,
+} from "@/lib/types/achievement";
+
+type AchievementBaseInputRow = {
+  title: string;
+  result: string;
+  year: number;
+  sort_order: number;
+  artist_id: string | null;
+  comedy_group_id: string | null;
+  unit_id: string | null;
+};
 
 export type AchievementFormState = {
   error?: string;
@@ -22,7 +35,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseFormData(formData: FormData): {
-  values: AchievementInput;
+  values: AchievementInput | null;
   fieldErrors: AchievementFormState["fieldErrors"];
 } {
   const fieldErrors: AchievementFormState["fieldErrors"] = {};
@@ -79,15 +92,44 @@ function parseFormData(formData: FormData): {
     fieldErrors.target_id = "対象のIDが不正です";
   }
 
-  const values: AchievementInput = {
-    artist_id: targetType === "artist" ? targetId : null,
-    comedy_group_id: targetType === "comedy_group" ? targetId : null,
-    unit_id: targetType === "unit" ? targetId : null,
-    title,
-    result,
-    year,
-    sort_order: sortOrderVal,
-  };
+  if (Object.keys(fieldErrors).length > 0) {
+    return { values: null, fieldErrors };
+  }
+
+  // ここまでで targetType は TARGET_TYPES のいずれかであることが保証される。
+  // AchievementInput は対象1種のみ非nullの判別共用体なので分岐して組み立てる。
+  let values: AchievementInput;
+  if (targetType === "comedy_group") {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: null,
+      comedy_group_id: targetId,
+      unit_id: null,
+    };
+  } else if (targetType === "unit") {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: null,
+      comedy_group_id: null,
+      unit_id: targetId,
+    };
+  } else {
+    values = {
+      title,
+      result,
+      year,
+      sort_order: sortOrderVal,
+      artist_id: targetId,
+      comedy_group_id: null,
+      unit_id: null,
+    };
+  }
 
   return { values, fieldErrors };
 }
@@ -97,7 +139,7 @@ export async function createAchievement(
   formData: FormData
 ): Promise<AchievementFormState> {
   const { values, fieldErrors } = parseFormData(formData);
-  if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+  if (!values) {
     return { fieldErrors };
   }
 
@@ -108,7 +150,13 @@ export async function createAchievement(
     return { error: "認証が必要です" };
   }
 
-  const { error } = await supabase.from("achievements").insert(values);
+  // AchievementInput は discriminated union だが Supabase の insert 型は
+  // union の最初のアームに固定されてしまうため、DB の行型 (1 列だけ非 NULL は
+  // CHECK 制約で担保) に合わせて nullable に広げて渡す。
+  const insertPayload: AchievementBaseInputRow = values;
+  const { error } = await supabase
+    .from("achievements")
+    .insert(insertPayload);
 
   if (error) {
     return {
@@ -130,7 +178,7 @@ export async function updateAchievement(
   }
 
   const { values, fieldErrors } = parseFormData(formData);
-  if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+  if (!values) {
     return { fieldErrors };
   }
 
@@ -141,9 +189,10 @@ export async function updateAchievement(
     return { error: "認証が必要です" };
   }
 
+  const updatePayload: AchievementBaseInputRow = values;
   const { error } = await supabase
     .from("achievements")
-    .update(values)
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {

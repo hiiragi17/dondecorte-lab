@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Inter } from "next/font/google";
 import { getSiteUrl } from "@/lib/utils/site-url";
 import "./globals.css";
@@ -28,6 +28,15 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
@@ -36,7 +45,7 @@ export const metadata: Metadata = {
     locale: "ja_JP",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
   },
@@ -44,6 +53,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1A120B",
 };
 
 export default function RootLayout({

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoSection } from "@/components/features/memo/memo-section";
 import { TvShowForm } from "@/components/features/tv-show/tv-show-form";
 import { updateTvShow } from "@/lib/actions/tv-shows";
 import { listArtistSummaries } from "@/lib/queries/artists";
@@ -42,7 +43,7 @@ export default async function EditTvPage({ params }: Props) {
         </h1>
       </div>
 
-      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-6">
+      <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <TvShowForm
           key={tvShow.id}
           action={action}
@@ -54,6 +55,12 @@ export default async function EditTvPage({ params }: Props) {
           submitLabel="更新する"
         />
       </div>
+
+      <MemoSection
+        targetType="tv_show"
+        targetId={tvShow.id}
+        variant="admin"
+      />
     </div>
   );
 }

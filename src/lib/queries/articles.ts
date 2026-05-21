@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
+import {
+  getIdsForPerformer,
+  type ListOptions,
+} from "@/lib/queries/_list-options";
 import type { Article, ArticleWithCasts } from "@/lib/types/article";
 
 function toArticleBase(row: Record<string, unknown>): Article {
@@ -15,13 +19,33 @@ function toArticleBase(row: Record<string, unknown>): Article {
   };
 }
 
-export async function listArticles(): Promise<Article[]> {
+export async function listArticles(
+  options: ListOptions = {}
+): Promise<Article[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "article",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("articles")
     .select("*")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("published_at", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`記事一覧の取得に失敗しました: ${error.message}`);
@@ -30,52 +54,58 @@ export async function listArticles(): Promise<Article[]> {
   return (data ?? []) as Article[];
 }
 
-export async function listArticlesWithCasts(): Promise<ArticleWithCasts[]> {
+export async function listArticlesWithCasts(
+  options: ListOptions = {}
+): Promise<ArticleWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const ascending = options.sort === "oldest";
+
+  let allowedIds: string[] | null = null;
+  if (options.performer) {
+    allowedIds = await getIdsForPerformer(
+      supabase,
+      "article",
+      options.performer
+    );
+    if (allowedIds.length === 0) return [];
+  }
+
+  let query = supabase
     .from("articles")
-    .select(
-      `*,
-       article_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .select("*")
+    .order("published_at", { ascending, nullsFirst: false })
+    .order("created_at", { ascending });
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`記事一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.article_casts as CastRow[] | null | undefined);
-    return { ...toArticleBase(record), casts };
-  });
+  const articles = (data ?? []).map((row) =>
+    toArticleBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "article",
+    articles.map((a) => a.id)
+  );
+
+  return articles.map((article) => ({
+    ...article,
+    casts: castsByContent.get(article.id) ?? [],
+  }));
 }
 
 export async function getArticle(id: string): Promise<ArticleWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("articles")
-    .select(
-      `*,
-       article_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -85,7 +115,9 @@ export async function getArticle(id: string): Promise<ArticleWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.article_casts as CastRow[] | null | undefined);
-  return { ...toArticleBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "article", [id]);
+  return {
+    ...toArticleBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }
