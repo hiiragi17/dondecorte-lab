@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeStartTimeForIcs } from "./route";
+import { normalizeStartTimeForIcs } from "./start-time";
 
 describe("normalizeStartTimeForIcs", () => {
   it("null / 空文字は null を返す", () => {
