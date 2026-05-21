@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // server-only は next の依存配下にあり vite から解決できないため空モジュールに差し替える
+      "server-only": path.resolve(__dirname, "./vitest/server-only-stub.ts"),
     },
   },
   test: {

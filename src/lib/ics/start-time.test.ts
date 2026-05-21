@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeStartTimeForIcs } from "./route";
+import { normalizeStartTimeForIcs } from "./start-time";
 
 describe("normalizeStartTimeForIcs", () => {
   it("null / 空文字は null を返す", () => {
@@ -37,5 +37,10 @@ describe("normalizeStartTimeForIcs", () => {
 
   it("不正な文字列は null を返す", () => {
     expect(normalizeStartTimeForIcs("not-a-time")).toBeNull();
+  });
+
+  it("範囲外の HH:MM は HH:MM[:SS] パターンで受理せず null を返す", () => {
+    expect(normalizeStartTimeForIcs("25:61")).toBeNull();
+    expect(normalizeStartTimeForIcs("24:00")).toBeNull();
   });
 });
