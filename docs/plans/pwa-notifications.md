@@ -165,7 +165,9 @@ create table live_presales (
 
 > リマインド（抽選開始 / 締切間近 / 当日朝）は Google カレンダー委譲（#114）に移管したため、**別 `/api/cron/notify` は不要**。発見 push は Fany 同期（`/api/cron/fany`）の中で行う。
 
-Fany 同期で **新規挿入された** `lives` / `live_presales` を検出して発見通知を送る。
+Fany 同期で **未通知の** `lives` / `live_presales` を検出して発見通知を送る。
+
+> **初回投入 / バックフィル時の扱い（重要）**: 既存データを取り込む初回は、対象行に `notified_new_at = now()` をセットして「既知」扱いにする（過去ライブ・過去抽選の一斉 push を防ぐ）。これにより claim 条件は `notified_new_at IS NULL` のみで済み、`lives` / `live_presales` の両方で時間ウィンドウ（`created_at` 等）が不要になる。Cron 停止・同期遅延・再送（`notified_new_at = NULL` リセット）でも取りこぼさない。
 
 **重要: Cron 重複起動やリトライでの多重送信を防ぐため、必ず単一の `UPDATE ... WHERE notified_new_at IS NULL RETURNING *` で原子的に「クレーム」した行に対してだけ通知を送る。**
 
@@ -174,7 +176,6 @@ Fany 同期で **新規挿入された** `lives` / `live_presales` を検出し�
 update lives
 set notified_new_at = now()
 where notified_new_at is null
-  and created_at >= now() - interval '1 day'
 returning *;
 
 -- 新規先行抽選の発見通知
