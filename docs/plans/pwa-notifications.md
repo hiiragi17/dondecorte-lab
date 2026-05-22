@@ -4,7 +4,9 @@
 
 1. アプリを PWA 化してスマホのホーム画面にインストール可能にする
 2. Web Push でスマホにプッシュ通知を送信できる基盤を作る
-3. Fany（よしもとお笑いポータル）からドンデコルテのライブ情報を定期取得し、**先行抽選開始**などのタイミングで通知する
+3. Fany（よしもとお笑いポータル）からドンデコルテのライブ情報を定期取得し、**新しいライブ / 先行抽選が告知されたタイミング**で発見通知する
+
+> **通知アーキテクチャ整理（#115）**: 通知を **発見**（Web Push）と **リマインド**（Google カレンダー委譲, #114）に分離した。本プランの Web Push は **発見専用**。抽選開始 / 締切 / 当日朝の **リマインド push は廃止**し #114 へ移管。
 
 既存資産との関係:
 
@@ -138,15 +140,14 @@ create table live_presales (
   ends_at timestamptz,                 -- 受付終了
   url text,                            -- 申込 URL
   source text,                         -- 'fany' | 'manual'
-  notified_open_at timestamptz,        -- 通知済みタイムスタンプ（is_notified の細粒度版）
-  notified_close_soon_at timestamptz,  -- 締切間近通知用
+  notified_new_at timestamptz,         -- 発見 push 済み（重複防止用。リマインドは Google カレンダー #114）
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(live_id, kind, starts_at)
 );
 ```
 
-加えて `lives` に `source_url text`, `external_id text` を追加して Fany 由来レコードと突き合わせる。
+加えて `lives` に `source_url text`, `external_id text`, `notified_new_at timestamptz` を追加（Fany 由来レコードの突き合わせ + 新規ライブの発見 push 重複防止）。
 
 ### スクレイパー
 
@@ -160,37 +161,36 @@ create table live_presales (
   - `vercel.json` に `crons` 設定（`/api/cron/fany`, schedule `0 3 * * *` JST 12 時など）
   - `Authorization: Bearer ${CRON_SECRET}` で保護
 
-### 通知トリガ
+### 通知トリガ（発見 push のみ）
 
-別 Cron `/api/cron/notify` を 5〜15 分粒度で動かす:
+> リマインド（抽選開始 / 締切間近 / 当日朝）は Google カレンダー委譲（#114）に移管したため、**別 `/api/cron/notify` は不要**。発見 push は Fany 同期（`/api/cron/fany`）の中で行う。
 
-**重要: SELECT してから UPDATE する 2 ステップは、Cron 重複起動やリトライで多重送信を引き起こす。
-必ず単一の `UPDATE ... WHERE ... AND notified_*_at IS NULL RETURNING *` で原子的に「クレーム」した行に対してだけ通知を送る。**
+Fany 同期で **新規挿入された** `lives` / `live_presales` を検出して発見通知を送る。
+
+**重要: Cron 重複起動やリトライでの多重送信を防ぐため、必ず単一の `UPDATE ... WHERE notified_new_at IS NULL RETURNING *` で原子的に「クレーム」した行に対してだけ通知を送る。**
 
 ```sql
--- 先行抽選開始
-update live_presales
-set notified_open_at = now()
-where starts_at <= now()
-  and notified_open_at is null
+-- 新規ライブの発見通知
+update lives
+set notified_new_at = now()
+where notified_new_at is null
+  and created_at >= now() - interval '1 day'
 returning *;
 
--- 締切間近
+-- 新規先行抽選の発見通知
 update live_presales
-set notified_close_soon_at = now()
-where ends_at is not null
-  and ends_at - now() <= interval '2 hours'
-  and notified_close_soon_at is null
+set notified_new_at = now()
+where notified_new_at is null
 returning *;
 ```
 
-1. 先行抽選開始の UPDATE → RETURNING 行に対して通知送信
-2. 締切間近の UPDATE → RETURNING 行に対して通知送信
-3. （任意）ライブ当日朝にリマインド通知（同じく `notified_morning_at` 等を追加して原子的に処理）
+1. 新規ライブの UPDATE → RETURNING 行に対して「新しいライブが追加されました」push
+2. 新規先行抽選の UPDATE → RETURNING 行に対して「先行抽選が告知されました」push
+3. push 本文には詳細ページ / カレンダー追加導線（#114）への URL を含める
 
 通知本文の組み立てとプッシュ送信は `src/lib/push/sender.ts` を再利用。`push_subscriptions` 全件にループ送信、404/410 を捨てる。
 
-> 通知送信が失敗した場合の補償（再送）は別途検討。最低限、送信ログを `notification_logs` に残しておけば失敗行は手動で `notified_*_at = NULL` に戻して再走できる。
+> 送信失敗時は `notified_new_at = NULL` に戻して再走できる。リマインドは Google カレンダー側が担うため、本プランの push は「告知の発見」だけに責任を持つ。
 
 ---
 
