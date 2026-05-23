@@ -3,6 +3,7 @@ import {
   buildIcsCalendar,
   escapeIcsText,
   foldIcsLine,
+  formatReminderTrigger,
   type IcsEvent,
 } from "./builder";
 
@@ -51,6 +52,28 @@ describe("foldIcsLine", () => {
     for (const seg of folded.split("\r\n")) {
       expect(Buffer.byteLength(seg, "utf8")).toBeLessThanOrEqual(76);
     }
+  });
+});
+
+describe("formatReminderTrigger", () => {
+  it("日単位に丸める", () => {
+    expect(formatReminderTrigger(1440)).toBe("-P1D");
+    expect(formatReminderTrigger(2880)).toBe("-P2D");
+  });
+
+  it("時単位に丸める", () => {
+    expect(formatReminderTrigger(120)).toBe("-PT2H");
+    expect(formatReminderTrigger(60)).toBe("-PT1H");
+  });
+
+  it("分単位はそのまま", () => {
+    expect(formatReminderTrigger(30)).toBe("-PT30M");
+    expect(formatReminderTrigger(90)).toBe("-PT90M");
+  });
+
+  it("0 以下は -PT0M", () => {
+    expect(formatReminderTrigger(0)).toBe("-PT0M");
+    expect(formatReminderTrigger(-10)).toBe("-PT0M");
   });
 });
 
@@ -185,6 +208,37 @@ describe("buildIcsCalendar", () => {
     const vevents = ics.split("BEGIN:VEVENT").length - 1;
     expect(vevents).toBe(2);
     expect(ics.indexOf("UID:a")).toBeLessThan(ics.indexOf("UID:b"));
+  });
+
+  it("reminders を VALARM (DISPLAY) として出力する", () => {
+    const event: IcsEvent = {
+      uid: "u",
+      date: "2026-06-01",
+      startTime: "19:00",
+      summary: "単独ライブ",
+      reminders: [{ minutesBefore: 1440 }, { minutesBefore: 120 }],
+    };
+    const ics = buildIcsCalendar([event], baseOptions);
+    expect(ics).toContain("BEGIN:VALARM");
+    expect(ics).toContain("ACTION:DISPLAY");
+    expect(ics).toContain("DESCRIPTION:単独ライブ");
+    expect(ics).toContain("TRIGGER:-P1D");
+    expect(ics).toContain("TRIGGER:-PT2H");
+    expect(ics).toContain("END:VALARM");
+    expect(ics.split("BEGIN:VALARM").length - 1).toBe(2);
+    // VALARM は VEVENT 内（END:VEVENT より前）に置く
+    expect(ics.indexOf("BEGIN:VALARM")).toBeLessThan(ics.indexOf("END:VEVENT"));
+  });
+
+  it("reminders 未指定なら VALARM を出力しない", () => {
+    const event: IcsEvent = {
+      uid: "u",
+      date: "2026-06-01",
+      startTime: "19:00",
+      summary: "ライブ",
+    };
+    const ics = buildIcsCalendar([event], baseOptions);
+    expect(ics).not.toContain("BEGIN:VALARM");
   });
 
   it("行末は全て CRLF", () => {
