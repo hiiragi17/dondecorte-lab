@@ -1,3 +1,8 @@
+/** 開始時刻の何分前にリマインドするか。例: 1440 = 前日同時刻 / 120 = 2時間前。 */
+export type IcsReminder = {
+  minutesBefore: number;
+};
+
 export type IcsEvent = {
   uid: string;
   /** YYYY-MM-DD */
@@ -10,6 +15,8 @@ export type IcsEvent = {
   location?: string | null;
   description?: string | null;
   url?: string | null;
+  /** VALARM。各要素が 1 つの DISPLAY アラームになる。 */
+  reminders?: IcsReminder[];
 };
 
 export type IcsCalendarOptions = {
@@ -140,6 +147,30 @@ function addMinutesToLocal(
   };
 }
 
+// VALARM の TRIGGER は開始時刻からの相対時間。分→日/時/分の順で見やすく丸める。
+export function formatReminderTrigger(minutesBefore: number): string {
+  if (!Number.isFinite(minutesBefore)) {
+    throw new Error(
+      `IcsReminder.minutesBefore は有限の数値で渡してください: ${minutesBefore}`
+    );
+  }
+  const minutes = Math.max(0, Math.round(minutesBefore));
+  if (minutes === 0) return "-PT0M";
+  if (minutes % 1440 === 0) return `-P${minutes / 1440}D`;
+  if (minutes % 60 === 0) return `-PT${minutes / 60}H`;
+  return `-PT${minutes}M`;
+}
+
+function buildAlarm(reminder: IcsReminder, summary: string): string[] {
+  return [
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeIcsText(summary)}`,
+    `TRIGGER:${formatReminderTrigger(reminder.minutesBefore)}`,
+    "END:VALARM",
+  ];
+}
+
 function buildEvent(
   event: IcsEvent,
   options: { timezone: string; dtstamp: string }
@@ -176,6 +207,9 @@ function buildEvent(
   }
   if (event.url) {
     lines.push(`URL:${event.url}`);
+  }
+  for (const reminder of event.reminders ?? []) {
+    lines.push(...buildAlarm(reminder, event.summary));
   }
   lines.push("END:VEVENT");
   return lines;
