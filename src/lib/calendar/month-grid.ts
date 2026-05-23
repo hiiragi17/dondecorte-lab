@@ -15,12 +15,17 @@ function ymd(year: number, month: number, day: number): string {
 }
 
 export function todayInTokyo(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  // format() の出力順は locale / ICU バージョンで揺れるため、type 指定でパーツを組む。
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
+  }).formatToParts(now);
+  const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
 }
 
 export function parseYearMonth(
