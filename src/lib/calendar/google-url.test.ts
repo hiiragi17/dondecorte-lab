@@ -89,7 +89,7 @@ describe("buildGoogleCalendarUrl", () => {
     expect(params.has("location")).toBe(false);
   });
 
-  it("不正な date は例外", () => {
+  it("不正な date 形式は例外", () => {
     expect(() =>
       buildGoogleCalendarUrl({
         title: "x",
@@ -97,5 +97,25 @@ describe("buildGoogleCalendarUrl", () => {
         startTime: null,
       })
     ).toThrow(/YYYY-MM-DD/);
+  });
+
+  it("存在しない日付（2026-02-30）は例外", () => {
+    expect(() =>
+      buildGoogleCalendarUrl({
+        title: "x",
+        date: "2026-02-30",
+        startTime: null,
+      })
+    ).toThrow(/存在しない日付/);
+  });
+
+  it("範囲外の時刻（24:99:99）は例外", () => {
+    expect(() =>
+      buildGoogleCalendarUrl({
+        title: "x",
+        date: "2026-06-01",
+        startTime: "24:99:99",
+      })
+    ).toThrow(/範囲外/);
   });
 });

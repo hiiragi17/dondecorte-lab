@@ -75,6 +75,11 @@ describe("formatReminderTrigger", () => {
     expect(formatReminderTrigger(0)).toBe("-PT0M");
     expect(formatReminderTrigger(-10)).toBe("-PT0M");
   });
+
+  it("非有限値は例外", () => {
+    expect(() => formatReminderTrigger(Number.NaN)).toThrow(/有限/);
+    expect(() => formatReminderTrigger(Number.POSITIVE_INFINITY)).toThrow(/有限/);
+  });
 });
 
 describe("buildIcsCalendar", () => {

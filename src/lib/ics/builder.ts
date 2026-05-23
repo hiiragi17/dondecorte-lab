@@ -149,6 +149,11 @@ function addMinutesToLocal(
 
 // VALARM の TRIGGER は開始時刻からの相対時間。分→日/時/分の順で見やすく丸める。
 export function formatReminderTrigger(minutesBefore: number): string {
+  if (!Number.isFinite(minutesBefore)) {
+    throw new Error(
+      `IcsReminder.minutesBefore は有限の数値で渡してください: ${minutesBefore}`
+    );
+  }
   const minutes = Math.max(0, Math.round(minutesBefore));
   if (minutes === 0) return "-PT0M";
   if (minutes % 1440 === 0) return `-P${minutes / 1440}D`;

@@ -31,7 +31,18 @@ function parseDate(dateStr: string): { y: number; m: number; d: number } {
   if (!match) {
     throw new Error(`date は YYYY-MM-DD 形式で渡してください: ${dateStr}`);
   }
-  return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const isValid =
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() + 1 === m &&
+    dt.getUTCDate() === d;
+  if (!isValid) {
+    throw new Error(`存在しない日付です: ${dateStr}`);
+  }
+  return { y, m, d };
 }
 
 function parseTime(time: string): { hh: string; mm: string; ss: string } {
@@ -41,11 +52,13 @@ function parseTime(time: string): { hh: string; mm: string; ss: string } {
       `startTime は HH:MM もしくは HH:MM:SS 形式で渡してください: ${time}`
     );
   }
-  return {
-    hh: pad2(Number(match[1])),
-    mm: pad2(Number(match[2])),
-    ss: pad2(Number(match[3] ?? 0)),
-  };
+  const hh = Number(match[1]);
+  const mm = Number(match[2]);
+  const ss = Number(match[3] ?? 0);
+  if (hh > 23 || mm > 59 || ss > 59) {
+    throw new Error(`startTime の値が範囲外です: ${time}`);
+  }
+  return { hh: pad2(hh), mm: pad2(mm), ss: pad2(ss) };
 }
 
 function compactDate(dateStr: string): string {
