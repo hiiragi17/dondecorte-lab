@@ -101,6 +101,7 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - 新しいテーブルを `create table` した直後、必ず以下を明示的に書く（2026-05-30 以降の Supabase 新挙動対応。`public` スキーマのテーブルはデフォルトでは Data API に公開されなくなる）:
   - 公開読み取り対象: `grant select on public.<table> to anon;` + `grant select, insert, update, delete on public.<table> to authenticated, service_role;`
   - 機微情報を含むテーブル（例: `push_subscriptions`）: anon は必要最小限のみ。読み書きはサーバ側 `service_role` 経由に限定する
+- `serial` / `bigserial` / `generated ... as identity` を使うテーブルは、008 でデフォルト sequence 権限も revoke しているため、`grant usage, select on sequence public.<table>_<col>_seq to anon, authenticated, service_role;`（必要なロールのみ）も書く。本プロジェクトは現状すべて `uuid` 主キーなので不要だが、将来 serial / identity を採用する場合は忘れずに
 - RLS だけでは PostgREST から `permission denied` で弾かれるため、`enable row level security` / `create policy` と **必ずセット** で `grant` を書く
 - 新しい RPC 関数を `create function` したら `grant execute on function ... to authenticated;`（または `service_role`）を忘れずに
 - 参考: `supabase/migrations/008_explicit_grants.sql`、https://github.com/orgs/supabase/discussions/45329

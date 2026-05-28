@@ -620,6 +620,11 @@ grant select, insert, update, delete on public.push_subscriptions to service_rol
 
 -- RPC 関数
 grant execute on function public.<func>(<args>) to authenticated;
+
+-- serial / bigserial / generated ... as identity を使う場合は backing sequence にも grant が必要
+-- （008 で sequence のデフォルト権限も revoke しているため）。本プロジェクトは uuid 主キーのみで
+-- 現状は不要だが、採用した際は忘れずに：
+-- grant usage, select on sequence public.<table>_<col>_seq to anon, authenticated, service_role;
 ```
 
 既存テーブルへの一括 GRANT は `supabase/migrations/008_explicit_grants.sql` に集約済み。同 migration では将来のテーブルでデフォルト GRANT に依存しないよう `alter default privileges ... revoke ...` も実行している。
