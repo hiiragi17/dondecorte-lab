@@ -1,6 +1,6 @@
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
 import { createClient } from "@/lib/supabase/server";
-import type { CastEntry, ContentType } from "@/lib/types";
+import { type CastEntry, type ContentType } from "@/lib/types";
 
 export type TimelineItem = {
   type: ContentType;
@@ -11,16 +11,6 @@ export type TimelineItem = {
   createdAt: string;
   casts: CastEntry[];
 };
-
-const CAST_SUBSELECT = `
-  id,
-  artist_id,
-  comedy_group_id,
-  unit_id,
-  artist:artists(id, name),
-  comedy_group:comedy_groups(id, name),
-  unit:units(id, name)
-`;
 
 type Row = Record<string, unknown>;
 
@@ -34,32 +24,32 @@ export async function listTimeline(limit?: number): Promise<TimelineItem[]> {
   const [videos, lives, radios, articles, tvShows, topics] = await Promise.all([
     supabase
       .from("videos")
-      .select(`id, title, published_at, created_at, video_casts(${CAST_SUBSELECT})`)
+      .select("id, title, published_at, created_at")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("lives")
-      .select(`id, title, event_date, created_at, live_casts(${CAST_SUBSELECT})`)
+      .select("id, title, event_date, created_at")
       .order("event_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("radios")
-      .select(`id, title, published_at, created_at, radio_casts(${CAST_SUBSELECT})`)
+      .select("id, title, published_at, created_at")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("articles")
-      .select(`id, title, published_at, created_at, article_casts(${CAST_SUBSELECT})`)
+      .select("id, title, published_at, created_at")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("tv_shows")
-      .select(`id, title, air_date, created_at, tv_show_casts(${CAST_SUBSELECT})`)
+      .select("id, title, air_date, created_at")
       .order("air_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("topics")
-      .select(`id, title, topic_date, created_at, topic_casts(${CAST_SUBSELECT})`)
+      .select("id, title, topic_date, created_at")
       .order("topic_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
   ]);
@@ -71,54 +61,79 @@ export async function listTimeline(limit?: number): Promise<TimelineItem[]> {
     throw new Error(`タイムラインの取得に失敗しました: ${errors[0].message}`);
   }
 
+  const videoRows = (videos.data ?? []) as Row[];
+  const liveRows = (lives.data ?? []) as Row[];
+  const radioRows = (radios.data ?? []) as Row[];
+  const articleRows = (articles.data ?? []) as Row[];
+  const tvShowRows = (tvShows.data ?? []) as Row[];
+  const topicRows = (topics.data ?? []) as Row[];
+
+  const idsOf = (rows: Row[]) => rows.map((r) => r.id as string);
+
+  const [
+    videoCasts,
+    liveCasts,
+    radioCasts,
+    articleCasts,
+    tvShowCasts,
+    topicCasts,
+  ] = await Promise.all([
+    fetchCastsByContent(supabase, "video", idsOf(videoRows)),
+    fetchCastsByContent(supabase, "live", idsOf(liveRows)),
+    fetchCastsByContent(supabase, "radio", idsOf(radioRows)),
+    fetchCastsByContent(supabase, "article", idsOf(articleRows)),
+    fetchCastsByContent(supabase, "tv_show", idsOf(tvShowRows)),
+    fetchCastsByContent(supabase, "topic", idsOf(topicRows)),
+  ]);
+
   const items: TimelineItem[] = [
-    ...((videos.data ?? []) as Row[]).map((r) => ({
+    ...videoRows.map((r) => ({
       type: "video" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.published_at as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.video_casts as CastRow[] | null | undefined),
+      casts: videoCasts.get(r.id as string) ?? [],
     })),
-    ...((lives.data ?? []) as Row[]).map((r) => ({
+    ...liveRows.map((r) => ({
       type: "live" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.event_date as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.live_casts as CastRow[] | null | undefined),
+      casts: liveCasts.get(r.id as string) ?? [],
     })),
-    ...((radios.data ?? []) as Row[]).map((r) => ({
+    ...radioRows.map((r) => ({
       type: "radio" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.published_at as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.radio_casts as CastRow[] | null | undefined),
+      casts: radioCasts.get(r.id as string) ?? [],
     })),
-    ...((articles.data ?? []) as Row[]).map((r) => ({
+    ...articleRows.map((r) => ({
       type: "article" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.published_at as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.article_casts as CastRow[] | null | undefined),
+      casts: articleCasts.get(r.id as string) ?? [],
     })),
-    ...((tvShows.data ?? []) as Row[]).map((r) => ({
+    ...tvShowRows.map((r) => ({
       type: "tv_show" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.air_date as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.tv_show_casts as CastRow[] | null | undefined),
+      casts: tvShowCasts.get(r.id as string) ?? [],
     })),
-    ...((topics.data ?? []) as Row[]).map((r) => ({
+    ...topicRows.map((r) => ({
       type: "topic" as const,
       id: r.id as string,
       title: r.title as string,
       date: (r.topic_date as string | null) ?? null,
       createdAt: r.created_at as string,
-      casts: mapCasts(r.topic_casts as CastRow[] | null | undefined),
+      casts: topicCasts.get(r.id as string) ?? [],
     })),
   ];
 

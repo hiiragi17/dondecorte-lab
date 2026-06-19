@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { mapCasts, type CastRow } from "@/lib/queries/_casts";
+import { fetchCastsByContent } from "@/lib/queries/_casts";
 import {
   getIdsForPerformer,
   type ListOptions,
@@ -25,12 +25,7 @@ export async function listRadios(options: ListOptions = {}): Promise<Radio[]> {
 
   let allowedIds: string[] | null = null;
   if (options.performer) {
-    allowedIds = await getIdsForPerformer(
-      supabase,
-      "radio_casts",
-      "radio_id",
-      options.performer
-    );
+    allowedIds = await getIdsForPerformer(supabase, "radio", options.performer);
     if (allowedIds.length === 0) return [];
   }
 
@@ -61,29 +56,13 @@ export async function listRadiosWithCasts(
 
   let allowedIds: string[] | null = null;
   if (options.performer) {
-    allowedIds = await getIdsForPerformer(
-      supabase,
-      "radio_casts",
-      "radio_id",
-      options.performer
-    );
+    allowedIds = await getIdsForPerformer(supabase, "radio", options.performer);
     if (allowedIds.length === 0) return [];
   }
 
   let query = supabase
     .from("radios")
-    .select(
-      `*,
-       radio_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .order("published_at", { ascending, nullsFirst: false })
     .order("created_at", { ascending });
 
@@ -97,29 +76,26 @@ export async function listRadiosWithCasts(
     throw new Error(`ラジオ一覧の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const record = row as Record<string, unknown>;
-    const casts = mapCasts(record.radio_casts as CastRow[] | null | undefined);
-    return { ...toRadioBase(record), casts };
-  });
+  const radios = (data ?? []).map((row) =>
+    toRadioBase(row as Record<string, unknown>)
+  );
+  const castsByContent = await fetchCastsByContent(
+    supabase,
+    "radio",
+    radios.map((r) => r.id)
+  );
+
+  return radios.map((radio) => ({
+    ...radio,
+    casts: castsByContent.get(radio.id) ?? [],
+  }));
 }
 
 export async function getRadio(id: string): Promise<RadioWithCasts | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("radios")
-    .select(
-      `*,
-       radio_casts(
-         id,
-         artist_id,
-         comedy_group_id,
-         unit_id,
-         artist:artists(id, name),
-         comedy_group:comedy_groups(id, name),
-         unit:units(id, name)
-       )`
-    )
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -129,7 +105,9 @@ export async function getRadio(id: string): Promise<RadioWithCasts | null> {
 
   if (!data) return null;
 
-  const record = data as Record<string, unknown>;
-  const casts = mapCasts(record.radio_casts as CastRow[] | null | undefined);
-  return { ...toRadioBase(record), casts };
+  const castsByContent = await fetchCastsByContent(supabase, "radio", [id]);
+  return {
+    ...toRadioBase(data as Record<string, unknown>),
+    casts: castsByContent.get(id) ?? [],
+  };
 }

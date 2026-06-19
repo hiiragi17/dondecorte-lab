@@ -1,7 +1,16 @@
+import { PushToggle } from "@/components/features/push/push-toggle";
+
 export function PublicFooter() {
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+
   return (
     <footer className="border-t border-brand-border-dark bg-brand-card-dark px-4 py-6 text-xs leading-relaxed text-brand-muted">
       <div className="mx-auto max-w-6xl space-y-2">
+        {vapidPublicKey ? (
+          <div className="border-b border-brand-border-dark pb-3">
+            <PushToggle vapidPublicKey={vapidPublicKey} />
+          </div>
+        ) : null}
         <p>
           本サイトはドンデコルテおよび吉本興業とは無関係の非公式ファンサイトです。
         </p>

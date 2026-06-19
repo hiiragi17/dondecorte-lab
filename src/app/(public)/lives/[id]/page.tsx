@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { AddToCalendar } from "@/components/features/calendar/add-to-calendar";
 import { MemoSection } from "@/components/features/memo/memo-section";
 import { RelatedContents } from "@/components/features/related/related-contents";
 import { PerformerTagList } from "@/components/shared/performer-tags";
@@ -9,6 +10,7 @@ import { getLive as fetchLive } from "@/lib/queries/lives";
 import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/utils/date";
+import { getSiteUrl } from "@/lib/utils/site-url";
 import { normalizeExternalUrl } from "@/lib/utils/url";
 
 export const dynamic = "force-dynamic";
@@ -108,6 +110,14 @@ export default async function LiveDetailPage({ params }: Props) {
         <div className="mt-4">
           <PerformerTagList performers={live.casts} />
         </div>
+      ) : null}
+
+      {live.event_date ? (
+        <AddToCalendar
+          live={live}
+          siteUrl={getSiteUrl()}
+          className="mt-6"
+        />
       ) : null}
 
       {safeUrl ? (

@@ -2,19 +2,10 @@ import { mapCasts, type CastRow } from "@/lib/queries/_casts";
 import { createClient } from "@/lib/supabase/server";
 import { CONTENT_TYPES, type CastEntry, type ContentType } from "@/lib/types";
 
-const CAST_TABLE_BY_CONTENT = {
-  video: "video_casts",
-  live: "live_casts",
-  radio: "radio_casts",
-  article: "article_casts",
-  tv_show: "tv_show_casts",
-  topic: "topic_casts",
-} as const satisfies Record<ContentType, string>;
-
-type CastTable = (typeof CAST_TABLE_BY_CONTENT)[ContentType];
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-const CAST_SUBSELECT = `
+const CAST_SELECT = `
+  content_type,
   artist_id,
   comedy_group_id,
   unit_id,
@@ -26,6 +17,8 @@ const CAST_SUBSELECT = `
 // PostgREST は 1 リクエストあたりの返却行数に上限があるため、
 // 全行を range で分割取得して集計漏れを防ぐ。
 const PAGE_SIZE = 1000;
+
+type CastWithTypeRow = CastRow & { content_type: ContentType };
 
 export type AppearanceRankingEntry = {
   performer: CastEntry;
@@ -63,15 +56,14 @@ export function aggregateAppearanceRanking(
 }
 
 async function selectAllCastRows(
-  supabase: SupabaseClient,
-  table: CastTable
-): Promise<CastRow[]> {
-  const rows: CastRow[] = [];
+  supabase: SupabaseClient
+): Promise<CastWithTypeRow[]> {
+  const rows: CastWithTypeRow[] = [];
 
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
-      .from(table)
-      .select(CAST_SUBSELECT)
+      .from("casts")
+      .select(CAST_SELECT)
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
 
@@ -82,8 +74,8 @@ async function selectAllCastRows(
     }
 
     // Supabase は埋め込みリレーションを配列型として推論するため、
-    // CastRow[] への単一キャストでは型エラーになる（実行時の形状は一致する）。
-    const page = (data ?? []) as unknown as CastRow[];
+    // CastWithTypeRow[] への単一キャストでは型エラーになる（実行時の形状は一致する）。
+    const page = (data ?? []) as unknown as CastWithTypeRow[];
     rows.push(...page);
     if (page.length < PAGE_SIZE) break;
   }
@@ -95,22 +87,21 @@ export async function listAppearanceRanking(): Promise<
   AppearanceRankingEntry[]
 > {
   const supabase = await createClient();
+  const rows = await selectAllCastRows(supabase);
 
-  const castRowsByContentType = await Promise.all(
-    CONTENT_TYPES.map((contentType) =>
-      selectAllCastRows(supabase, CAST_TABLE_BY_CONTENT[contentType])
-    )
-  );
+  const castsByContentType: Record<ContentType, CastEntry[]> = {
+    video: [],
+    live: [],
+    radio: [],
+    article: [],
+    tv_show: [],
+    topic: [],
+  };
 
-  const castsByContentType = CONTENT_TYPES.reduce<
-    Record<ContentType, CastEntry[]>
-  >(
-    (acc, contentType, index) => {
-      acc[contentType] = mapCasts(castRowsByContentType[index]);
-      return acc;
-    },
-    { video: [], live: [], radio: [], article: [], tv_show: [], topic: [] }
-  );
+  for (const row of rows) {
+    const [entry] = mapCasts([row]);
+    if (entry) castsByContentType[row.content_type].push(entry);
+  }
 
   return aggregateAppearanceRanking(castsByContentType);
 }

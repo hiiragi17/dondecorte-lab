@@ -5,46 +5,14 @@ export const DONDECORTE_COMBO_NAME = "ドンデコルテ";
 
 export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-export type CastTable =
-  | "video_casts"
-  | "live_casts"
-  | "radio_casts"
-  | "article_casts"
-  | "tv_show_casts"
-  | "topic_casts";
-
-export type ParentIdField =
-  | "video_id"
-  | "live_id"
-  | "radio_id"
-  | "article_id"
-  | "tv_show_id"
-  | "topic_id";
-
-export type CastTableSpec = {
-  table: CastTable;
-  parentIdField: ParentIdField;
+export type ContentRef = {
   contentType: ContentType;
+  contentId: string;
 };
 
-export const CAST_TABLES: CastTableSpec[] = [
-  { table: "video_casts", parentIdField: "video_id", contentType: "video" },
-  { table: "live_casts", parentIdField: "live_id", contentType: "live" },
-  { table: "radio_casts", parentIdField: "radio_id", contentType: "radio" },
-  {
-    table: "article_casts",
-    parentIdField: "article_id",
-    contentType: "article",
-  },
-  {
-    table: "tv_show_casts",
-    parentIdField: "tv_show_id",
-    contentType: "tv_show",
-  },
-  { table: "topic_casts", parentIdField: "topic_id", contentType: "topic" },
-];
-
 export type CoCastRow = {
+  content_type: ContentType;
+  content_id: string;
   artist_id: string | null;
   comedy_group_id: string | null;
   unit_id: string | null;
@@ -53,7 +21,16 @@ export type CoCastRow = {
   unit: { id: string; name: string } | null;
 };
 
-export type RawCoCastRow = CoCastRow & Record<ParentIdField, string>;
+const CO_CAST_SELECT = `
+  content_type,
+  content_id,
+  artist_id,
+  comedy_group_id,
+  unit_id,
+  artist:artists(id, name),
+  comedy_group:comedy_groups(id, name),
+  unit:units(id, name)
+`;
 
 export async function getDondecorteComedyGroupId(
   supabase: SupabaseClient
@@ -73,55 +50,69 @@ export async function getDondecorteComedyGroupId(
   return rows[0]?.id ?? null;
 }
 
-export async function listOwnParentIds(
+/**
+ * ドンデコルテが出演しているコンテンツの一覧（重複排除済み）。
+ * 旧実装では 6 つの cast テーブルを個別に走査していたが、
+ * casts 統合テーブルにより 1 クエリで取得できる。
+ */
+export async function listDondecorteContents(
   supabase: SupabaseClient,
-  spec: CastTableSpec,
   dondecorteId: string
-): Promise<string[]> {
+): Promise<ContentRef[]> {
   const { data, error } = await supabase
-    .from(spec.table)
-    .select(spec.parentIdField)
+    .from("casts")
+    .select("content_type, content_id")
     .eq("comedy_group_id", dondecorteId);
 
   if (error) {
-    throw new Error(
-      `共演者情報の取得に失敗しました(${spec.table}): ${error.message}`
-    );
+    throw new Error(`共演者情報の取得に失敗しました: ${error.message}`);
   }
 
-  const ids = ((data ?? []) as Array<Record<ParentIdField, string>>).map(
-    (row) => row[spec.parentIdField]
-  );
-  return Array.from(new Set(ids));
+  const seen = new Set<string>();
+  const refs: ContentRef[] = [];
+  for (const row of (data ?? []) as Array<{
+    content_type: ContentType;
+    content_id: string;
+  }>) {
+    const key = `${row.content_type}:${row.content_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    refs.push({ contentType: row.content_type, contentId: row.content_id });
+  }
+  return refs;
 }
 
-export async function listCoCastRows(
+/**
+ * 指定したコンテンツ群に出演する全 casts 行を取得する。
+ *
+ * PostgREST では複合キー (content_type, content_id) の IN 条件を直接
+ * 表現できないため content_id で取得し、ポリモーフィックモデルの論理キー
+ * (content_type, content_id) で JS 側で絞り込む（content_id が
+ * コンテンツ種別をまたいで衝突しても誤った行を拾わないようにするため）。
+ */
+export async function listCastsForContents(
   supabase: SupabaseClient,
-  spec: CastTableSpec,
-  parentIds: string[]
-): Promise<RawCoCastRow[]> {
-  if (parentIds.length === 0) return [];
+  refs: ContentRef[]
+): Promise<CoCastRow[]> {
+  if (refs.length === 0) return [];
+
+  const contentIds = Array.from(new Set(refs.map((r) => r.contentId)));
+  const allowed = new Set(
+    refs.map((r) => `${r.contentType}:${r.contentId}`)
+  );
 
   const { data, error } = await supabase
-    .from(spec.table)
-    .select(
-      `${spec.parentIdField},
-       artist_id,
-       comedy_group_id,
-       unit_id,
-       artist:artists(id, name),
-       comedy_group:comedy_groups(id, name),
-       unit:units(id, name)`
-    )
-    .in(spec.parentIdField, parentIds);
+    .from("casts")
+    .select(CO_CAST_SELECT)
+    .in("content_id", contentIds);
 
   if (error) {
-    throw new Error(
-      `共演者情報の取得に失敗しました(${spec.table}): ${error.message}`
-    );
+    throw new Error(`共演者情報の取得に失敗しました: ${error.message}`);
   }
 
-  return (data ?? []) as unknown as RawCoCastRow[];
+  return ((data ?? []) as unknown as CoCastRow[]).filter((row) =>
+    allowed.has(`${row.content_type}:${row.content_id}`)
+  );
 }
 
 export function entryFromRow(row: CoCastRow): CastEntry | null {

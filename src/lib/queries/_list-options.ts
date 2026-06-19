@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import type { CastType } from "@/lib/types";
+import type { CastType, ContentType } from "@/lib/types";
 
 export type SortOrder = "newest" | "oldest";
 
@@ -15,14 +15,6 @@ export type ListOptions = {
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-type CastTable =
-  | "video_casts"
-  | "live_casts"
-  | "radio_casts"
-  | "article_casts"
-  | "tv_show_casts"
-  | "topic_casts";
-
 function castFieldFor(
   type: CastType
 ): "artist_id" | "comedy_group_id" | "unit_id" {
@@ -31,23 +23,23 @@ function castFieldFor(
   return "unit_id";
 }
 
-export async function getIdsForPerformer<K extends string>(
+export async function getIdsForPerformer(
   supabase: SupabaseClient,
-  castTable: CastTable,
-  parentIdField: K,
+  contentType: ContentType,
   performer: PerformerFilter
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from(castTable)
-    .select(parentIdField)
+    .from("casts")
+    .select("content_id")
+    .eq("content_type", contentType)
     .eq(castFieldFor(performer.type), performer.id);
 
   if (error) {
     throw new Error(`出演者による絞り込みに失敗しました: ${error.message}`);
   }
 
-  const ids = ((data ?? []) as Array<Record<K, string>>).map(
-    (row) => row[parentIdField]
+  const ids = ((data ?? []) as Array<{ content_id: string }>).map(
+    (row) => row.content_id
   );
   return Array.from(new Set(ids));
 }

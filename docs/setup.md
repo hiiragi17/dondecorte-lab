@@ -329,6 +329,60 @@ Vercel の環境変数にも同じキーを登録する（`Production` / `Previe
 
 ---
 
+## Googleカレンダー購読 (ICS フィード)
+
+`/lives.ics` を Google カレンダーに URL 購読すると、ドンデコルテ出演ライブが自動でカレンダーに表示される。
+
+### 購読手順
+
+1. https://calendar.google.com を開く
+2. 左サイドバー「他のカレンダー」→ 「+」 → 「URL で追加」
+3. 以下の URL を入力して追加:
+   - 本番: `https://dondecorte-lab.vercel.app/lives.ics`
+4. 「カレンダーを追加」
+
+> ⚠️ Google カレンダーは購読 URL に外部から到達できる必要があるため、
+> `http://localhost:3000/lives.ics` を直接購読することはできません。
+> ローカルで検証する場合は ngrok / Cloudflare Tunnel 等で公開 URL を払い出してください。
+
+### 補足
+
+- Google 側の更新は数時間〜半日ラグがある（フィード方式の仕様）
+- `event_date` が設定されたライブのみ対象
+- `start_time` あり → 2 時間予定 / `start_time` なし → 終日予定
+- 即時反映が必要になったら issue #43（OAuth で直接書き込み）を検討
+
+## カレンダー view + イベント個別追加 (#114)
+
+`/lives.ics` の「全件まとめて URL 購読」に対し、`/calendar` では **見たいライブを 1 件ずつ**
+Google カレンダーへ追加できる。
+
+### カレンダー view
+
+- `/calendar` … 月表示（日曜始まり）+「これからのライブ」リスト
+- `?ym=YYYY-MM` で表示月を切り替え（前月 / 翌月リンク）
+- 月セルのライブはライブ詳細へリンク
+
+### 個別追加導線
+
+ライブ詳細（`/lives/[id]`）と `/calendar` のリスト項目に、以下 2 つのボタンを表示する。
+
+1. **Google カレンダーに追加**（テンプレート URL / ワンタップ）
+   - `src/lib/calendar/google-url.ts` が生成
+   - `ctz=Asia/Tokyo`。時刻指定は `dates=...T.../...T...`、終日は `dates=YYYYMMDD/翌日`
+   - ⚠️ テンプレート URL は **リマインド時刻を指定できない**（ユーザー既定の通知になる）
+2. **.ics で追加**（`GET /lives/[id].ics` 相当 → 実体は `/lives/[id]/ics`）
+   - VALARM 付き。`start_time` あり → 前日 + 2 時間前 / なし → 前日のみ
+   - リマインド時刻を初期設定したい場合はこちらを使う（Google 含む任意アプリに取り込み可）
+
+### スコープ
+
+- 先行抽選期間（`live_presales`）の重ね表示は #97（Fany 連携）でテーブルが用意され次第に対応予定。
+  本対応はライブ日のみで先行リリースしている。
+- VALARM 生成は `src/lib/ics/builder.ts` の `reminders?: { minutesBefore }[]` で対応。
+
+---
+
 ## 実装順序チェックリスト
 
 ここまで完了したら、以下の順で実装を進める:

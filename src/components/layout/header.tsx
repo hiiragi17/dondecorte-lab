@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/timeline", label: "タイムライン" },
   { href: "/videos", label: "動画" },
   { href: "/lives", label: "ライブ" },
+  { href: "/calendar", label: "カレンダー" },
   { href: "/radios", label: "ラジオ" },
   { href: "/articles", label: "記事" },
   { href: "/tv", label: "TV" },

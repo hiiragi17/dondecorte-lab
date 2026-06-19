@@ -57,29 +57,31 @@ export async function getUnit(id: string): Promise<UnitWithMembers | null> {
     (data as Record<string, unknown>).unit_members as UnitMemberRow[]
   );
 
-  const members: UnitMemberEntry[] = (rawMembers ?? []).flatMap((m) => {
-    if (m.comedy_group_id && m.comedy_group) {
-      return [
-        {
-          type: "comedy_group" as const,
-          id: m.comedy_group.id,
-          name: m.comedy_group.name,
-          kana_name: m.comedy_group.kana_name,
-        },
-      ];
+  const members: UnitMemberEntry[] = (rawMembers ?? []).flatMap(
+    (m): UnitMemberEntry[] => {
+      if (m.comedy_group_id && m.comedy_group) {
+        return [
+          {
+            type: "comedy_group" as const,
+            id: m.comedy_group.id,
+            name: m.comedy_group.name,
+            kana_name: m.comedy_group.kana_name,
+          },
+        ];
+      }
+      if (m.artist_id && m.artist) {
+        return [
+          {
+            type: "artist" as const,
+            id: m.artist.id,
+            name: m.artist.name,
+            kana_name: m.artist.kana_name,
+          },
+        ];
+      }
+      return [];
     }
-    if (m.artist_id && m.artist) {
-      return [
-        {
-          type: "artist" as const,
-          id: m.artist.id,
-          name: m.artist.name,
-          kana_name: m.artist.kana_name,
-        },
-      ];
-    }
-    return [];
-  });
+  );
 
   const unitBase: Unit = {
     id: (data as { id: string }).id,
