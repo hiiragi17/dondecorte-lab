@@ -3,8 +3,27 @@ import Link from "next/link";
 import type { Video } from "@/lib/types/video";
 import { formatDate } from "@/lib/utils/date";
 
+// next.config.ts の images.remotePatterns で許可しているホストのみ。
+// ここに無いホストの URL を next/image に渡すと実行時エラーになるため、
+// 許可外の thumbnail_url は youtube_video_id 由来の URL にフォールバックする。
+const YOUTUBE_THUMBNAIL_HOSTS = new Set(["img.youtube.com", "i.ytimg.com"]);
+
+function isAllowedThumbnailUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      YOUTUBE_THUMBNAIL_HOSTS.has(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function resolveThumbnailSrc(video: Video): string | null {
-  if (video.thumbnail_url) return video.thumbnail_url;
+  if (video.thumbnail_url && isAllowedThumbnailUrl(video.thumbnail_url)) {
+    return video.thumbnail_url;
+  }
   if (video.youtube_video_id) {
     return `https://img.youtube.com/vi/${video.youtube_video_id}/hqdefault.jpg`;
   }
@@ -26,7 +45,7 @@ export function VideoCard({ video }: { video: Video }) {
             src={thumbnailSrc}
             alt=""
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 768px) 50vw, 33vw"
             className="h-full w-full object-cover transition group-hover:scale-105"
           />
         ) : (

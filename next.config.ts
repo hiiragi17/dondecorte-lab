@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
         pathname: "/vi/**",
         search: "",
       },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        port: "",
+        pathname: "/vi/**",
+        search: "",
+      },
     ],
   },
 };
