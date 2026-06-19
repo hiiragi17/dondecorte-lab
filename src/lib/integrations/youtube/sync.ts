@@ -65,3 +65,58 @@ export async function syncChannelVideos(
     insertedVideoIds,
   };
 }
+
+export type ChannelSyncOutcome = {
+  channelId: string;
+} & ({ ok: true; result: SyncChannelResult } | { ok: false; error: string });
+
+export type SyncAllChannelsResult = {
+  channels: number;
+  inserted: number;
+  outcomes: ChannelSyncOutcome[];
+};
+
+// comedy_groups に登録された youtube_channel_id を全件取得する（重複・null は除外）。
+async function listSyncableChannelIds(): Promise<string[]> {
+  const { data, error } = await adminClient
+    .from("comedy_groups")
+    .select("youtube_channel_id")
+    .not("youtube_channel_id", "is", null);
+
+  if (error) {
+    throw new Error(`チャンネル一覧の取得に失敗しました: ${error.message}`);
+  }
+
+  const ids = (data ?? [])
+    .map((row) => row.youtube_channel_id)
+    .filter((id): id is string => typeof id === "string")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  return [...new Set(ids)];
+}
+
+// 登録済みチャンネルを巡回して同期する。
+// 1 チャンネルの失敗で全体を止めないよう、チャンネル単位でエラーを隔離する。
+export async function syncAllChannels(): Promise<SyncAllChannelsResult> {
+  const channelIds = await listSyncableChannelIds();
+
+  const outcomes: ChannelSyncOutcome[] = [];
+  let inserted = 0;
+
+  for (const channelId of channelIds) {
+    try {
+      const result = await syncChannelVideos(channelId);
+      inserted += result.inserted;
+      outcomes.push({ channelId, ok: true, result });
+    } catch (error) {
+      outcomes.push({
+        channelId,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return { channels: channelIds.length, inserted, outcomes };
+}

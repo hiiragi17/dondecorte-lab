@@ -337,8 +337,60 @@ Vercel の環境変数にも同じキーを登録する（`Production` / `Previe
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SITE_URL`（例: `https://dondecorte-lab.vercel.app`）
+   - `YOUTUBE_API_KEY`（YouTube 動画自動取得 / Cron で使用。Step 9 参照）
+   - `CRON_SECRET`（Cron 認証用。`openssl rand -hex 32` 等で生成。Step 11 参照）
 3. 初回デプロイ後に公開URLで表示を確認する。
 4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com` と `i.ytimg.com`（いずれも `/vi/**`）が含まれていることを確認する。
+
+---
+
+## Step 11: Cron（YouTube動画自動取得）セットアップ
+
+`/api/cron/youtube` を Vercel Cron が日次で叩き、`comedy_groups.youtube_channel_id` に登録された各チャンネルから新着動画を `videos` テーブルへ取り込む（issue #39 / #38）。
+
+> ℹ️ このルートは **Vercel Cron 専用のバックグラウンドジョブ**で、公開ページの表示には一切関与しない。失敗しても公開サイトにエラーは出ず、その日の取り込みがスキップされるだけ（1日1回実行）。
+
+### 11-1. スケジュール
+
+`vercel.json` の `crons` に設定済み。
+
+```json
+{
+  "crons": [{ "path": "/api/cron/youtube", "schedule": "0 3 * * *" }]
+}
+```
+
+- `0 3 * * *` = UTC 03:00 = **JST 12:00**。
+- Vercel 無料(Hobby)プランは日次粒度の Cron 1 本まで。
+
+### 11-2. 必要な環境変数（Vercel）
+
+| 変数 | 用途 | 未設定時の挙動 |
+| --- | --- | --- |
+| `CRON_SECRET` | Cron 認証。Vercel が `Authorization: Bearer <CRON_SECRET>` を自動付与 | ルートが**常に 401**（誰でも叩ける状態を避けるため一律拒否） |
+| `YOUTUBE_API_KEY` | YouTube Data API v3（Step 9） | 全チャンネル同期が失敗 → **500** |
+
+- `CRON_SECRET` は `openssl rand -hex 32` 等で生成し、Production（必要なら Preview）に登録する。
+- 設定変更後は再デプロイで反映。
+
+### 11-3. 前提データ
+
+- 本番 Supabase の `comedy_groups.youtube_channel_id` にチャンネルIDが入っていること（公式: `UC4y-_Xwudf7gB5sXsbipDkQ`）。`supabase/seed.sql`（#26）を流すと投入される。未投入なら巡回対象 0 件（エラーにはならず `200 / channels:0`）。
+
+### 11-4. 手動テスト
+
+デプロイ後、ローカルから手動で叩いて確認できる（`$CRON_SECRET` は Vercel に設定した値）。
+
+```bash
+curl -i -H "Authorization: Bearer $CRON_SECRET" \
+  https://dondecorte-lab.vercel.app/api/cron/youtube
+```
+
+- `200 { ok: true, channels, inserted, outcomes }` … 正常（`inserted` が新規取り込み件数）
+- `401` … `CRON_SECRET` 不一致 / 未設定
+- `500 { ok: false }` … 登録チャンネルがあるのに全件失敗（`YOUTUBE_API_KEY` 不正 / YouTube API 障害など）
+
+実行履歴とログは Vercel の **Cron Jobs / Functions ログ**で確認する。
 
 ---
 
