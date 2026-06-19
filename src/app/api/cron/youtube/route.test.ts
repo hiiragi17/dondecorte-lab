@@ -69,6 +69,55 @@ describe("GET /api/cron/youtube", () => {
     expect(syncAllChannelsMock).toHaveBeenCalledTimes(1);
   });
 
+  it("登録チャンネルがあるのに全件失敗したら 500 / ok:false を返す", async () => {
+    syncAllChannelsMock.mockResolvedValue({
+      channels: 2,
+      inserted: 0,
+      outcomes: [
+        { channelId: "UC_a", ok: false, error: "boom" },
+        { channelId: "UC_b", ok: false, error: "boom" },
+      ],
+    });
+
+    const res = await GET(buildRequest("Bearer test-secret"));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: false, channels: 2 });
+  });
+
+  it("一部失敗でも1件でも成功していれば 200 / ok:true を返す", async () => {
+    syncAllChannelsMock.mockResolvedValue({
+      channels: 2,
+      inserted: 1,
+      outcomes: [
+        { channelId: "UC_a", ok: false, error: "boom" },
+        {
+          channelId: "UC_b",
+          ok: true,
+          result: { fetched: 1, inserted: 1, skipped: 0, insertedVideoIds: ["x"] },
+        },
+      ],
+    });
+
+    const res = await GET(buildRequest("Bearer test-secret"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, channels: 2 });
+  });
+
+  it("登録チャンネルが0件なら 200 / ok:true を返す", async () => {
+    syncAllChannelsMock.mockResolvedValue({
+      channels: 0,
+      inserted: 0,
+      outcomes: [],
+    });
+
+    const res = await GET(buildRequest("Bearer test-secret"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, channels: 0 });
+  });
+
   it("同期が例外を投げたら 500 を返す", async () => {
     syncAllChannelsMock.mockRejectedValue(new Error("boom"));
     const res = await GET(buildRequest("Bearer test-secret"));
