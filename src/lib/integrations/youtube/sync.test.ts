@@ -193,6 +193,24 @@ describe("syncAllChannels", () => {
     expect(fetchChannelVideosMock).toHaveBeenCalledTimes(2);
   });
 
+  it("空白のみのチャンネルIDは除外し、前後空白はトリムする", async () => {
+    setupAllChannels({
+      channelRows: [
+        { youtube_channel_id: "   " },
+        { youtube_channel_id: " UC_a " },
+        { youtube_channel_id: "UC_a" },
+      ],
+    });
+    fetchChannelVideosMock.mockResolvedValue([buildVideo("x")]);
+
+    const result = await syncAllChannels();
+
+    expect(result.channels).toBe(1);
+    expect(result.outcomes.map((o) => o.channelId)).toEqual(["UC_a"]);
+    expect(fetchChannelVideosMock).toHaveBeenCalledTimes(1);
+    expect(fetchChannelVideosMock).toHaveBeenCalledWith("UC_a");
+  });
+
   it("1チャンネルが失敗しても他チャンネルは継続する", async () => {
     setupAllChannels({
       channelRows: [

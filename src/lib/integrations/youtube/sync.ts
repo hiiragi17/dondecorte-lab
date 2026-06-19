@@ -89,7 +89,9 @@ async function listSyncableChannelIds(): Promise<string[]> {
 
   const ids = (data ?? [])
     .map((row) => row.youtube_channel_id)
-    .filter((id): id is string => typeof id === "string" && id.length > 0);
+    .filter((id): id is string => typeof id === "string")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
 
   return [...new Set(ids)];
 }
