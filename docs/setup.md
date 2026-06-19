@@ -281,6 +281,54 @@ mkdir -p supabase/migrations
 
 ---
 
+## Step 9: YouTube Data API セットアップ
+
+YouTube 公式チャンネルから動画を自動取得する（issue #38）ための準備。
+**ブラウザでの手動作業**で、APIキーの取得まで行う。
+
+### 9-1. Google Cloud プロジェクト
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+2. プロジェクトを新規作成（既存プロジェクトの流用でも可）
+
+### 9-2. YouTube Data API v3 を有効化
+
+1. 「APIとサービス」→「ライブラリ」を開く
+2. 「YouTube Data API v3」を検索し、**有効にする**
+
+### 9-3. APIキーを発行
+
+1. 「APIとサービス」→「認証情報」→「認証情報を作成」→「APIキー」
+2. 発行されたキーをコピー
+3. キーを編集し、**APIの制限**で「YouTube Data API v3」のみに絞る（漏洩時の被害を最小化）
+4. アプリケーションの制限は、サーバサイド（Vercel）から呼ぶため「なし」または IP 制限
+
+> ⚠️ `YOUTUBE_API_KEY` は**サーバサイド専用**。ブラウザに送信されるコード（Client Components 等）には絶対に含めないこと。
+> 環境変数名に `NEXT_PUBLIC_` プレフィックスを付けないことで、Next.js がこの値をクライアントバンドルに含めずサーバ側のみに閉じる。
+
+### 9-4. 環境変数に登録
+
+`.env.local` に追記:
+
+```env
+YOUTUBE_API_KEY=AIza...
+```
+
+Vercel の環境変数にも同じキーを登録する（`Production` / `Preview`）。
+
+### 9-5. クォータの注意
+
+- 無料枠は **1日 10,000 ユニット**。
+- `playlistItems.list` は 1 リクエスト 1 ユニットと安価。`search.list` は 100 ユニットと高価なので、
+  動画一覧の取得はチャンネルのアップロード再生リスト（`playlistItems`）経由を推奨（issue #38 で実装）。
+
+### 補足
+
+- ドンデコルテ公式チャンネルID: `UC4y-_Xwudf7gB5sXsbipDkQ`
+- このStepはAPIキーの取得まで。実際の取得処理は issue #38、定期実行は #39 で実装する。
+
+---
+
 ## Googleカレンダー購読 (ICS フィード)
 
 `/lives.ics` を Google カレンダーに URL 購読すると、ドンデコルテ出演ライブが自動でカレンダーに表示される。
