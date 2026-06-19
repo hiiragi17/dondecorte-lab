@@ -1,3 +1,4 @@
+import { buildLiveCalendarDescription } from "@/lib/calendar/live-event";
 import { buildIcsCalendar, type IcsEvent } from "@/lib/ics/builder";
 import { normalizeStartTimeForIcs } from "@/lib/ics/start-time";
 import { listLivesForCalendar } from "@/lib/queries/lives";
@@ -7,20 +8,6 @@ export const dynamic = "force-dynamic";
 
 const PRODID = "-//dondecorte-lab//Lives//JA";
 const CALENDAR_NAME = "ドンデコルテ出演ライブ";
-
-function buildDescription(args: {
-  description: string | null;
-  casts: { name: string }[];
-  detailUrl: string;
-}): string | null {
-  const parts: string[] = [];
-  if (args.description) parts.push(args.description);
-  if (args.casts.length > 0) {
-    parts.push(`出演: ${args.casts.map((c) => c.name).join(", ")}`);
-  }
-  parts.push(args.detailUrl);
-  return parts.length > 0 ? parts.join("\n") : null;
-}
 
 export async function GET() {
   const lives = await listLivesForCalendar();
@@ -35,7 +22,7 @@ export async function GET() {
       startTime: normalizeStartTimeForIcs(live.start_time),
       summary: live.title,
       location: live.venue,
-      description: buildDescription({
+      description: buildLiveCalendarDescription({
         description: live.description,
         casts: live.casts,
         detailUrl: `${siteUrl}/lives/${live.id}`,

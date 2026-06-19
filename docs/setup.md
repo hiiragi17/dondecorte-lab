@@ -281,7 +281,55 @@ mkdir -p supabase/migrations
 
 ---
 
-## Step 9: Vercel デプロイ
+## Step 9: YouTube Data API セットアップ
+
+YouTube 公式チャンネルから動画を自動取得する（issue #38）ための準備。
+**ブラウザでの手動作業**で、APIキーの取得まで行う。
+
+### 9-1. Google Cloud プロジェクト
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+2. プロジェクトを新規作成（既存プロジェクトの流用でも可）
+
+### 9-2. YouTube Data API v3 を有効化
+
+1. 「APIとサービス」→「ライブラリ」を開く
+2. 「YouTube Data API v3」を検索し、**有効にする**
+
+### 9-3. APIキーを発行
+
+1. 「APIとサービス」→「認証情報」→「認証情報を作成」→「APIキー」
+2. 発行されたキーをコピー
+3. キーを編集し、**APIの制限**で「YouTube Data API v3」のみに絞る（漏洩時の被害を最小化）
+4. アプリケーションの制限は、サーバサイド（Vercel）から呼ぶため「なし」または IP 制限
+
+> ⚠️ `YOUTUBE_API_KEY` は**サーバサイド専用**。ブラウザに送信されるコード（Client Components 等）には絶対に含めないこと。
+> 環境変数名に `NEXT_PUBLIC_` プレフィックスを付けないことで、Next.js がこの値をクライアントバンドルに含めずサーバ側のみに閉じる。
+
+### 9-4. 環境変数に登録
+
+`.env.local` に追記:
+
+```env
+YOUTUBE_API_KEY=AIza...
+```
+
+Vercel の環境変数にも同じキーを登録する（`Production` / `Preview`）。
+
+### 9-5. クォータの注意
+
+- 無料枠は **1日 10,000 ユニット**。
+- `playlistItems.list` は 1 リクエスト 1 ユニットと安価。`search.list` は 100 ユニットと高価なので、
+  動画一覧の取得はチャンネルのアップロード再生リスト（`playlistItems`）経由を推奨（issue #38 で実装）。
+
+### 補足
+
+- ドンデコルテ公式チャンネルID: `UC4y-_Xwudf7gB5sXsbipDkQ`
+- このStepはAPIキーの取得まで。実際の取得処理は issue #38、定期実行は #39 で実装する。
+
+---
+
+## Step 10: Vercel デプロイ
 
 1. Vercel で `dondecorte-lab` リポジトリを Import する（GitHub 連携）。
 2. 環境変数に次を設定する（Production / Preview）。
@@ -290,7 +338,7 @@ mkdir -p supabase/migrations
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SITE_URL`（例: `https://dondecorte-lab.vercel.app`）
 3. 初回デプロイ後に公開URLで表示を確認する。
-4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com`（`/vi/**`）が含まれていることを確認する。
+4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com` と `i.ytimg.com`（いずれも `/vi/**`）が含まれていることを確認する。
 
 ---
 
@@ -316,6 +364,35 @@ mkdir -p supabase/migrations
 - `event_date` が設定されたライブのみ対象
 - `start_time` あり → 2 時間予定 / `start_time` なし → 終日予定
 - 即時反映が必要になったら issue #43（OAuth で直接書き込み）を検討
+
+## カレンダー view + イベント個別追加 (#114)
+
+`/lives.ics` の「全件まとめて URL 購読」に対し、`/calendar` では **見たいライブを 1 件ずつ**
+Google カレンダーへ追加できる。
+
+### カレンダー view
+
+- `/calendar` … 月表示（日曜始まり）+「これからのライブ」リスト
+- `?ym=YYYY-MM` で表示月を切り替え（前月 / 翌月リンク）
+- 月セルのライブはライブ詳細へリンク
+
+### 個別追加導線
+
+ライブ詳細（`/lives/[id]`）と `/calendar` のリスト項目に、以下 2 つのボタンを表示する。
+
+1. **Google カレンダーに追加**（テンプレート URL / ワンタップ）
+   - `src/lib/calendar/google-url.ts` が生成
+   - `ctz=Asia/Tokyo`。時刻指定は `dates=...T.../...T...`、終日は `dates=YYYYMMDD/翌日`
+   - ⚠️ テンプレート URL は **リマインド時刻を指定できない**（ユーザー既定の通知になる）
+2. **.ics で追加**（`GET /lives/[id].ics` 相当 → 実体は `/lives/[id]/ics`）
+   - VALARM 付き。`start_time` あり → 前日 + 2 時間前 / なし → 前日のみ
+   - リマインド時刻を初期設定したい場合はこちらを使う（Google 含む任意アプリに取り込み可）
+
+### スコープ
+
+- 先行抽選期間（`live_presales`）の重ね表示は #97（Fany 連携）でテーブルが用意され次第に対応予定。
+  本対応はライブ日のみで先行リリースしている。
+- VALARM 生成は `src/lib/ics/builder.ts` の `reminders?: { minutesBefore }[]` で対応。
 
 ---
 
