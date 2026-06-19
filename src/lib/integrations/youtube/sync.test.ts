@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase/admin", () => ({ adminClient: adminClientMock }));
 const fetchChannelVideosMock = vi.hoisted(() => vi.fn());
 vi.mock("./client", () => ({ fetchChannelVideos: fetchChannelVideosMock }));
 
-import { syncChannelVideos } from "./sync";
+import { syncChannelVideos, syncAllChannels } from "./sync";
 
 function buildVideo(id: string): YoutubeVideo {
   return {
@@ -135,6 +135,92 @@ describe("syncChannelVideos", () => {
 
     await expect(syncChannelVideos("UC_abc")).rejects.toThrow(
       "動画の保存に失敗しました: upsert boom"
+    );
+  });
+});
+
+// comedy_groups の select / videos の upsert を table 名で分岐してモックする
+function setupAllChannels(options: {
+  channelRows?: Array<{ youtube_channel_id: string | null }>;
+  channelsError?: { message: string } | null;
+}) {
+  const notMock = vi.fn().mockResolvedValue({
+    data: options.channelRows ?? [],
+    error: options.channelsError ?? null,
+  });
+  const selectMock = vi.fn(() => ({ not: notMock }));
+
+  const videoSelectMock = vi
+    .fn()
+    .mockResolvedValue({ data: [{ youtube_video_id: "x" }], error: null });
+  const upsertMock = vi.fn(() => ({ select: videoSelectMock }));
+
+  adminClientMock.from.mockImplementation((table: string) => {
+    if (table === "comedy_groups") return { select: selectMock };
+    return { upsert: upsertMock };
+  });
+
+  return { selectMock, notMock, upsertMock };
+}
+
+describe("syncAllChannels", () => {
+  it("登録チャンネルが無ければ何もしない", async () => {
+    setupAllChannels({ channelRows: [] });
+
+    const result = await syncAllChannels();
+
+    expect(result).toEqual({ channels: 0, inserted: 0, outcomes: [] });
+    expect(fetchChannelVideosMock).not.toHaveBeenCalled();
+  });
+
+  it("重複・null を除外して各チャンネルを同期する", async () => {
+    setupAllChannels({
+      channelRows: [
+        { youtube_channel_id: "UC_a" },
+        { youtube_channel_id: "UC_a" },
+        { youtube_channel_id: null },
+        { youtube_channel_id: "UC_b" },
+      ],
+    });
+    fetchChannelVideosMock.mockResolvedValue([buildVideo("x")]);
+
+    const result = await syncAllChannels();
+
+    expect(result.channels).toBe(2);
+    expect(result.inserted).toBe(2);
+    expect(result.outcomes.map((o) => o.channelId)).toEqual(["UC_a", "UC_b"]);
+    expect(result.outcomes.every((o) => o.ok)).toBe(true);
+    expect(fetchChannelVideosMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("1チャンネルが失敗しても他チャンネルは継続する", async () => {
+    setupAllChannels({
+      channelRows: [
+        { youtube_channel_id: "UC_a" },
+        { youtube_channel_id: "UC_b" },
+      ],
+    });
+    fetchChannelVideosMock
+      .mockRejectedValueOnce(new Error("UC_a fail"))
+      .mockResolvedValueOnce([buildVideo("x")]);
+
+    const result = await syncAllChannels();
+
+    expect(result.channels).toBe(2);
+    expect(result.inserted).toBe(1);
+    expect(result.outcomes[0]).toMatchObject({
+      channelId: "UC_a",
+      ok: false,
+      error: "UC_a fail",
+    });
+    expect(result.outcomes[1]).toMatchObject({ channelId: "UC_b", ok: true });
+  });
+
+  it("チャンネル一覧の取得に失敗したら例外を投げる", async () => {
+    setupAllChannels({ channelsError: { message: "select boom" } });
+
+    await expect(syncAllChannels()).rejects.toThrow(
+      "チャンネル一覧の取得に失敗しました: select boom"
     );
   });
 });
