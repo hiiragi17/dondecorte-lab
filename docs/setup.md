@@ -329,6 +329,19 @@ Vercel の環境変数にも同じキーを登録する（`Production` / `Previe
 
 ---
 
+## Step 10: Vercel デプロイ
+
+1. Vercel で `dondecorte-lab` リポジトリを Import する（GitHub 連携）。
+2. 環境変数に次を設定する（Production / Preview）。
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL`（例: `https://dondecorte-lab.vercel.app`）
+3. 初回デプロイ後に公開URLで表示を確認する。
+4. YouTube サムネイル最適化のため `next.config.ts` の `images.remotePatterns` に `img.youtube.com` と `i.ytimg.com`（いずれも `/vi/**`）が含まれていることを確認する。
+
+---
+
 ## Googleカレンダー購読 (ICS フィード)
 
 `/lives.ics` を Google カレンダーに URL 購読すると、ドンデコルテ出演ライブが自動でカレンダーに表示される。
@@ -397,6 +410,7 @@ Google カレンダーへ追加できる。
 [x] Step 6: Tailwind カスタムカラー
 [x] Step 7: 型定義
 [x] Step 8: SQLマイグレーション保存
+[ ] Step 9: Vercel デプロイ
 --- ここから Claude Code で実装 ---
 [ ] ログインページ（/auth/login）
 [ ] 管理画面レイアウト（サイドバー）
@@ -408,7 +422,6 @@ Google カレンダーへ追加できる。
 [ ] 残りの管理画面 CRUD
 [ ] 公開側ページ
 [ ] メモ機能
-[ ] デプロイ
 ```
 
 ---

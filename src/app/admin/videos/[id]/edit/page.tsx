@@ -28,6 +28,10 @@ export default async function EditVideoPage({ params }: Props) {
   }
 
   const action = updateVideo.bind(null, id);
+  const formKey = `${video.id}:${video.casts
+    .map((cast) => `${cast.type}:${cast.id}`)
+    .sort()
+    .join(",")}`;
 
   return (
     <div className="space-y-6">
@@ -45,6 +49,7 @@ export default async function EditVideoPage({ params }: Props) {
 
       <div className="rounded-lg border border-brand-border-light bg-brand-card-light p-4 sm:p-6">
         <VideoForm
+          key={formKey}
           action={action}
           artists={artists}
           combos={combos}
