@@ -39,15 +39,74 @@ insert into comedy_groups (
     '2026年2月にドンデコルテとツーマンライブ「教祖様ぁぁあ！！」を大宮ラクーンよしもと劇場にて開催。',
     null,
     null, null, null, null
+  ),
+  -- 漫才師ユニット「男坂」共演コンビ
+  (
+    '22222222-2222-4222-8222-000000000004',
+    '素敵じゃないか',
+    'すてきじゃないか',
+    'combo',
+    '吉本興業所属の漫才コンビ。ABCラジオ「がっちゃんこ」月曜や漫才師ユニット「男坂」でドンデコルテと共演。',
+    null,
+    null, null, null, null
+  ),
+  (
+    '22222222-2222-4222-8222-000000000005',
+    'ミカボ',
+    'みかぼ',
+    'combo',
+    '吉本興業所属の漫才コンビ。漫才師ユニット「男坂」でドンデコルテと共演。',
+    null,
+    null, null, null, null
+  ),
+  (
+    '22222222-2222-4222-8222-000000000006',
+    'おふろ',
+    'おふろ',
+    'combo',
+    '吉本興業所属の漫才コンビ。漫才師ユニット「男坂」でドンデコルテと共演。',
+    null,
+    null, null, null, null
+  ),
+  -- 漫才ユニットライブ「カルテット」共演コンビ
+  (
+    '22222222-2222-4222-8222-000000000007',
+    'ビスケットブラザーズ',
+    'びすけっとぶらざーず',
+    'combo',
+    '吉本興業所属の漫才コンビ。漫才ユニットライブ「カルテット」でドンデコルテと共演。',
+    null,
+    null, null, null, null
+  ),
+  (
+    '22222222-2222-4222-8222-000000000008',
+    '滝音',
+    'たきおん',
+    'combo',
+    '吉本興業所属の漫才コンビ。漫才ユニットライブ「カルテット」でドンデコルテと共演。',
+    null,
+    null, null, null, null
+  ),
+  (
+    '22222222-2222-4222-8222-000000000009',
+    '9番街レトロ',
+    'きゅうばんがいれとろ',
+    'combo',
+    '吉本興業所属の漫才コンビ。漫才ユニットライブ「カルテット」でドンデコルテと共演。',
+    null,
+    null, null, null, null
   )
 on conflict (id) do update set
   name = excluded.name,
   kana_name = excluded.kana_name,
   group_type = excluded.group_type,
   description = excluded.description,
-  formed_year = excluded.formed_year,
-  theme_color = excluded.theme_color,
-  youtube_channel_url = excluded.youtube_channel_url,
-  youtube_channel_id = excluded.youtube_channel_id,
-  standfm_url = excluded.standfm_url,
+  -- 拡充カラムは coalesce で既存の非NULL値を温存する。
+  -- 共演コンビは NULL で seed しているため、管理画面で後から入れた値を
+  -- 再seedで上書き（NULL化）しないようにする（seedに値があればそちらを優先）。
+  formed_year = coalesce(excluded.formed_year, comedy_groups.formed_year),
+  theme_color = coalesce(excluded.theme_color, comedy_groups.theme_color),
+  youtube_channel_url = coalesce(excluded.youtube_channel_url, comedy_groups.youtube_channel_url),
+  youtube_channel_id = coalesce(excluded.youtube_channel_id, comedy_groups.youtube_channel_id),
+  standfm_url = coalesce(excluded.standfm_url, comedy_groups.standfm_url),
   updated_at = now();

@@ -19,5 +19,9 @@ begin;
 \ir seeds/05_videos.sql
 \ir seeds/06_lives.sql
 \ir seeds/07_radios.sql
+\ir seeds/08_articles.sql
+\ir seeds/09_tv_shows.sql
+\ir seeds/10_topics.sql
+\ir seeds/11_units.sql
 
 commit;
