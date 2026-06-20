@@ -604,6 +604,33 @@ create policy memos_update on memos for update to authenticated using (true) wit
 create policy memos_delete on memos for delete to authenticated using (true);
 ```
 
+### GRANT（2026-05-30 以降の Supabase 新挙動対応）
+
+Supabase は 2026-05-30 以降の新規プロジェクトで `public` スキーマのテーブルをデフォルトで Data API に公開しなくなる（既存プロジェクトも 2026-10-30 以降同じ挙動）。RLS とは別に **SQL レベルの GRANT が必須** になるため、新しいテーブル / RPC 関数を追加する migration では必ず明示的に書く。
+
+```sql
+-- 公開読み取り対象テーブルの典型パターン
+grant select on public.<table> to anon;
+grant select, insert, update, delete on public.<table> to authenticated;
+grant select, insert, update, delete on public.<table> to service_role;
+
+-- 機微情報を含むテーブル（push_subscriptions 等）は anon を最小限に
+grant insert on public.push_subscriptions to anon;
+grant select, insert, update, delete on public.push_subscriptions to service_role;
+
+-- RPC 関数
+grant execute on function public.<func>(<args>) to authenticated;
+
+-- serial / bigserial / generated ... as identity を使う場合は backing sequence にも grant が必要
+-- （008 で sequence のデフォルト権限も revoke しているため）。本プロジェクトは uuid 主キーのみで
+-- 現状は不要だが、採用した際は忘れずに：
+-- grant usage, select on sequence public.<table>_<col>_seq to anon, authenticated, service_role;
+```
+
+既存テーブルへの一括 GRANT は `supabase/migrations/008_explicit_grants.sql` に集約済み。同 migration では将来のテーブルでデフォルト GRANT に依存しないよう `alter default privileges ... revoke ...` も実行している。
+
+参考: https://github.com/orgs/supabase/discussions/45329
+
 ---
 
 ## よく使うクエリ例
