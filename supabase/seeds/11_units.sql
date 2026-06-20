@@ -1,0 +1,25 @@
+-- ============================================
+-- 11. units（ユニット）— プレースホルダ
+-- ============================================
+-- units は「複数コンビ / 個人の集合」を表すテーブル。
+--
+-- 現時点（調査時）でドンデコルテが恒常的に参加している“名前付きユニット”は
+-- 確認できなかったため、事実の捏造を避けて意図的に空にしている。
+--   - 「news38」は前身のコンビ名（→ ドンデコルテへ改名）であり、ユニットではない
+--     （トピック 10_topics.sql に記録済み）
+--   - たくろう / カゲヤマ とのツーマンライブは共演であって登録ユニットではない
+--     （ライブ 06_lives.sql に casts で記録済み）
+--
+-- 実在のユニットが確認できたら、以下の雛形に従って追記する:
+--
+-- insert into units (id, name, description) values
+--   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000001', '<ユニット名>', '<説明>')
+-- on conflict (id) do update set
+--   name = excluded.name,
+--   description = excluded.description,
+--   updated_at = now();
+--
+-- -- 構成メンバー（コンビ単位 or 個人単位のどちらか一方）
+-- insert into unit_members (unit_id, comedy_group_id) values
+--   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000001', '22222222-2222-4222-8222-000000000001')
+-- on conflict (unit_id, comedy_group_id) do nothing;
