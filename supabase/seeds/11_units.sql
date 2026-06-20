@@ -23,8 +23,10 @@ on conflict (id) do update set
   updated_at = now();
 
 -- 構成メンバー（全てコンビ単位で紐付け）
--- unit_members は unique nulls not distinct (unit_id, comedy_group_id) のため
--- ON CONFLICT で再実行安全。
+-- unit_members は migration 003 で部分ユニークインデックス
+-- （unit_id, comedy_group_id）where comedy_group_id is not null に変更済み。
+-- 部分インデックスは ON CONFLICT の列推論にマッチしないため、bare な
+-- ON CONFLICT DO NOTHING を使う（casts 等の他 seed と同じ作法）。
 insert into unit_members (unit_id, comedy_group_id) values
   -- 男坂
   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000001', '22222222-2222-4222-8222-000000000001'),  -- ドンデコルテ
@@ -36,4 +38,4 @@ insert into unit_members (unit_id, comedy_group_id) values
   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000002', '22222222-2222-4222-8222-000000000008'),  -- 滝音
   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000002', '22222222-2222-4222-8222-000000000001'),  -- ドンデコルテ
   ('bbbbbbbb-bbbb-4bbb-8bbb-000000000002', '22222222-2222-4222-8222-000000000009')   -- 9番街レトロ
-on conflict (unit_id, comedy_group_id) do nothing;
+on conflict do nothing;
