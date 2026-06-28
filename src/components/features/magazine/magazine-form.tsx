@@ -70,11 +70,12 @@ export function MagazineForm({
     defaultValues: toFormValues(initialValues),
   });
 
+  const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
+
   useEffect(() => {
     reset(toFormValues(initialValues));
-  }, [initialValues, reset]);
-
-  const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
+    setCasts(initialCasts ?? []);
+  }, [initialCasts, initialValues, reset]);
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();

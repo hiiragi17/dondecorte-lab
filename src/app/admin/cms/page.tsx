@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ja-JP");
+  // aired_on は日付のみのため、ローカルタイムゾーンで日付がずれないよう UTC 固定で整形する
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("ja-JP", {
+    timeZone: "UTC",
+  });
 }
 
 export default async function AdminCmsPage() {

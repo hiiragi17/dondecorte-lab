@@ -11,7 +11,7 @@
 - react-hook-form
 - Vercel
 
-## DB構成（19テーブル）
+## DB構成（21テーブル）
 
 ### 人・グループ系
 - `artists` — 芸人個人（SNSカラム付き）
