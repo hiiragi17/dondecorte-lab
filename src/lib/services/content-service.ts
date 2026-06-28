@@ -6,7 +6,15 @@ type ContentMeta = {
   /** ユーザー向けメッセージで使う表示名（例: 動画） */
   label: string;
   /** delete 対象のテーブル名 */
-  table: "videos" | "lives" | "radios" | "articles" | "tv_shows" | "topics";
+  table:
+    | "videos"
+    | "lives"
+    | "radios"
+    | "articles"
+    | "tv_shows"
+    | "topics"
+    | "cms"
+    | "magazines";
 };
 
 const CONTENT_META: Record<ContentType, ContentMeta> = {
@@ -16,6 +24,8 @@ const CONTENT_META: Record<ContentType, ContentMeta> = {
   article: { label: "記事", table: "articles" },
   tv_show: { label: "TV番組", table: "tv_shows" },
   topic: { label: "トピック", table: "topics" },
+  cm: { label: "CM", table: "cms" },
+  magazine: { label: "雑誌", table: "magazines" },
 };
 
 export type SaveContentResult = { error?: string };

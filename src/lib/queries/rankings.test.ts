@@ -22,6 +22,8 @@ function castsByContentType(
     article: [],
     tv_show: [],
     topic: [],
+    cm: [],
+    magazine: [],
     ...partial,
   };
 }

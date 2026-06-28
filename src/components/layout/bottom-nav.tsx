@@ -24,6 +24,8 @@ const MORE_ITEMS: NavItem[] = [
   { href: "/radios", label: "ラジオ" },
   { href: "/articles", label: "記事" },
   { href: "/tv", label: "TV" },
+  { href: "/cms", label: "CM" },
+  { href: "/magazines", label: "雑誌" },
   { href: "/topics", label: "トピック" },
   { href: "/co-stars", label: "共演分析" },
   { href: "/rankings", label: "ランキング" },

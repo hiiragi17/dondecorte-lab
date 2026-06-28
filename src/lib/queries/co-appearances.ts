@@ -39,6 +39,8 @@ function emptyBreakdown(): CoAppearanceBreakdown {
     article: 0,
     tv_show: 0,
     topic: 0,
+    cm: 0,
+    magazine: 0,
   };
 }
 
@@ -72,6 +74,8 @@ function accumulate(
         article: new Set<string>(),
         tv_show: new Set<string>(),
         topic: new Set<string>(),
+        cm: new Set<string>(),
+        magazine: new Set<string>(),
       },
     };
     acc.set(key, entry);

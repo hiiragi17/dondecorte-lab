@@ -184,6 +184,8 @@ describe("getCoAppearanceRanking", () => {
           article: 0,
           tv_show: 0,
           topic: 0,
+          cm: 0,
+          magazine: 0,
         },
       },
     ]);

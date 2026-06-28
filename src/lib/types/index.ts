@@ -13,6 +13,8 @@ export const CONTENT_TYPES = [
   "article",
   "tv_show",
   "topic",
+  "cm",
+  "magazine",
 ] as const;
 
 export type ContentType = (typeof CONTENT_TYPES)[number];

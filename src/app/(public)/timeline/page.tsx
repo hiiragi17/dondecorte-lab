@@ -27,6 +27,8 @@ const CONTENT_TYPE_PATH: Record<TimelineItem["type"], string> = {
   article: "articles",
   tv_show: "tv",
   topic: "topics",
+  cm: "cms",
+  magazine: "magazines",
 };
 
 type Group = {

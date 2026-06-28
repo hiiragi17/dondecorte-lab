@@ -15,6 +15,8 @@ const CONTENT_TYPES: ContentType[] = [
   "article",
   "tv_show",
   "topic",
+  "cm",
+  "magazine",
 ];
 
 const CONTENT_PATHS: Record<ContentType, { public: string; admin: string }> = {
@@ -24,6 +26,8 @@ const CONTENT_PATHS: Record<ContentType, { public: string; admin: string }> = {
   article: { public: "/articles", admin: "/admin/articles" },
   tv_show: { public: "/tv", admin: "/admin/tv" },
   topic: { public: "/topics", admin: "/admin/topics" },
+  cm: { public: "/cms", admin: "/admin/cms" },
+  magazine: { public: "/magazines", admin: "/admin/magazines" },
 };
 
 const MEMO_MAX_LENGTH = 2000;

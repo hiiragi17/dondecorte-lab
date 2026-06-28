@@ -74,7 +74,8 @@ type RecentRow = {
 export async function getRecentContent(): Promise<RecentContentItem[]> {
   const supabase = await createClient();
 
-  const [videos, lives, radios, articles, tvShows, topics] = await Promise.all([
+  const [videos, lives, radios, articles, tvShows, topics, cms, magazines] =
+    await Promise.all([
     supabase
       .from("videos")
       .select("id, title, created_at, published_at")
@@ -105,9 +106,28 @@ export async function getRecentContent(): Promise<RecentContentItem[]> {
       .select("id, title, created_at, topic_date")
       .order("created_at", { ascending: false })
       .limit(RECENT_PER_TYPE_LIMIT),
+    supabase
+      .from("cms")
+      .select("id, title, created_at, aired_on")
+      .order("created_at", { ascending: false })
+      .limit(RECENT_PER_TYPE_LIMIT),
+    supabase
+      .from("magazines")
+      .select("id, title, created_at, published_on")
+      .order("created_at", { ascending: false })
+      .limit(RECENT_PER_TYPE_LIMIT),
   ]);
 
-  const errors = [videos, lives, radios, articles, tvShows, topics]
+  const errors = [
+    videos,
+    lives,
+    radios,
+    articles,
+    tvShows,
+    topics,
+    cms,
+    magazines,
+  ]
     .map((r) => r.error)
     .filter((e): e is NonNullable<typeof e> => e !== null);
   if (errors.length > 0) {
@@ -171,6 +191,24 @@ export async function getRecentContent(): Promise<RecentContentItem[]> {
         date: t.topic_date,
       })
     ),
+    ...((cms.data ?? []) as (RecentRow & { aired_on: string | null })[]).map(
+      (c) => ({
+        type: "cm" as const,
+        id: c.id,
+        title: c.title,
+        createdAt: c.created_at,
+        date: c.aired_on,
+      })
+    ),
+    ...((magazines.data ?? []) as (RecentRow & {
+      published_on: string | null;
+    })[]).map((m) => ({
+      type: "magazine" as const,
+      id: m.id,
+      title: m.title,
+      createdAt: m.created_at,
+      date: m.published_on,
+    })),
   ];
 
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

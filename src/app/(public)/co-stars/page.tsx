@@ -23,6 +23,8 @@ const CONTENT_TYPE_ORDER: ContentType[] = [
   "article",
   "tv_show",
   "topic",
+  "cm",
+  "magazine",
 ];
 
 const PERFORMER_PATH: Record<CastType, string> = {
