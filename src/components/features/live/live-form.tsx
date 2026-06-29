@@ -8,7 +8,13 @@ import type { ArtistSummary } from "@/lib/queries/artists";
 import type { ComboSummary } from "@/lib/queries/combos";
 import type { UnitSummary } from "@/lib/queries/units";
 import type { CastEntry } from "@/lib/types";
-import type { LiveInput } from "@/lib/types/live";
+import {
+  LIVE_SCHEDULE_PHASE_LABEL,
+  LIVE_SCHEDULE_PHASES,
+  type LiveInput,
+  type LiveSchedule,
+  type LiveSchedulePhase,
+} from "@/lib/types/live";
 
 type LiveFormAction = (
   prev: LiveFormState,
@@ -25,6 +31,15 @@ type LiveFormValues = {
   is_notified: boolean;
 };
 
+type ScheduleRow = {
+  phase_type: LiveSchedulePhase;
+  label: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  url: string;
+};
+
 type Props = {
   action: LiveFormAction;
   artists: ArtistSummary[];
@@ -32,6 +47,7 @@ type Props = {
   units: UnitSummary[];
   initialValues?: Partial<LiveInput>;
   initialCasts?: CastEntry[];
+  initialSchedules?: LiveSchedule[];
   submitLabel: string;
 };
 
@@ -47,6 +63,31 @@ function toFormValues(initial?: Partial<LiveInput>): LiveFormValues {
   };
 }
 
+function toScheduleRows(schedules?: LiveSchedule[]): ScheduleRow[] {
+  return (schedules ?? []).map((s) => ({
+    phase_type: s.phase_type,
+    label: s.label ?? "",
+    start_date: s.start_date,
+    end_date: s.end_date ?? "",
+    start_time: s.start_time ? s.start_time.slice(11, 16) : "",
+    url: s.url ?? "",
+  }));
+}
+
+function emptyScheduleRow(): ScheduleRow {
+  return {
+    phase_type: "lottery",
+    label: "",
+    start_date: "",
+    end_date: "",
+    start_time: "",
+    url: "",
+  };
+}
+
+const fieldClass =
+  "mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky";
+
 export function LiveForm({
   action,
   artists,
@@ -54,6 +95,7 @@ export function LiveForm({
   units,
   initialValues,
   initialCasts,
+  initialSchedules,
   submitLabel,
 }: Props) {
   const [state, formAction] = useActionState<LiveFormState, FormData>(
@@ -71,6 +113,19 @@ export function LiveForm({
   });
 
   const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
+  const [schedules, setSchedules] = useState<ScheduleRow[]>(
+    toScheduleRows(initialSchedules)
+  );
+
+  function updateSchedule(index: number, patch: Partial<ScheduleRow>) {
+    setSchedules((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, ...patch } : row))
+    );
+  }
+
+  function removeSchedule(index: number) {
+    setSchedules((rows) => rows.filter((_, i) => i !== index));
+  }
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();
@@ -86,6 +141,16 @@ export function LiveForm({
       formData.append("cast_type", cast.type);
       formData.append("cast_id", cast.id);
       formData.append("cast_name", cast.name);
+    }
+
+    for (const row of schedules) {
+      if (!row.start_date) continue;
+      formData.append("schedule_phase", row.phase_type);
+      formData.append("schedule_label", row.label);
+      formData.append("schedule_start", row.start_date);
+      formData.append("schedule_end", row.end_date);
+      formData.append("schedule_time", row.start_time);
+      formData.append("schedule_url", row.url);
     }
 
     startTransition(() => {
@@ -114,7 +179,7 @@ export function LiveForm({
           id="title"
           type="text"
           {...register("title", { required: "タイトルを入力してください", maxLength: { value: 200, message: "200文字以内で入力してください" } })}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={fieldClass}
         />
         {(clientErrors.title?.message || fieldErrors?.title) && (
           <p className="mt-1 text-xs text-brand-gold" role="alert">
@@ -134,7 +199,7 @@ export function LiveForm({
           id="event_date"
           type="date"
           {...register("event_date")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={fieldClass}
         />
         {fieldErrors?.event_date && (
           <p className="mt-1 text-xs text-brand-gold" role="alert">
@@ -154,7 +219,7 @@ export function LiveForm({
           id="start_time"
           type="time"
           {...register("start_time")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={fieldClass}
         />
       </div>
 
@@ -169,7 +234,7 @@ export function LiveForm({
           id="venue"
           type="text"
           {...register("venue")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={fieldClass}
         />
       </div>
 
@@ -185,7 +250,7 @@ export function LiveForm({
           type="url"
           {...register("url")}
           placeholder="https://..."
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark placeholder-brand-brown-light focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={`${fieldClass} placeholder-brand-brown-light`}
         />
       </div>
 
@@ -200,7 +265,7 @@ export function LiveForm({
           id="description"
           rows={4}
           {...register("description")}
-          className="mt-1 block w-full rounded-md border border-brand-border-light bg-brand-card-light px-3 py-2 text-sm text-brand-brown-dark focus:border-brand-sky focus:outline-none focus:ring-1 focus:ring-brand-sky"
+          className={fieldClass}
         />
       </div>
 
@@ -218,6 +283,137 @@ export function LiveForm({
           通知済み
         </label>
       </div>
+
+      <fieldset className="rounded-lg border border-brand-border-light p-4">
+        <legend className="px-1 text-sm font-medium text-brand-brown-dark">
+          チケットスケジュール（抽選・販売期間）
+        </legend>
+        <p className="mb-3 text-xs text-brand-brown-light">
+          抽選期間・販売期間を登録するとカレンダーに帯で表示され、各期間を個別に
+          Google カレンダーへ追加できます。当日はこの上の「開催日」を使います。
+        </p>
+        {fieldErrors?.schedules && (
+          <p className="mb-2 text-xs text-brand-gold" role="alert">
+            {fieldErrors.schedules}
+          </p>
+        )}
+
+        <div className="space-y-4">
+          {schedules.map((row, index) => (
+            <div
+              key={index}
+              className="rounded-md border border-brand-border-light bg-brand-bg-light/40 p-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    種別
+                  </label>
+                  <select
+                    value={row.phase_type}
+                    onChange={(e) =>
+                      updateSchedule(index, {
+                        phase_type: e.target.value as LiveSchedulePhase,
+                      })
+                    }
+                    className={fieldClass}
+                  >
+                    {LIVE_SCHEDULE_PHASES.map((phase) => (
+                      <option key={phase} value={phase}>
+                        {LIVE_SCHEDULE_PHASE_LABEL[phase]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    ラベル（任意）
+                  </label>
+                  <input
+                    type="text"
+                    value={row.label}
+                    onChange={(e) =>
+                      updateSchedule(index, { label: e.target.value })
+                    }
+                    placeholder="一次抽選 / 先行販売 など"
+                    className={`${fieldClass} placeholder-brand-brown-light`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    開始日 <span className="text-brand-gold">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={row.start_date}
+                    onChange={(e) =>
+                      updateSchedule(index, { start_date: e.target.value })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    終了日（任意）
+                  </label>
+                  <input
+                    type="date"
+                    value={row.end_date}
+                    onChange={(e) =>
+                      updateSchedule(index, { end_date: e.target.value })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    締切時刻（任意）
+                  </label>
+                  <input
+                    type="time"
+                    value={row.start_time}
+                    onChange={(e) =>
+                      updateSchedule(index, { start_time: e.target.value })
+                    }
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-brand-brown-dark">
+                    URL（申込・購入）
+                  </label>
+                  <input
+                    type="url"
+                    value={row.url}
+                    onChange={(e) =>
+                      updateSchedule(index, { url: e.target.value })
+                    }
+                    placeholder="https://..."
+                    className={`${fieldClass} placeholder-brand-brown-light`}
+                  />
+                </div>
+              </div>
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => removeSchedule(index)}
+                  className="text-xs text-brand-gold transition hover:underline"
+                >
+                  この期間を削除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSchedules((rows) => [...rows, emptyScheduleRow()])}
+          className="mt-3 rounded-md border border-brand-border-light px-3 py-1.5 text-xs font-medium text-brand-sky transition hover:border-brand-sky"
+        >
+          ＋ 期間を追加
+        </button>
+      </fieldset>
 
       <div>
         <p className="mb-2 block text-sm font-medium text-brand-brown-dark">

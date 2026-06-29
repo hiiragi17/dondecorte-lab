@@ -149,6 +149,19 @@ describe("buildIcsCalendar", () => {
     expect(ics).not.toContain("TZID=");
   });
 
+  it("endDate 付き終日イベント: DTEND は終了日の翌日 (排他的) になる", () => {
+    const event: IcsEvent = {
+      uid: "period@example.com",
+      date: "2026-06-01",
+      startTime: null,
+      endDate: "2026-06-05",
+      summary: "抽選期間",
+    };
+    const ics = buildIcsCalendar([event], baseOptions);
+    expect(ics).toContain("DTSTART;VALUE=DATE:20260601");
+    expect(ics).toContain("DTEND;VALUE=DATE:20260606");
+  });
+
   it("durationMinutes を指定すると DTEND が変わる", () => {
     const event: IcsEvent = {
       uid: "u",

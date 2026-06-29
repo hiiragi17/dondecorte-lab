@@ -28,7 +28,7 @@ const CONTENT_META: Record<ContentType, ContentMeta> = {
   magazine: { label: "雑誌", table: "magazines" },
 };
 
-export type SaveContentResult = { error?: string };
+export type SaveContentResult = { id?: string; error?: string };
 
 async function requireUser(
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -74,7 +74,7 @@ export async function saveContentWithCasts(params: {
     return { error: `${label}の${verb}に失敗しました: ${result.error}` };
   }
 
-  return {};
+  return { id: result.id };
 }
 
 /**

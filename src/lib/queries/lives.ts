@@ -4,7 +4,9 @@ import {
   getIdsForPerformer,
   type ListOptions,
 } from "@/lib/queries/_list-options";
-import type { Live, LiveWithCasts } from "@/lib/types/live";
+import type { Live, LiveSchedule, LiveWithCasts } from "@/lib/types/live";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 function toLiveBase(row: Record<string, unknown>): Live {
   return {
@@ -19,6 +21,51 @@ function toLiveBase(row: Record<string, unknown>): Live {
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
+}
+
+function toLiveSchedule(row: Record<string, unknown>): LiveSchedule {
+  return {
+    id: row.id as string,
+    live_id: row.live_id as string,
+    phase_type: row.phase_type as LiveSchedule["phase_type"],
+    label: (row.label as string | null) ?? null,
+    start_date: row.start_date as string,
+    end_date: (row.end_date as string | null) ?? null,
+    start_time: (row.start_time as string | null) ?? null,
+    url: (row.url as string | null) ?? null,
+    sort_order: (row.sort_order as number | null) ?? 0,
+  };
+}
+
+/**
+ * 指定したライブ ID 群のチケットスケジュールを live_id ごとにまとめて返す。
+ * 期間の開始日・表示順で並べる。
+ */
+export async function fetchSchedulesByLive(
+  supabase: SupabaseServerClient,
+  liveIds: string[]
+): Promise<Map<string, LiveSchedule[]>> {
+  const result = new Map<string, LiveSchedule[]>();
+  if (liveIds.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from("live_schedules")
+    .select("*")
+    .in("live_id", liveIds)
+    .order("start_date", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw new Error(`チケットスケジュールの取得に失敗しました: ${error.message}`);
+  }
+
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    const schedule = toLiveSchedule(row);
+    const bucket = result.get(schedule.live_id) ?? [];
+    bucket.push(schedule);
+    result.set(schedule.live_id, bucket);
+  }
+  return result;
 }
 
 export async function listLives(options: ListOptions = {}): Promise<Live[]> {
@@ -80,15 +127,16 @@ export async function listLivesWithCasts(
   }
 
   const lives = (data ?? []).map((row) => toLiveBase(row as Record<string, unknown>));
-  const castsByContent = await fetchCastsByContent(
-    supabase,
-    "live",
-    lives.map((l) => l.id)
-  );
+  const ids = lives.map((l) => l.id);
+  const [castsByContent, schedulesByLive] = await Promise.all([
+    fetchCastsByContent(supabase, "live", ids),
+    fetchSchedulesByLive(supabase, ids),
+  ]);
 
   return lives.map((live) => ({
     ...live,
     casts: castsByContent.get(live.id) ?? [],
+    schedules: schedulesByLive.get(live.id) ?? [],
   }));
 }
 
@@ -108,15 +156,16 @@ export async function listLivesForCalendar(): Promise<LiveWithCasts[]> {
   const lives = (data ?? []).map((row) =>
     toLiveBase(row as Record<string, unknown>)
   );
-  const castsByContent = await fetchCastsByContent(
-    supabase,
-    "live",
-    lives.map((l) => l.id)
-  );
+  const ids = lives.map((l) => l.id);
+  const [castsByContent, schedulesByLive] = await Promise.all([
+    fetchCastsByContent(supabase, "live", ids),
+    fetchSchedulesByLive(supabase, ids),
+  ]);
 
   return lives.map((live) => ({
     ...live,
     casts: castsByContent.get(live.id) ?? [],
+    schedules: schedulesByLive.get(live.id) ?? [],
   }));
 }
 
@@ -134,9 +183,13 @@ export async function getLive(id: string): Promise<LiveWithCasts | null> {
 
   if (!data) return null;
 
-  const castsByContent = await fetchCastsByContent(supabase, "live", [id]);
+  const [castsByContent, schedulesByLive] = await Promise.all([
+    fetchCastsByContent(supabase, "live", [id]),
+    fetchSchedulesByLive(supabase, [id]),
+  ]);
   return {
     ...toLiveBase(data as Record<string, unknown>),
     casts: castsByContent.get(id) ?? [],
+    schedules: schedulesByLive.get(id) ?? [],
   };
 }

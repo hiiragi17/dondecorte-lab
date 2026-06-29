@@ -39,6 +39,11 @@ beforeEach(() => {
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
   supabaseMock.from.mockReset();
   supabaseMock.rpc.mockReset();
+  // live_schedules の置き換え（delete → insert）を成功扱いにするチェーンモック。
+  supabaseMock.from.mockReturnValue({
+    delete: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
+    insert: vi.fn(async () => ({ error: null })),
+  });
 });
 
 describe("createLive", () => {
@@ -171,7 +176,8 @@ describe("updateLive", () => {
         p_content_id: "11111111-1111-4111-8111-111111111111",
       })
     );
-    expect(supabaseMock.from).not.toHaveBeenCalled();
+    // スケジュールの置き換えのため live_schedules テーブルへアクセスする。
+    expect(supabaseMock.from).toHaveBeenCalledWith("live_schedules");
   });
 
   it("RPC が not found を返した場合は既存メッセージを返す", async () => {

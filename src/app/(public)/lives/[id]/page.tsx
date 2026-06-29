@@ -9,6 +9,7 @@ import { PerformerTagList } from "@/components/shared/performer-tags";
 import { getLive as fetchLive } from "@/lib/queries/lives";
 import { getRelatedContents } from "@/lib/queries/related-contents";
 import type { CastEntry } from "@/lib/types";
+import { LIVE_SCHEDULE_PHASE_LABEL } from "@/lib/types/live";
 import { formatDate, formatTime } from "@/lib/utils/date";
 import { getSiteUrl } from "@/lib/utils/site-url";
 import { normalizeExternalUrl } from "@/lib/utils/url";
@@ -112,12 +113,54 @@ export default async function LiveDetailPage({ params }: Props) {
         </div>
       ) : null}
 
-      {live.event_date ? (
+      {live.event_date || live.schedules.length > 0 ? (
         <AddToCalendar
           live={live}
           siteUrl={getSiteUrl()}
           className="mt-6"
         />
+      ) : null}
+
+      {live.schedules.length > 0 ? (
+        <section className="mt-6 rounded-lg border border-brand-border-dark bg-brand-card-dark p-4">
+          <h2 className="mb-2 text-sm font-semibold text-brand-cream">
+            チケットスケジュール
+          </h2>
+          <ul className="space-y-2">
+            {live.schedules.map((schedule) => {
+              const start = formatDate(schedule.start_date);
+              const end = schedule.end_date
+                ? formatDate(schedule.end_date)
+                : null;
+              const phaseLabel = LIVE_SCHEDULE_PHASE_LABEL[schedule.phase_type];
+              const scheduleUrl = normalizeExternalUrl(schedule.url);
+              return (
+                <li
+                  key={schedule.id}
+                  className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-brand-muted md:text-sm"
+                >
+                  <span className="inline-flex items-center rounded border border-brand-border-dark bg-brand-bg-dark px-1.5 py-0.5 text-brand-gold">
+                    {schedule.label ?? `${phaseLabel}期間`}
+                  </span>
+                  <span className="text-brand-cream">
+                    {start}
+                    {end && end !== start ? ` 〜 ${end}` : ""}
+                  </span>
+                  {scheduleUrl ? (
+                    <a
+                      href={scheduleUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-brand-sky-light transition hover:text-brand-sky"
+                    >
+                      申込・購入 ↗
+                    </a>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       ) : null}
 
       {safeUrl ? (

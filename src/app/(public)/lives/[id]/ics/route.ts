@@ -1,10 +1,5 @@
-import {
-  ALL_DAY_LIVE_REMINDERS,
-  buildLiveCalendarDescription,
-  TIMED_LIVE_REMINDERS,
-} from "@/lib/calendar/live-event";
-import { buildIcsCalendar, type IcsEvent } from "@/lib/ics/builder";
-import { normalizeStartTimeForIcs } from "@/lib/ics/start-time";
+import { buildIcsCalendar } from "@/lib/ics/builder";
+import { buildLiveIcsEvents } from "@/lib/ics/live-events";
 import { getLive } from "@/lib/queries/lives";
 import { getSiteUrl } from "@/lib/utils/site-url";
 
@@ -19,30 +14,16 @@ export async function GET(
 ) {
   const { id } = await params;
   const live = await getLive(id);
-  if (!live || !live.event_date) {
+  if (!live || (!live.event_date && live.schedules.length === 0)) {
     return new Response("Not Found", { status: 404 });
   }
 
   const siteUrl = getSiteUrl();
   const host = new URL(siteUrl).host;
-  const startTime = normalizeStartTimeForIcs(live.start_time);
 
-  const event: IcsEvent = {
-    uid: `live-${live.id}@${host}`,
-    date: live.event_date,
-    startTime,
-    summary: live.title,
-    location: live.venue,
-    description: buildLiveCalendarDescription({
-      description: live.description,
-      casts: live.casts,
-      detailUrl: `${siteUrl}/lives/${live.id}`,
-    }),
-    url: live.url,
-    reminders: startTime ? TIMED_LIVE_REMINDERS : ALL_DAY_LIVE_REMINDERS,
-  };
+  const events = buildLiveIcsEvents(live, { siteUrl, host });
 
-  const body = buildIcsCalendar([event], {
+  const body = buildIcsCalendar(events, {
     prodId: PRODID,
     calendarName: CALENDAR_NAME,
   });

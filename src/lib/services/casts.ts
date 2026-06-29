@@ -58,8 +58,9 @@ export async function upsertContentWithCasts(
     content: Record<string, unknown>;
     casts: CastEntry[];
   }
-): Promise<{ error?: string; notFound?: boolean }> {
-  const { error } = await supabase.rpc("upsert_content_with_casts", {
+): Promise<{ id?: string; error?: string; notFound?: boolean }> {
+  // RPC は upsert したコンテンツの id を返す。
+  const { data, error } = await supabase.rpc("upsert_content_with_casts", {
     p_content_type: params.contentType,
     p_content_id: params.contentId,
     p_content: params.content,
@@ -71,5 +72,5 @@ export async function upsertContentWithCasts(
     return { error: error.message, notFound: error.code === "P0002" };
   }
 
-  return {};
+  return { id: (data as string | null) ?? undefined };
 }

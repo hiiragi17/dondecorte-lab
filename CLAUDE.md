@@ -11,7 +11,7 @@
 - react-hook-form
 - Vercel
 
-## DB構成（21テーブル）
+## DB構成（22テーブル）
 
 ### 人・グループ系
 - `artists` — 芸人個人（SNSカラム付き）
@@ -24,6 +24,7 @@
 ### コンテンツ系
 - `videos` — YouTube動画（youtube_video_id UNIQUE）
 - `lives` — ライブ（event_date, start_time, is_notified）
+- `live_schedules` — ライブのチケットスケジュール（抽選・販売期間。phase_type=lottery/sale, start_date, end_date。lives へ FK、複数行可）
 - `radios` — ラジオ
 - `articles` — 記事/インタビュー（本文転載不可、リンクのみ）
 - `tv_shows` — テレビ番組
