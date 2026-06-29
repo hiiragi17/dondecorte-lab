@@ -7,6 +7,8 @@ const CONTENT_TYPE_LABEL: Record<ContentType, string> = {
   article: "記事",
   tv_show: "TV",
   topic: "トピック",
+  cm: "CM",
+  magazine: "雑誌",
 };
 
 export function ContentTypeBadge({ type }: { type: ContentType }) {

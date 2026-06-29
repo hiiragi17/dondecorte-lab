@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "タイムライン",
   description:
-    "ドンデコルテさん関連の全コンテンツ（動画・ライブ・ラジオ・記事・TV・トピック）を時系列で一覧できるタイムライン。",
+    "ドンデコルテさん関連の全コンテンツ（動画・ライブ・ラジオ・記事・TV・トピック・CM・雑誌）を時系列で一覧できるタイムライン。",
   alternates: { canonical: "/timeline" },
   openGraph: {
     title: "タイムライン",
@@ -27,6 +27,8 @@ const CONTENT_TYPE_PATH: Record<TimelineItem["type"], string> = {
   article: "articles",
   tv_show: "tv",
   topic: "topics",
+  cm: "cms",
+  magazine: "magazines",
 };
 
 type Group = {
@@ -62,7 +64,7 @@ export default async function TimelinePage() {
           タイムライン
         </h1>
         <p className="mt-2 text-sm text-brand-gold md:text-base">
-          動画・ライブ・ラジオ・記事・TV・トピックを時系列で一覧。
+          動画・ライブ・ラジオ・記事・TV・トピック・CM・雑誌を時系列で一覧。
         </p>
       </header>
 

@@ -11,7 +11,7 @@
 - react-hook-form
 - Vercel
 
-## DB構成（19テーブル）
+## DB構成（21テーブル）
 
 ### 人・グループ系
 - `artists` — 芸人個人（SNSカラム付き）
@@ -27,7 +27,9 @@
 - `radios` — ラジオ
 - `articles` — 記事/インタビュー（本文転載不可、リンクのみ）
 - `tv_shows` — テレビ番組
-- `topics` — トピック/雑多な情報（写真撮影会、X投稿、CM情報等。url, source付き）
+- `cms` — CM・広告案件（advertiser, product, url, aired_on）
+- `magazines` — 雑誌掲載（magazine_name, issue, publisher, url, published_on。本文転載不可、リンクのみ）
+- `topics` — トピック/雑多な情報（写真撮影会、X投稿等。url, source付き）
 
 ### 出演（cast）系
 - `video_casts`, `live_casts`, `radio_casts`, `article_casts`, `tv_show_casts`, `topic_casts`
@@ -44,10 +46,10 @@ src/
   app/
     (public)/          # 公開側（Route Group、URLに影響なし）
       page.tsx         # トップ
-      videos/, lives/, radios/, articles/, tv/, topics/
+      videos/, lives/, radios/, articles/, tv/, cms/, magazines/, topics/
       combos/, artists/, units/
     admin/             # 管理画面（認証必須）
-      artists/, combos/, units/, videos/, lives/, radios/, articles/, tv/, topics/
+      artists/, combos/, units/, videos/, lives/, radios/, articles/, tv/, cms/, magazines/, topics/
     auth/login/        # ログイン（UI上にリンクなし、URL直打ちのみ）
   components/
     ui/                # 汎用UI（button, input, card, badge等）
@@ -112,7 +114,7 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - 型: `CastEntry = { type: 'artist' | 'comedy_group' | 'unit'; id: string; name: string }`
 
 ### メモのコンテンツ種別
-- `ContentType = 'video' | 'live' | 'radio' | 'article' | 'tv_show' | 'topic'`
+- `ContentType = 'video' | 'live' | 'radio' | 'article' | 'tv_show' | 'topic' | 'cm' | 'magazine'`
 
 ### 著作権対応
 - 画像は外部URL参照のみ（Supabase Storage不使用）

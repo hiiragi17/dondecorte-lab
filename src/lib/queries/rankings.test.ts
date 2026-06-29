@@ -22,6 +22,8 @@ function castsByContentType(
     article: [],
     tv_show: [],
     topic: [],
+    cm: [],
+    magazine: [],
     ...partial,
   };
 }
@@ -65,6 +67,24 @@ describe("aggregateAppearanceRanking", () => {
     );
 
     expect(result.map((e) => e.performer.id)).toEqual(["x1", "x2"]);
+  });
+
+  it("counts cm and magazine appearances", () => {
+    const result = aggregateAppearanceRanking(
+      castsByContentType({
+        cm: [dondecorte, dondecorte, ginji],
+        magazine: [dondecorte],
+      })
+    );
+
+    const group = result.find((e) => e.performer.id === "g1");
+    expect(group?.counts.cm).toBe(2);
+    expect(group?.counts.magazine).toBe(1);
+    expect(group?.total).toBe(3);
+
+    const artist = result.find((e) => e.performer.id === "a1");
+    expect(artist?.counts.cm).toBe(1);
+    expect(artist?.total).toBe(1);
   });
 
   it("returns an empty array when there are no casts", () => {

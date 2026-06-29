@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { href: "/radios", label: "ラジオ" },
   { href: "/articles", label: "記事" },
   { href: "/tv", label: "TV" },
+  { href: "/cms", label: "CM" },
+  { href: "/magazines", label: "雑誌" },
   { href: "/topics", label: "トピック" },
   { href: "/combos", label: "コンビ" },
   { href: "/units", label: "ユニット" },

@@ -1,5 +1,7 @@
 import { ArticleCard } from "@/components/features/article/article-card";
+import { CmCard } from "@/components/features/cm/cm-card";
 import { LiveCard } from "@/components/features/live/live-card";
+import { MagazineCard } from "@/components/features/magazine/magazine-card";
 import { RadioCard } from "@/components/features/radio/radio-card";
 import { TopicCard } from "@/components/features/topic/topic-card";
 import { TvShowCard } from "@/components/features/tv-show/tv-show-card";
@@ -34,14 +36,17 @@ function liveVariant(
 }
 
 export function RelatedContents({ contents }: Props) {
-  const { videos, lives, radios, articles, tvShows, topics } = contents;
+  const { videos, lives, radios, articles, tvShows, topics, cms, magazines } =
+    contents;
   const total =
     videos.length +
     lives.length +
     radios.length +
     articles.length +
     tvShows.length +
-    topics.length;
+    topics.length +
+    cms.length +
+    magazines.length;
 
   if (total === 0) return null;
 
@@ -137,6 +142,32 @@ export function RelatedContents({ contents }: Props) {
             {topics.map((t) => (
               <li key={t.id}>
                 <TopicCard topic={t} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {cms.length > 0 ? (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-brand-gold">CM</h3>
+          <ul className="space-y-3">
+            {cms.map((c) => (
+              <li key={c.id}>
+                <CmCard cm={c} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {magazines.length > 0 ? (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-brand-gold">雑誌</h3>
+          <ul className="space-y-3">
+            {magazines.map((m) => (
+              <li key={m.id}>
+                <MagazineCard magazine={m} />
               </li>
             ))}
           </ul>

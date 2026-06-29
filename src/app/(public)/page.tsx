@@ -22,6 +22,8 @@ const CONTENT_TYPE_PATH: Record<RecentContentItem["type"], string> = {
   article: "articles",
   tv_show: "tv",
   topic: "topics",
+  cm: "cms",
+  magazine: "magazines",
 };
 
 function formatDate(value: string | null): string {

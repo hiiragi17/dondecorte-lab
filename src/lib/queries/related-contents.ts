@@ -2,7 +2,9 @@ import { fetchCastsByContent } from "@/lib/queries/_casts";
 import { createClient } from "@/lib/supabase/server";
 import type { CastEntry, ContentType } from "@/lib/types";
 import type { ArticleWithCasts } from "@/lib/types/article";
+import type { CmWithCasts } from "@/lib/types/cm";
 import type { LiveWithCasts } from "@/lib/types/live";
+import type { MagazineWithCasts } from "@/lib/types/magazine";
 import type { RadioWithCasts } from "@/lib/types/radio";
 import type { TopicWithCasts } from "@/lib/types/topic";
 import type { TvShowWithCasts } from "@/lib/types/tv-show";
@@ -15,6 +17,8 @@ export type RelatedContents = {
   articles: ArticleWithCasts[];
   tvShows: TvShowWithCasts[];
   topics: TopicWithCasts[];
+  cms: CmWithCasts[];
+  magazines: MagazineWithCasts[];
 };
 
 const EMPTY: RelatedContents = {
@@ -24,6 +28,8 @@ const EMPTY: RelatedContents = {
   articles: [],
   tvShows: [],
   topics: [],
+  cms: [],
+  magazines: [],
 };
 
 type Row = Record<string, unknown>;
@@ -92,15 +98,25 @@ export async function getRelatedContents(
   const supabase = await createClient();
   const partitioned = partitionCasts(casts);
 
-  const [videoIds, liveIds, radioIds, articleIds, tvShowIds, topicIds] =
-    await Promise.all([
-      listMatchingContentIds(supabase, "video", partitioned),
-      listMatchingContentIds(supabase, "live", partitioned),
-      listMatchingContentIds(supabase, "radio", partitioned),
-      listMatchingContentIds(supabase, "article", partitioned),
-      listMatchingContentIds(supabase, "tv_show", partitioned),
-      listMatchingContentIds(supabase, "topic", partitioned),
-    ]);
+  const [
+    videoIds,
+    liveIds,
+    radioIds,
+    articleIds,
+    tvShowIds,
+    topicIds,
+    cmIds,
+    magazineIds,
+  ] = await Promise.all([
+    listMatchingContentIds(supabase, "video", partitioned),
+    listMatchingContentIds(supabase, "live", partitioned),
+    listMatchingContentIds(supabase, "radio", partitioned),
+    listMatchingContentIds(supabase, "article", partitioned),
+    listMatchingContentIds(supabase, "tv_show", partitioned),
+    listMatchingContentIds(supabase, "topic", partitioned),
+    listMatchingContentIds(supabase, "cm", partitioned),
+    listMatchingContentIds(supabase, "magazine", partitioned),
+  ]);
 
   const filterIds = (ids: string[], excludeType: ContentType) =>
     exclude.type === excludeType ? ids.filter((id) => id !== exclude.id) : ids;
@@ -111,9 +127,19 @@ export async function getRelatedContents(
   const articleTargets = filterIds(articleIds, "article");
   const tvShowTargets = filterIds(tvShowIds, "tv_show");
   const topicTargets = filterIds(topicIds, "topic");
+  const cmTargets = filterIds(cmIds, "cm");
+  const magazineTargets = filterIds(magazineIds, "magazine");
 
-  const [videosRes, livesRes, radiosRes, articlesRes, tvShowsRes, topicsRes] =
-    await Promise.all([
+  const [
+    videosRes,
+    livesRes,
+    radiosRes,
+    articlesRes,
+    tvShowsRes,
+    topicsRes,
+    cmsRes,
+    magazinesRes,
+  ] = await Promise.all([
       videoTargets.length > 0
         ? supabase
             .from("videos")
@@ -170,6 +196,24 @@ export async function getRelatedContents(
             .order("created_at", { ascending: false })
             .limit(limit)
         : Promise.resolve({ data: [], error: null }),
+      cmTargets.length > 0
+        ? supabase
+            .from("cms")
+            .select("*")
+            .in("id", cmTargets)
+            .order("aired_on", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+            .limit(limit)
+        : Promise.resolve({ data: [], error: null }),
+      magazineTargets.length > 0
+        ? supabase
+            .from("magazines")
+            .select("*")
+            .in("id", magazineTargets)
+            .order("published_on", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+            .limit(limit)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   const errors = [
@@ -179,6 +223,8 @@ export async function getRelatedContents(
     articlesRes,
     tvShowsRes,
     topicsRes,
+    cmsRes,
+    magazinesRes,
   ]
     .map((r) => r.error)
     .filter((e): e is NonNullable<typeof e> => e !== null);
@@ -196,6 +242,8 @@ export async function getRelatedContents(
   const articleRows = (articlesRes.data ?? []) as Row[];
   const tvShowRows = (tvShowsRes.data ?? []) as Row[];
   const topicRows = (topicsRes.data ?? []) as Row[];
+  const cmRows = (cmsRes.data ?? []) as Row[];
+  const magazineRows = (magazinesRes.data ?? []) as Row[];
 
   const idsOf = (rows: Row[]) => rows.map((r) => r.id as string);
 
@@ -206,6 +254,8 @@ export async function getRelatedContents(
     articleCasts,
     tvShowCasts,
     topicCasts,
+    cmCasts,
+    magazineCasts,
   ] = await Promise.all([
     fetchCastsByContent(supabase, "video", idsOf(videoRows)),
     fetchCastsByContent(supabase, "live", idsOf(liveRows)),
@@ -213,6 +263,8 @@ export async function getRelatedContents(
     fetchCastsByContent(supabase, "article", idsOf(articleRows)),
     fetchCastsByContent(supabase, "tv_show", idsOf(tvShowRows)),
     fetchCastsByContent(supabase, "topic", idsOf(topicRows)),
+    fetchCastsByContent(supabase, "cm", idsOf(cmRows)),
+    fetchCastsByContent(supabase, "magazine", idsOf(magazineRows)),
   ]);
 
   const videos: VideoWithCasts[] = videoRows.map((r) => ({
@@ -292,5 +344,32 @@ export async function getRelatedContents(
     casts: topicCasts.get(r.id as string) ?? [],
   }));
 
-  return { videos, lives, radios, articles, tvShows, topics };
+  const cms: CmWithCasts[] = cmRows.map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    advertiser: (r.advertiser as string | null) ?? null,
+    product: (r.product as string | null) ?? null,
+    url: (r.url as string | null) ?? null,
+    aired_on: (r.aired_on as string | null) ?? null,
+    description: (r.description as string | null) ?? null,
+    created_at: r.created_at as string,
+    updated_at: r.updated_at as string,
+    casts: cmCasts.get(r.id as string) ?? [],
+  }));
+
+  const magazines: MagazineWithCasts[] = magazineRows.map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    magazine_name: (r.magazine_name as string | null) ?? null,
+    issue: (r.issue as string | null) ?? null,
+    publisher: (r.publisher as string | null) ?? null,
+    url: (r.url as string | null) ?? null,
+    published_on: (r.published_on as string | null) ?? null,
+    description: (r.description as string | null) ?? null,
+    created_at: r.created_at as string,
+    updated_at: r.updated_at as string,
+    casts: magazineCasts.get(r.id as string) ?? [],
+  }));
+
+  return { videos, lives, radios, articles, tvShows, topics, cms, magazines };
 }

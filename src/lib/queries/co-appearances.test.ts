@@ -184,6 +184,8 @@ describe("getCoAppearanceRanking", () => {
           article: 0,
           tv_show: 0,
           topic: 0,
+          cm: 0,
+          magazine: 0,
         },
       },
     ]);
@@ -203,5 +205,29 @@ describe("getCoAppearanceRanking", () => {
     expect(result.combos).toEqual([]);
     expect(result.artists).toEqual([]);
     expect(result.units).toEqual([]);
+  });
+
+  it("cm・magazine の共演も breakdown に集計する", async () => {
+    buildQueryStub({
+      ownContents: [
+        { content_type: "cm", content_id: "cm1" },
+        { content_type: "magazine", content_id: "mag1" },
+      ],
+      coCasts: [
+        comboRow("cm", "cm1", DONDECORTE_ID, "ドンデコルテ"),
+        comboRow("cm", "cm1", "combo-a", "コンビA"),
+        comboRow("magazine", "mag1", "combo-a", "コンビA"),
+      ],
+    });
+
+    const result = await getCoAppearanceRanking();
+
+    expect(result.combos).toHaveLength(1);
+    expect(result.combos[0]).toMatchObject({
+      performer: { type: "comedy_group", id: "combo-a", name: "コンビA" },
+      count: 2,
+    });
+    expect(result.combos[0].breakdown.cm).toBe(1);
+    expect(result.combos[0].breakdown.magazine).toBe(1);
   });
 });

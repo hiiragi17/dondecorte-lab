@@ -94,6 +94,9 @@ export default async function ComboDetailPage({ params }: Props) {
           radios={contents.radios}
           tvShows={contents.tvShows}
           articles={contents.articles}
+          cms={contents.cms}
+          magazines={contents.magazines}
+          topics={contents.topics}
         />
       </div>
     </div>

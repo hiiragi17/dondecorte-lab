@@ -27,7 +27,16 @@ export type AppearanceRankingEntry = {
 };
 
 function emptyCounts(): Record<ContentType, number> {
-  return { video: 0, live: 0, radio: 0, article: 0, tv_show: 0, topic: 0 };
+  return {
+    video: 0,
+    live: 0,
+    radio: 0,
+    article: 0,
+    tv_show: 0,
+    topic: 0,
+    cm: 0,
+    magazine: 0,
+  };
 }
 
 export function aggregateAppearanceRanking(
@@ -96,6 +105,8 @@ export async function listAppearanceRanking(): Promise<
     article: [],
     tv_show: [],
     topic: [],
+    cm: [],
+    magazine: [],
   };
 
   for (const row of rows) {
