@@ -2,17 +2,31 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { ArticleCard } from "@/components/features/article/article-card";
+import { CmCard } from "@/components/features/cm/cm-card";
 import { LiveCard } from "@/components/features/live/live-card";
+import { MagazineCard } from "@/components/features/magazine/magazine-card";
 import { RadioCard } from "@/components/features/radio/radio-card";
+import { TopicCard } from "@/components/features/topic/topic-card";
 import { TvShowCard } from "@/components/features/tv-show/tv-show-card";
 import { VideoCard } from "@/components/features/video/video-card";
 import type { ArticleWithCasts } from "@/lib/types/article";
+import type { CmWithCasts } from "@/lib/types/cm";
 import type { LiveWithCasts } from "@/lib/types/live";
+import type { MagazineWithCasts } from "@/lib/types/magazine";
 import type { RadioWithCasts } from "@/lib/types/radio";
+import type { TopicWithCasts } from "@/lib/types/topic";
 import type { TvShowWithCasts } from "@/lib/types/tv-show";
 import type { VideoWithCasts } from "@/lib/types/video";
 
-type TabKey = "videos" | "lives" | "radios" | "tv" | "articles";
+type TabKey =
+  | "videos"
+  | "lives"
+  | "radios"
+  | "tv"
+  | "articles"
+  | "cms"
+  | "magazines"
+  | "topics";
 
 type Props = {
   videos: VideoWithCasts[];
@@ -20,6 +34,9 @@ type Props = {
   radios: RadioWithCasts[];
   tvShows: TvShowWithCasts[];
   articles: ArticleWithCasts[];
+  cms: CmWithCasts[];
+  magazines: MagazineWithCasts[];
+  topics: TopicWithCasts[];
 };
 
 type TabConfig = {
@@ -37,6 +54,9 @@ export function ContentTabs({
   radios,
   tvShows,
   articles,
+  cms,
+  magazines,
+  topics,
 }: Props) {
   const tabs: TabConfig[] = [
     {
@@ -101,6 +121,45 @@ export function ContentTabs({
         articles.map((a) => (
           <li key={a.id}>
             <ArticleCard article={a} />
+          </li>
+        )),
+    },
+    {
+      key: "cms",
+      label: "CM",
+      count: cms.length,
+      emptyLabel: "出演CMはまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        cms.map((c) => (
+          <li key={c.id}>
+            <CmCard cm={c} />
+          </li>
+        )),
+    },
+    {
+      key: "magazines",
+      label: "雑誌",
+      count: magazines.length,
+      emptyLabel: "掲載雑誌はまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        magazines.map((m) => (
+          <li key={m.id}>
+            <MagazineCard magazine={m} />
+          </li>
+        )),
+    },
+    {
+      key: "topics",
+      label: "トピック",
+      count: topics.length,
+      emptyLabel: "関連トピックはまだ登録されていません。",
+      listClassName: "space-y-3",
+      render: () =>
+        topics.map((t) => (
+          <li key={t.id}>
+            <TopicCard topic={t} />
           </li>
         )),
     },
