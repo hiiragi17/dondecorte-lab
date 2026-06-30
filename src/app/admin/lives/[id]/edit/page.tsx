@@ -52,6 +52,7 @@ export default async function EditLivePage({ params }: Props) {
           units={units}
           initialValues={live}
           initialCasts={live.casts}
+          initialSchedules={live.schedules}
           submitLabel="更新する"
         />
       </div>

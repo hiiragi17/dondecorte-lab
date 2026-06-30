@@ -5,17 +5,27 @@ import { redirect } from "next/navigation";
 import { parseCasts } from "@/lib/services/casts";
 import { deleteContent, saveContentWithCasts } from "@/lib/services/content-service";
 import {
+  parseLiveSchedules,
+  replaceLiveSchedules,
+} from "@/lib/services/live-schedules";
+import {
   isUuid,
   isValidEventDate,
   toNullableString,
   validateTitle,
 } from "@/lib/services/validation";
+import { createClient } from "@/lib/supabase/server";
 import type { CastEntry } from "@/lib/types";
-import type { LiveFormState, LiveInput } from "@/lib/types/live";
+import type {
+  LiveFormState,
+  LiveInput,
+  LiveScheduleInput,
+} from "@/lib/types/live";
 
 function parseFormData(formData: FormData): {
   values: LiveInput;
   casts: CastEntry[];
+  schedules: LiveScheduleInput[];
   fieldErrors: LiveFormState["fieldErrors"];
 } {
   const fieldErrors: LiveFormState["fieldErrors"] = {};
@@ -50,14 +60,19 @@ function parseFormData(formData: FormData): {
     fieldErrors.casts = castsError;
   }
 
-  return { values, casts, fieldErrors };
+  const { schedules, error: schedulesError } = parseLiveSchedules(formData);
+  if (schedulesError) {
+    fieldErrors.schedules = schedulesError;
+  }
+
+  return { values, casts, schedules, fieldErrors };
 }
 
 export async function createLive(
   _prev: LiveFormState,
   formData: FormData
 ): Promise<LiveFormState> {
-  const { values, casts, fieldErrors } = parseFormData(formData);
+  const { values, casts, schedules, fieldErrors } = parseFormData(formData);
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
   }
@@ -68,11 +83,24 @@ export async function createLive(
     values,
     casts,
   });
-  if (result.error) {
-    return { error: result.error };
+  if (result.error || !result.id) {
+    return { error: result.error ?? "ライブの登録に失敗しました" };
+  }
+
+  const supabase = await createClient();
+  const scheduleResult = await replaceLiveSchedules(
+    supabase,
+    result.id,
+    schedules
+  );
+  if (scheduleResult.error) {
+    return {
+      error: `チケットスケジュールの保存に失敗しました: ${scheduleResult.error}`,
+    };
   }
 
   revalidatePath("/admin/lives");
+  revalidatePath("/calendar");
   redirect("/admin/lives");
 }
 
@@ -85,7 +113,7 @@ export async function updateLive(
     return { error: "IDが不正です" };
   }
 
-  const { values, casts, fieldErrors } = parseFormData(formData);
+  const { values, casts, schedules, fieldErrors } = parseFormData(formData);
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
   }
@@ -100,8 +128,17 @@ export async function updateLive(
     return { error: result.error };
   }
 
+  const supabase = await createClient();
+  const scheduleResult = await replaceLiveSchedules(supabase, id, schedules);
+  if (scheduleResult.error) {
+    return {
+      error: `チケットスケジュールの保存に失敗しました: ${scheduleResult.error}`,
+    };
+  }
+
   revalidatePath("/admin/lives");
   revalidatePath(`/admin/lives/${id}/edit`);
+  revalidatePath("/calendar");
   redirect("/admin/lives");
 }
 
@@ -115,5 +152,6 @@ export async function deleteLive(formData: FormData): Promise<void> {
   await deleteContent({ contentType: "live", id });
 
   revalidatePath("/admin/lives");
+  revalidatePath("/calendar");
   redirect("/admin/lives");
 }

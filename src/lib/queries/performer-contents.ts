@@ -220,6 +220,7 @@ export async function getPerformerContents(
     created_at: r.created_at as string,
     updated_at: r.updated_at as string,
     casts: liveCasts.get(r.id as string) ?? [],
+    schedules: [],
   }));
 
   const radios: RadioWithCasts[] = radioRows.map((r) => ({

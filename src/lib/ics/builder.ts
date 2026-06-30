@@ -11,6 +11,8 @@ export type IcsEvent = {
   startTime: string | null;
   /** 既定 120 分。終日イベントでは無視。 */
   durationMinutes?: number;
+  /** 終日イベントの終了日（YYYY-MM-DD、含む）。複数日にまたがる帯に使う。 */
+  endDate?: string | null;
   summary: string;
   location?: string | null;
   description?: string | null;
@@ -192,10 +194,10 @@ function buildEvent(
       `${endTime.hh}${endTime.mm}${endTime.ss}`;
     lines.push(`DTEND;TZID=${options.timezone}:${dtendLocal}`);
   } else {
+    // 終日イベント。DTEND は排他的なので「終了日（含む）の翌日」を入れる。
+    const lastDay = event.endDate ?? event.date;
     lines.push(`DTSTART;VALUE=DATE:${formatLocalDate(event.date)}`);
-    lines.push(
-      `DTEND;VALUE=DATE:${formatLocalDate(addDays(event.date, 1))}`
-    );
+    lines.push(`DTEND;VALUE=DATE:${formatLocalDate(addDays(lastDay, 1))}`);
   }
 
   lines.push(`SUMMARY:${escapeIcsText(event.summary)}`);

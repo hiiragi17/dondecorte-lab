@@ -1,6 +1,5 @@
-import { buildLiveCalendarDescription } from "@/lib/calendar/live-event";
 import { buildIcsCalendar, type IcsEvent } from "@/lib/ics/builder";
-import { normalizeStartTimeForIcs } from "@/lib/ics/start-time";
+import { buildLiveIcsEvents } from "@/lib/ics/live-events";
 import { listLivesForCalendar } from "@/lib/queries/lives";
 import { getSiteUrl } from "@/lib/utils/site-url";
 
@@ -14,21 +13,9 @@ export async function GET() {
   const siteUrl = getSiteUrl();
   const host = new URL(siteUrl).host;
 
-  const events: IcsEvent[] = lives
-    .filter((live) => live.event_date !== null)
-    .map((live) => ({
-      uid: `live-${live.id}@${host}`,
-      date: live.event_date as string,
-      startTime: normalizeStartTimeForIcs(live.start_time),
-      summary: live.title,
-      location: live.venue,
-      description: buildLiveCalendarDescription({
-        description: live.description,
-        casts: live.casts,
-        detailUrl: `${siteUrl}/lives/${live.id}`,
-      }),
-      url: live.url,
-    }));
+  const events: IcsEvent[] = lives.flatMap((live) =>
+    buildLiveIcsEvents(live, { siteUrl, host })
+  );
 
   const body = buildIcsCalendar(events, {
     prodId: PRODID,
