@@ -98,7 +98,6 @@ describe("buildCalendarEntries", () => {
           liveTitle: "対バンライブ",
           startDate: "2026-06-01",
           endDate: "2026-06-05",
-          startTime: null,
         },
         {
           id: "s2",
@@ -108,7 +107,6 @@ describe("buildCalendarEntries", () => {
           liveTitle: "対バンライブ",
           startDate: "2026-06-10",
           endDate: null,
-          startTime: null,
         },
       ],
     });

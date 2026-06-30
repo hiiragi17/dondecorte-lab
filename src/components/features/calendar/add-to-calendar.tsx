@@ -29,11 +29,9 @@ export function AddToCalendar({ live, siteUrl, className }: Props) {
           Google{hasMultiple ? `（${link.label}）` : " カレンダーに追加"} ↗
         </a>
       ))}
-      {live.event_date ? (
-        <a href={icsHref} download className={linkClass}>
-          .ics で追加（全日程）
-        </a>
-      ) : null}
+      <a href={icsHref} download className={linkClass}>
+        .ics で追加（全日程）
+      </a>
     </div>
   );
 }

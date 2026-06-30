@@ -45,12 +45,15 @@ export function tokyoDateOf(value: string): string | null {
 
 function tokyoTimeOf(value: string | null): string | null {
   if (!value) return null;
+  const date = new Date(value);
+  // 不正な日付（時刻のみ文字列など）で formatToParts が例外を投げるのを防ぐ。
+  if (Number.isNaN(date.getTime())) return null;
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Tokyo",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).formatToParts(new Date(value));
+  }).formatToParts(date);
   const hh = parts.find((p) => p.type === "hour")?.value;
   const mm = parts.find((p) => p.type === "minute")?.value;
   if (!hh || !mm) return null;
@@ -80,7 +83,6 @@ export type SchedulePeriodInput = {
   liveTitle: string;
   startDate: string;
   endDate: string | null;
-  startTime: string | null;
 };
 
 /**
@@ -128,7 +130,8 @@ export function buildCalendarEntries(args: {
       title,
       startDate,
       endDate: s.endDate ? tokyoDateOf(s.endDate) : null,
-      startTime: tokyoTimeOf(s.startTime),
+      // 抽選 / 販売は「期間」のため終日扱い（時刻は持たない）。
+      startTime: null,
       href: `/lives/${s.liveId}`,
     });
   }

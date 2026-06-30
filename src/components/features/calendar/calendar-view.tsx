@@ -12,6 +12,7 @@ import {
 import type { CalendarEntry } from "@/lib/calendar/entries";
 import {
   buildMonthMatrix,
+  formatYearMonth,
   shiftMonth,
 } from "@/lib/calendar/month-grid";
 import type { LiveWithCasts } from "@/lib/types/live";
@@ -42,10 +43,10 @@ export function CalendarView({
   initialYear,
   initialMonth,
 }: Props) {
-  const [{ year, month }, setYm] = useState({
-    year: initialYear,
-    month: initialMonth,
-  });
+  // 月は URL（?ym=）で駆動する。リロード / 戻る / 共有で選択月が保持される。
+  // 種別フィルタはクライアント状態として保持（ソフトナビゲーションでも維持される）。
+  const year = initialYear;
+  const month = initialMonth;
   const [selected, setSelected] = useState<Set<CalendarCategory>>(
     () => new Set(CALENDAR_CATEGORIES)
   );
@@ -88,23 +89,23 @@ export function CalendarView({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setYm(prev)}
+        <Link
+          href={`/calendar?ym=${formatYearMonth(prev.year, prev.month)}`}
+          scroll={false}
           className="rounded-md border border-brand-border-dark bg-brand-card-dark px-3 py-1.5 text-sm text-brand-gold transition hover:text-brand-sky-light"
         >
           ← {prev.year}年{prev.month}月
-        </button>
+        </Link>
         <h2 className="text-lg font-semibold text-brand-cream md:text-xl">
           {year}年{month}月
         </h2>
-        <button
-          type="button"
-          onClick={() => setYm(next)}
+        <Link
+          href={`/calendar?ym=${formatYearMonth(next.year, next.month)}`}
+          scroll={false}
           className="rounded-md border border-brand-border-dark bg-brand-card-dark px-3 py-1.5 text-sm text-brand-gold transition hover:text-brand-sky-light"
         >
           {next.year}年{next.month}月 →
-        </button>
+        </Link>
       </div>
 
       {/* 種別フィルタ */}

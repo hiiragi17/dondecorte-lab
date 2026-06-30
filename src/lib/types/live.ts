@@ -43,7 +43,6 @@ export type LiveSchedule = {
   label: string | null;
   start_date: string;
   end_date: string | null;
-  start_time: string | null;
   url: string | null;
   sort_order: number;
 };
@@ -54,7 +53,6 @@ export type LiveScheduleInput = {
   label: string | null;
   start_date: string;
   end_date: string | null;
-  start_time: string | null;
   url: string | null;
   sort_order: number;
 };

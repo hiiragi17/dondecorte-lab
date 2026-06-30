@@ -16,7 +16,6 @@ describe("parseLiveSchedules", () => {
       schedule_label: ["一次抽選", ""],
       schedule_start: ["2026-06-01", "2026-06-10"],
       schedule_end: ["2026-06-05", ""],
-      schedule_time: ["", "23:59"],
       schedule_url: ["https://l.example", ""],
     });
     const { schedules, error } = parseLiveSchedules(form);
@@ -27,7 +26,6 @@ describe("parseLiveSchedules", () => {
         label: "一次抽選",
         start_date: "2026-06-01",
         end_date: "2026-06-05",
-        start_time: null,
         url: "https://l.example",
         sort_order: 0,
       },
@@ -36,7 +34,6 @@ describe("parseLiveSchedules", () => {
         label: null,
         start_date: "2026-06-10",
         end_date: null,
-        start_time: "2026-06-10T23:59:00+09:00",
         url: null,
         sort_order: 1,
       },

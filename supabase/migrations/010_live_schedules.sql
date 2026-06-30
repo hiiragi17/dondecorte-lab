@@ -21,7 +21,6 @@ create table live_schedules (
   label text,                  -- 自由表記（例: 一次抽選, 先行販売）
   start_date date not null,    -- 期間開始日
   end_date date,               -- 期間終了日（null なら単日）
-  start_time timestamptz,      -- 任意の開始時刻（締切時刻など）
   url text,                    -- 申込 / 購入ページのURL
   sort_order integer not null default 0, -- 表示順
   created_at timestamptz not null default now(),

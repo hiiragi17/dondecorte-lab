@@ -27,7 +27,6 @@ type ScheduleRow = {
   label: string | null;
   start_date: string;
   end_date: string | null;
-  start_time: string | null;
   live: { id: string; title: string } | { id: string; title: string }[] | null;
 };
 
@@ -43,7 +42,7 @@ export async function listCalendarEntries(): Promise<CalendarEntry[]> {
     supabase
       .from("live_schedules")
       .select(
-        "id, live_id, phase_type, label, start_date, end_date, start_time, live:lives(id, title)"
+        "id, live_id, phase_type, label, start_date, end_date, live:lives(id, title)"
       )
       .order("start_date", { ascending: true }),
     // ライブの開演時刻は event_date とは別カラム。月表示で時刻を出すため取得する。
@@ -93,7 +92,6 @@ export async function listCalendarEntries(): Promise<CalendarEntry[]> {
       liveTitle: live?.title ?? "（不明なライブ）",
       startDate: row.start_date,
       endDate: row.end_date,
-      startTime: row.start_time,
     };
   });
 

@@ -31,7 +31,6 @@ function toLiveSchedule(row: Record<string, unknown>): LiveSchedule {
     label: (row.label as string | null) ?? null,
     start_date: row.start_date as string,
     end_date: (row.end_date as string | null) ?? null,
-    start_time: (row.start_time as string | null) ?? null,
     url: (row.url as string | null) ?? null,
     sort_order: (row.sort_order as number | null) ?? 0,
   };
@@ -142,12 +141,36 @@ export async function listLivesWithCasts(
 
 export async function listLivesForCalendar(): Promise<LiveWithCasts[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // スケジュール（抽選/販売期間）だけを持ち event_date が null のライブも
+  // カレンダー購読(.ics)に含めたいので、対象ライブ ID を先に集める。
+  const { data: scheduleRows, error: scheduleError } = await supabase
+    .from("live_schedules")
+    .select("live_id");
+  if (scheduleError) {
+    throw new Error(
+      `チケットスケジュールの取得に失敗しました: ${scheduleError.message}`
+    );
+  }
+  const scheduledLiveIds = Array.from(
+    new Set((scheduleRows ?? []).map((r) => (r as { live_id: string }).live_id))
+  );
+
+  let query = supabase
     .from("lives")
     .select("*")
-    .not("event_date", "is", null)
-    .order("event_date", { ascending: true, nullsFirst: false })
-    .order("start_time", { ascending: true, nullsFirst: false });
+    .order("event_date", { ascending: true, nullsFirst: false });
+
+  // event_date あり、またはスケジュールを持つライブを対象にする。
+  if (scheduledLiveIds.length > 0) {
+    query = query.or(
+      `event_date.not.is.null,id.in.(${scheduledLiveIds.join(",")})`
+    );
+  } else {
+    query = query.not("event_date", "is", null);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`ライブ一覧の取得に失敗しました: ${error.message}`);

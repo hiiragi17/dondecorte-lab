@@ -39,8 +39,10 @@ beforeEach(() => {
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
   supabaseMock.from.mockReset();
   supabaseMock.rpc.mockReset();
-  // live_schedules の置き換え（delete → insert）を成功扱いにするチェーンモック。
+  // live_schedules の置き換え（select 退避 → delete → insert）を成功扱いにする
+  // チェーンモック。
   supabaseMock.from.mockReturnValue({
+    select: vi.fn(() => ({ eq: vi.fn(async () => ({ data: [], error: null })) })),
     delete: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
     insert: vi.fn(async () => ({ error: null })),
   });
@@ -139,6 +141,30 @@ describe("createLive", () => {
     const fd = buildFormData({ title: "テスト" });
     const result = await createLive({}, fd);
     expect(result.error).toBe("認証が必要です");
+  });
+
+  it("スケジュール保存(insert)が失敗したらエラーを返し redirect しない", async () => {
+    supabaseMock.rpc.mockResolvedValue({
+      data: "11111111-1111-4111-8111-111111111111",
+      error: null,
+    });
+    // 本体保存は成功するが、スケジュールの insert が失敗するケース。
+    supabaseMock.from.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(async () => ({ data: [], error: null })),
+      })),
+      delete: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
+      insert: vi.fn(async () => ({ error: { message: "insert failed" } })),
+    });
+
+    const fd = buildFormData({
+      title: "テスト",
+      schedule_phase: ["lottery"],
+      schedule_start: ["2026-06-01"],
+    });
+    const result = await createLive({}, fd);
+    expect(result.error).toContain("チケットスケジュールの保存に失敗しました");
+    expect(result.error).toContain("insert failed");
   });
 });
 

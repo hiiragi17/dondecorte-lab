@@ -36,7 +36,6 @@ type ScheduleRow = {
   label: string;
   start_date: string;
   end_date: string;
-  start_time: string;
   url: string;
 };
 
@@ -69,7 +68,6 @@ function toScheduleRows(schedules?: LiveSchedule[]): ScheduleRow[] {
     label: s.label ?? "",
     start_date: s.start_date,
     end_date: s.end_date ?? "",
-    start_time: s.start_time ? s.start_time.slice(11, 16) : "",
     url: s.url ?? "",
   }));
 }
@@ -80,7 +78,6 @@ function emptyScheduleRow(): ScheduleRow {
     label: "",
     start_date: "",
     end_date: "",
-    start_time: "",
     url: "",
   };
 }
@@ -149,7 +146,6 @@ export function LiveForm({
       formData.append("schedule_label", row.label);
       formData.append("schedule_start", row.start_date);
       formData.append("schedule_end", row.end_date);
-      formData.append("schedule_time", row.start_time);
       formData.append("schedule_url", row.url);
     }
 
@@ -361,19 +357,6 @@ export function LiveForm({
                     value={row.end_date}
                     onChange={(e) =>
                       updateSchedule(index, { end_date: e.target.value })
-                    }
-                    className={fieldClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-brand-brown-dark">
-                    締切時刻（任意）
-                  </label>
-                  <input
-                    type="time"
-                    value={row.start_time}
-                    onChange={(e) =>
-                      updateSchedule(index, { start_time: e.target.value })
                     }
                     className={fieldClass}
                   />
