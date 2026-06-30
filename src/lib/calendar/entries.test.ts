@@ -59,6 +59,23 @@ describe("buildCalendarEntries", () => {
     ]);
   });
 
+  it("明示的に渡した startTime（lives.start_time 由来）を保持する", () => {
+    const entries = buildCalendarEntries({
+      timeline: [
+        {
+          type: "live",
+          id: "l1",
+          title: "夜公演",
+          date: "2026-06-20",
+          href: "/lives/l1",
+          startTime: "19:30",
+        },
+      ],
+      schedules: [],
+    });
+    expect(entries[0].startTime).toBe("19:30");
+  });
+
   it("日付が null の点イベントは除外する", () => {
     const entries = buildCalendarEntries({
       timeline: [

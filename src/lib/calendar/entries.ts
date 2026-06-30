@@ -64,6 +64,12 @@ export type TimelinePointInput = {
   /** 主たる日付（date or timestamptz）。null は除外される。 */
   date: string | null;
   href: string;
+  /**
+   * 表示用の開始時刻（"HH:MM"）。date が日付のみで時刻を別カラムに持つ
+   * コンテンツ（例: lives.start_time）はここで明示的に渡す。
+   * 省略時は date が timestamptz の場合に時刻を抽出する。
+   */
+  startTime?: string | null;
 };
 
 export type SchedulePeriodInput = {
@@ -97,10 +103,14 @@ export function buildCalendarEntries(args: {
       title: item.title,
       startDate,
       endDate: null,
-      // live は時刻を別途持つため timeline 側では終日扱い。
-      startTime: tokyoTimeOf(
-        /^\d{4}-\d{2}-\d{2}$/.test(item.date) ? null : item.date
-      ),
+      // 時刻を別カラムに持つコンテンツ（lives 等）は startTime を明示指定する。
+      // 省略時は date が timestamptz の場合のみ時刻を抽出する。
+      startTime:
+        item.startTime !== undefined
+          ? item.startTime
+          : tokyoTimeOf(
+              /^\d{4}-\d{2}-\d{2}$/.test(item.date) ? null : item.date
+            ),
       href: item.href,
     });
   }

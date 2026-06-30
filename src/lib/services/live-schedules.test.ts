@@ -36,7 +36,7 @@ describe("parseLiveSchedules", () => {
         label: null,
         start_date: "2026-06-10",
         end_date: null,
-        start_time: "2026-06-10T23:59:00",
+        start_time: "2026-06-10T23:59:00+09:00",
         url: null,
         sort_order: 1,
       },

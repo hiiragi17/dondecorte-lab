@@ -66,7 +66,9 @@ export function parseLiveSchedules(formData: FormData): {
       label: label || null,
       start_date: start,
       end_date: end || null,
-      start_time: timeInput ? `${start}T${timeInput}:00` : null,
+      // サイトは Asia/Tokyo 基準。オフセット無しだと timestamptz が UTC 解釈され
+      // 表示時に 9 時間ずれるため、JST(+09:00) を明示して保存する。
+      start_time: timeInput ? `${start}T${timeInput}:00+09:00` : null,
       url: url || null,
       sort_order: schedules.length,
     });
