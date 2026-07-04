@@ -70,10 +70,13 @@ export async function loadPerformerCandidates(
   return { candidates, groupIdByChannelId };
 }
 
-// CastEntry を video_casts の1行（3カラムのうち1つだけ NOT NULL）に変換する。
+// CastEntry を casts の1行に変換する。
+// casts はポリモーフィック設計（content_type + content_id）で、
+// artist/comedy_group/unit のうち1つだけ NOT NULL（migration 005）。
 function toCastRow(videoId: string, cast: CastEntry) {
   return {
-    video_id: videoId,
+    content_type: "video" as const,
+    content_id: videoId,
     artist_id: cast.type === "artist" ? cast.id : null,
     comedy_group_id: cast.type === "comedy_group" ? cast.id : null,
     unit_id: cast.type === "unit" ? cast.id : null,
@@ -81,7 +84,7 @@ function toCastRow(videoId: string, cast: CastEntry) {
 }
 
 /**
- * 新規取得動画のタイトル/説明から出演者を推定し、video_casts に自動挿入する。
+ * 新規取得動画のタイトル/説明から出演者を推定し、casts に自動挿入する。
  * チャンネル所有コンビ（ownerGroupId）は本文一致に関わらず常にタグ付けする。
  * 対象動画は新規挿入分のみを想定しているため insert のみ。挿入した cast 行数を返す。
  */
@@ -118,7 +121,7 @@ export async function autoTagVideos(
 
   if (rows.length === 0) return 0;
 
-  const { error } = await client.from("video_casts").insert(rows);
+  const { error } = await client.from("casts").insert(rows);
   if (error) {
     throw new Error(`出演者の自動タグ付けに失敗しました: ${error.message}`);
   }

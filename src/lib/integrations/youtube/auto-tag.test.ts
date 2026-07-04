@@ -11,7 +11,7 @@ function makeClient(handlers: {
 }) {
   const insertMock = vi.fn().mockResolvedValue(handlers.insert ?? { error: null });
   const from = vi.fn((table: string) => {
-    if (table === "video_casts") {
+    if (table === "casts") {
       return { insert: insertMock };
     }
     return {
@@ -88,7 +88,7 @@ describe("autoTagVideos", () => {
     { type: "artist", id: "a2", name: "小橋共作" },
   ];
 
-  it("タイトル一致とチャンネル所有コンビを video_casts に挿入する", async () => {
+  it("タイトル一致とチャンネル所有コンビを casts に挿入する", async () => {
     const { client, insertMock } = makeClient({});
 
     const count = await autoTagVideos(client, {
@@ -102,13 +102,15 @@ describe("autoTagVideos", () => {
     expect(count).toBe(2);
     expect(insertMock).toHaveBeenCalledWith([
       {
-        video_id: "v1",
+        content_type: "video",
+        content_id: "v1",
         artist_id: null,
         comedy_group_id: "g1",
         unit_id: null,
       },
       {
-        video_id: "v1",
+        content_type: "video",
+        content_id: "v1",
         artist_id: "a1",
         comedy_group_id: null,
         unit_id: null,
@@ -128,7 +130,8 @@ describe("autoTagVideos", () => {
     expect(count).toBe(1);
     expect(insertMock).toHaveBeenCalledWith([
       {
-        video_id: "v1",
+        content_type: "video",
+        content_id: "v1",
         artist_id: null,
         comedy_group_id: "g1",
         unit_id: null,
@@ -198,7 +201,8 @@ describe("autoTagVideos", () => {
     expect(count).toBe(1);
     expect(insertMock).toHaveBeenCalledWith([
       {
-        video_id: "v1",
+        content_type: "video",
+        content_id: "v1",
         artist_id: "a2",
         comedy_group_id: null,
         unit_id: null,
