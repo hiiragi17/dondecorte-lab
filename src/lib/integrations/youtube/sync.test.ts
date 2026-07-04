@@ -269,6 +269,8 @@ describe("syncAllChannels", () => {
     expect(result.outcomes.map((o) => o.channelId)).toEqual(["UC_a", "UC_b"]);
     expect(result.outcomes.every((o) => o.ok)).toBe(true);
     expect(fetchChannelVideosMock).toHaveBeenCalledTimes(2);
+    // 出演者候補はチャンネル毎ではなく実行あたり1回だけ読み込む（N+1回避）。
+    expect(loadPerformerCandidatesMock).toHaveBeenCalledTimes(1);
   });
 
   it("空白のみのチャンネルIDは除外し、前後空白はトリムする", async () => {

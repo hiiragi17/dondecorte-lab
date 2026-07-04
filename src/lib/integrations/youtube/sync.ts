@@ -2,6 +2,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import {
   autoTagVideos,
   loadPerformerCandidates,
+  type PerformerCandidateSet,
   type TaggableVideo,
 } from "./auto-tag";
 import { fetchChannelVideos } from "./client";
@@ -25,9 +26,11 @@ type InsertedVideoRow = {
 
 // 新規挿入された動画に出演者を自動タグ付けする（ベストエフォート）。
 // タグ付けの失敗で動画取得自体を無駄にしないよう、例外は握りつぶして 0 を返す。
+// candidateSet が渡されればそれを使い回し、未指定なら都度読み込む（単体呼び出し用）。
 async function tagInsertedVideos(
   channelId: string,
-  insertedRows: InsertedVideoRow[]
+  insertedRows: InsertedVideoRow[],
+  candidateSet?: PerformerCandidateSet
 ): Promise<number> {
   const videos: TaggableVideo[] = insertedRows
     .filter((row): row is InsertedVideoRow & { title: string } =>
@@ -43,7 +46,7 @@ async function tagInsertedVideos(
 
   try {
     const { candidates, groupIdByChannelId } =
-      await loadPerformerCandidates(adminClient);
+      candidateSet ?? (await loadPerformerCandidates(adminClient));
     const ownerGroupId = groupIdByChannelId.get(channelId) ?? null;
     return await autoTagVideos(adminClient, {
       videos,
@@ -69,9 +72,11 @@ function toVideoRow(video: YoutubeVideo) {
   };
 }
 
-// チャンネルの動画一覧を取得し、youtube_video_id で未登録のものだけ videos に保存する
+// チャンネルの動画一覧を取得し、youtube_video_id で未登録のものだけ videos に保存する。
+// candidateSet を渡すと自動タグ付けの候補読み込みを省略できる（複数チャンネル同期での使い回し用）。
 export async function syncChannelVideos(
-  channelId: string
+  channelId: string,
+  candidateSet?: PerformerCandidateSet
 ): Promise<SyncChannelResult> {
   const fetched = await fetchChannelVideos(channelId);
 
@@ -107,7 +112,7 @@ export async function syncChannelVideos(
     .map((row) => row.youtube_video_id)
     .filter((id): id is string => Boolean(id));
 
-  const tagged = await tagInsertedVideos(channelId, rows);
+  const tagged = await tagInsertedVideos(channelId, rows, candidateSet);
 
   return {
     fetched: videos.length,
@@ -154,13 +159,26 @@ async function listSyncableChannelIds(): Promise<string[]> {
 export async function syncAllChannels(): Promise<SyncAllChannelsResult> {
   const channelIds = await listSyncableChannelIds();
 
+  // 出演者候補は同期実行中に変化しないため、1回だけ読み込んで全チャンネルで使い回す
+  // （チャンネル毎の再読み込みによる N+1 を避ける）。読み込み失敗時は各チャンネルの
+  // 遅延読み込みにフォールバックさせるため undefined のままにする。
+  let candidateSet: PerformerCandidateSet | undefined;
+  if (channelIds.length > 0) {
+    try {
+      candidateSet = await loadPerformerCandidates(adminClient);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[youtube] 出演者候補の読み込みに失敗しました: ${message}`);
+    }
+  }
+
   const outcomes: ChannelSyncOutcome[] = [];
   let inserted = 0;
   let tagged = 0;
 
   for (const channelId of channelIds) {
     try {
-      const result = await syncChannelVideos(channelId);
+      const result = await syncChannelVideos(channelId, candidateSet);
       inserted += result.inserted;
       tagged += result.tagged;
       outcomes.push({ channelId, ok: true, result });

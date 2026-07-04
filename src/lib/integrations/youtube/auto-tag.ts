@@ -109,9 +109,14 @@ export async function autoTagVideos(
     const matched = matchPerformers(text, candidates);
 
     // チャンネル所有コンビを先頭に加える（本文に名前が無くても出演者だから）。
+    // 表示名は候補から解決し、プレースホルダ（空文字）が casts に混入しないようにする。
     const casts: CastEntry[] = [...matched];
     if (ownerGroupId && !casts.some((c) => c.type === "comedy_group" && c.id === ownerGroupId)) {
-      casts.unshift({ type: "comedy_group", id: ownerGroupId, name: "" });
+      const ownerName =
+        candidates.find(
+          (c) => c.type === "comedy_group" && c.id === ownerGroupId
+        )?.name ?? "";
+      casts.unshift({ type: "comedy_group", id: ownerGroupId, name: ownerName });
     }
 
     for (const cast of casts) {
