@@ -7,6 +7,15 @@ vi.mock("@/lib/supabase/admin", () => ({ adminClient: adminClientMock }));
 const fetchChannelVideosMock = vi.hoisted(() => vi.fn());
 vi.mock("./client", () => ({ fetchChannelVideos: fetchChannelVideosMock }));
 
+// 自動タグ付けは performer-matcher/auto-tag 側で個別にテストするため、
+// sync のテストではモックして「呼ばれること」だけを確認する。
+const autoTagVideosMock = vi.hoisted(() => vi.fn());
+const loadPerformerCandidatesMock = vi.hoisted(() => vi.fn());
+vi.mock("./auto-tag", () => ({
+  autoTagVideos: autoTagVideosMock,
+  loadPerformerCandidates: loadPerformerCandidatesMock,
+}));
+
 import { syncChannelVideos, syncAllChannels } from "./sync";
 
 function buildVideo(id: string): YoutubeVideo {
@@ -24,7 +33,12 @@ function buildVideo(id: string): YoutubeVideo {
 // inserted には「実際に挿入された行（重複は除外済み）」を渡す
 function setupAdmin(
   options: {
-    inserted?: Array<{ youtube_video_id: string | null }>;
+    inserted?: Array<{
+      youtube_video_id: string | null;
+      id?: string;
+      title?: string | null;
+      description?: string | null;
+    }>;
     upsertError?: { message: string } | null;
   } = {}
 ) {
@@ -39,6 +53,11 @@ function setupAdmin(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  loadPerformerCandidatesMock.mockResolvedValue({
+    candidates: [],
+    groupIdByChannelId: new Map(),
+  });
+  autoTagVideosMock.mockResolvedValue(0);
 });
 
 describe("syncChannelVideos", () => {
@@ -53,6 +72,7 @@ describe("syncChannelVideos", () => {
       inserted: 0,
       skipped: 0,
       insertedVideoIds: [],
+      tagged: 0,
     });
     expect(upsertMock).not.toHaveBeenCalled();
   });
@@ -75,6 +95,7 @@ describe("syncChannelVideos", () => {
       inserted: 2,
       skipped: 1,
       insertedVideoIds: ["a", "c"],
+      tagged: 0,
     });
     expect(upsertMock).toHaveBeenCalledWith(
       [
@@ -125,6 +146,7 @@ describe("syncChannelVideos", () => {
       inserted: 0,
       skipped: 1,
       insertedVideoIds: [],
+      tagged: 0,
     });
     expect(upsertMock).toHaveBeenCalledTimes(1);
   });
@@ -136,6 +158,57 @@ describe("syncChannelVideos", () => {
     await expect(syncChannelVideos("UC_abc")).rejects.toThrow(
       "動画の保存に失敗しました: upsert boom"
     );
+  });
+
+  it("新規挿入された動画に自動タグ付けし、tagged に件数を反映する", async () => {
+    fetchChannelVideosMock.mockResolvedValue([buildVideo("a")]);
+    setupAdmin({
+      inserted: [
+        {
+          id: "vid-1",
+          youtube_video_id: "a",
+          title: "動画-a",
+          description: null,
+        },
+      ],
+    });
+    loadPerformerCandidatesMock.mockResolvedValue({
+      candidates: [{ type: "comedy_group", id: "g1", name: "ドンデコルテ" }],
+      groupIdByChannelId: new Map([["UC_abc", "g1"]]),
+    });
+    autoTagVideosMock.mockResolvedValue(1);
+
+    const result = await syncChannelVideos("UC_abc");
+
+    expect(result.inserted).toBe(1);
+    expect(result.tagged).toBe(1);
+    expect(autoTagVideosMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        ownerGroupId: "g1",
+        videos: [{ id: "vid-1", title: "動画-a", description: null }],
+      })
+    );
+  });
+
+  it("自動タグ付けが失敗しても同期は成功し tagged=0 を返す", async () => {
+    fetchChannelVideosMock.mockResolvedValue([buildVideo("a")]);
+    setupAdmin({
+      inserted: [
+        {
+          id: "vid-1",
+          youtube_video_id: "a",
+          title: "動画-a",
+          description: null,
+        },
+      ],
+    });
+    loadPerformerCandidatesMock.mockRejectedValue(new Error("candidate boom"));
+
+    const result = await syncChannelVideos("UC_abc");
+
+    expect(result.inserted).toBe(1);
+    expect(result.tagged).toBe(0);
   });
 });
 
@@ -169,7 +242,12 @@ describe("syncAllChannels", () => {
 
     const result = await syncAllChannels();
 
-    expect(result).toEqual({ channels: 0, inserted: 0, outcomes: [] });
+    expect(result).toEqual({
+      channels: 0,
+      inserted: 0,
+      tagged: 0,
+      outcomes: [],
+    });
     expect(fetchChannelVideosMock).not.toHaveBeenCalled();
   });
 

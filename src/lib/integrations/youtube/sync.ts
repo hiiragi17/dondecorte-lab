@@ -1,4 +1,9 @@
 import { adminClient } from "@/lib/supabase/admin";
+import {
+  autoTagVideos,
+  loadPerformerCandidates,
+  type TaggableVideo,
+} from "./auto-tag";
 import { fetchChannelVideos } from "./client";
 import type { YoutubeVideo } from "./types";
 
@@ -7,7 +12,50 @@ export type SyncChannelResult = {
   inserted: number;
   skipped: number;
   insertedVideoIds: string[];
+  // 自動タグ付けで挿入した video_casts の行数。
+  tagged: number;
 };
+
+type InsertedVideoRow = {
+  id: string;
+  youtube_video_id: string | null;
+  title: string | null;
+  description: string | null;
+};
+
+// 新規挿入された動画に出演者を自動タグ付けする（ベストエフォート）。
+// タグ付けの失敗で動画取得自体を無駄にしないよう、例外は握りつぶして 0 を返す。
+async function tagInsertedVideos(
+  channelId: string,
+  insertedRows: InsertedVideoRow[]
+): Promise<number> {
+  const videos: TaggableVideo[] = insertedRows
+    .filter((row): row is InsertedVideoRow & { title: string } =>
+      Boolean(row.id && row.title)
+    )
+    .map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+    }));
+
+  if (videos.length === 0) return 0;
+
+  try {
+    const { candidates, groupIdByChannelId } =
+      await loadPerformerCandidates(adminClient);
+    const ownerGroupId = groupIdByChannelId.get(channelId) ?? null;
+    return await autoTagVideos(adminClient, {
+      videos,
+      candidates,
+      ownerGroupId,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[youtube] 自動タグ付けに失敗しました: ${message}`);
+    return 0;
+  }
+}
 
 function toVideoRow(video: YoutubeVideo) {
   return {
@@ -37,7 +85,7 @@ export async function syncChannelVideos(
   const videos = [...uniqueByVideoId.values()];
 
   if (videos.length === 0) {
-    return { fetched: 0, inserted: 0, skipped: 0, insertedVideoIds: [] };
+    return { fetched: 0, inserted: 0, skipped: 0, insertedVideoIds: [], tagged: 0 };
   }
 
   // upsert + ignoreDuplicates で「未登録のみ挿入」をアトミックに行う。
@@ -48,21 +96,25 @@ export async function syncChannelVideos(
       onConflict: "youtube_video_id",
       ignoreDuplicates: true,
     })
-    .select("youtube_video_id");
+    .select("id, youtube_video_id, title, description");
 
   if (error) {
     throw new Error(`動画の保存に失敗しました: ${error.message}`);
   }
 
-  const insertedVideoIds = (insertedRows ?? [])
+  const rows = (insertedRows ?? []) as InsertedVideoRow[];
+  const insertedVideoIds = rows
     .map((row) => row.youtube_video_id)
     .filter((id): id is string => Boolean(id));
+
+  const tagged = await tagInsertedVideos(channelId, rows);
 
   return {
     fetched: videos.length,
     inserted: insertedVideoIds.length,
     skipped: videos.length - insertedVideoIds.length,
     insertedVideoIds,
+    tagged,
   };
 }
 
@@ -73,6 +125,7 @@ export type ChannelSyncOutcome = {
 export type SyncAllChannelsResult = {
   channels: number;
   inserted: number;
+  tagged: number;
   outcomes: ChannelSyncOutcome[];
 };
 
@@ -103,11 +156,13 @@ export async function syncAllChannels(): Promise<SyncAllChannelsResult> {
 
   const outcomes: ChannelSyncOutcome[] = [];
   let inserted = 0;
+  let tagged = 0;
 
   for (const channelId of channelIds) {
     try {
       const result = await syncChannelVideos(channelId);
       inserted += result.inserted;
+      tagged += result.tagged;
       outcomes.push({ channelId, ok: true, result });
     } catch (error) {
       outcomes.push({
@@ -118,5 +173,5 @@ export async function syncAllChannels(): Promise<SyncAllChannelsResult> {
     }
   }
 
-  return { channels: channelIds.length, inserted, outcomes };
+  return { channels: channelIds.length, inserted, tagged, outcomes };
 }
