@@ -1,3 +1,7 @@
+import {
+  fetchApprovedVideoIds,
+  isVisibleContent,
+} from "@/lib/queries/_approved-videos";
 import type { createClient } from "@/lib/supabase/server";
 import type { CastEntry, ContentType } from "@/lib/types";
 
@@ -54,15 +58,21 @@ export async function getDondecorteComedyGroupId(
  * ドンデコルテが出演しているコンテンツの一覧（重複排除済み）。
  * 旧実装では 6 つの cast テーブルを個別に走査していたが、
  * casts 統合テーブルにより 1 クエリで取得できる。
+ *
+ * 承認前・却下済みの自動取得動画も casts 行を持つため、
+ * video は承認済みのみに絞り込む（共演者集計への混入防止）。
  */
 export async function listDondecorteContents(
   supabase: SupabaseClient,
   dondecorteId: string
 ): Promise<ContentRef[]> {
-  const { data, error } = await supabase
-    .from("casts")
-    .select("content_type, content_id")
-    .eq("comedy_group_id", dondecorteId);
+  const [{ data, error }, approvedVideoIds] = await Promise.all([
+    supabase
+      .from("casts")
+      .select("content_type, content_id")
+      .eq("comedy_group_id", dondecorteId),
+    fetchApprovedVideoIds(supabase),
+  ]);
 
   if (error) {
     throw new Error(`共演者情報の取得に失敗しました: ${error.message}`);
@@ -74,6 +84,9 @@ export async function listDondecorteContents(
     content_type: ContentType;
     content_id: string;
   }>) {
+    if (!isVisibleContent(row.content_type, row.content_id, approvedVideoIds)) {
+      continue;
+    }
     const key = `${row.content_type}:${row.content_id}`;
     if (seen.has(key)) continue;
     seen.add(key);

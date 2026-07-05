@@ -5,13 +5,9 @@ import { VideoDeleteButton } from "@/components/features/video/video-delete-butt
 import { approveVideo, deleteVideo, rejectVideo } from "@/lib/actions/videos";
 import { listVideosForReview } from "@/lib/queries/videos";
 import type { VideoWithCasts } from "@/lib/types/video";
+import { formatDateCompact } from "@/lib/utils/date";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ja-JP");
-}
 
 // next.config.ts の images.remotePatterns で許可済みの img.youtube.com のみ使う
 function thumbnailSrc(video: VideoWithCasts): string | null {
@@ -47,7 +43,7 @@ function ReviewVideoRow({
       <div className="min-w-0 flex-1 space-y-1">
         <p className="font-medium text-brand-brown-dark">{video.title}</p>
         <p className="text-xs text-brand-brown-light">
-          公開日: {formatDate(video.published_at)}
+          公開日: {formatDateCompact(video.published_at)}
         </p>
         {video.casts.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">

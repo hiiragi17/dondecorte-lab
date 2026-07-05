@@ -3,13 +3,9 @@ import { VideoDeleteButton } from "@/components/features/video/video-delete-butt
 import { deleteVideo } from "@/lib/actions/videos";
 import { listVideos } from "@/lib/queries/videos";
 import type { VideoReviewStatus } from "@/lib/types/video";
+import { formatDateCompact } from "@/lib/utils/date";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ja-JP");
-}
 
 const REVIEW_STATUS_BADGE: Record<
   VideoReviewStatus,
@@ -94,7 +90,7 @@ export default async function AdminVideosPage() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-brand-brown-light">
-                    {formatDate(video.published_at)}
+                    {formatDateCompact(video.published_at)}
                   </td>
                   <td className="px-4 py-2 font-mono text-xs text-brand-brown-light">
                     {video.youtube_video_id ?? "—"}

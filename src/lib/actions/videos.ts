@@ -137,9 +137,11 @@ async function updateReviewStatus(
     throw new Error("指定された動画が見つかりません");
   }
 
+  // 承認/却下は公開側の表示対象を変えるため、動画を表示する主要ページを再検証する
   revalidatePath("/admin/videos");
   revalidatePath("/admin/videos/review");
   revalidatePath("/videos");
+  revalidatePath("/timeline");
   revalidatePath("/");
 }
 

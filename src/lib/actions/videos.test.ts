@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { revalidatePath } from "next/cache";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -258,6 +259,14 @@ describe("approveVideo / rejectVideo", () => {
       { count: "exact" }
     );
     expect(eqMock).toHaveBeenCalledWith("id", VIDEO_ID);
+    // 承認は公開側の表示対象を変えるため、動画を表示する主要ページを再検証すること
+    expect(vi.mocked(revalidatePath).mock.calls.map((call) => call[0])).toEqual([
+      "/admin/videos",
+      "/admin/videos/review",
+      "/videos",
+      "/timeline",
+      "/",
+    ]);
   });
 
   it("却下すると review_status を rejected に更新する", async () => {

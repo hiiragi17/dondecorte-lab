@@ -18,8 +18,30 @@ function buildQueryStub(responses: {
   ownContents: Array<{ content_type: string; content_id: string }>;
   coCasts: AnyRow[];
   dondecorteId?: string | null;
+  // 承認済み動画ID。未指定なら ownContents 中の video を全て承認済みとして扱う
+  approvedVideoIds?: string[];
 }) {
   supabaseMock.from.mockImplementation((table: string) => {
+    if (table === "videos") {
+      const ids =
+        responses.approvedVideoIds ??
+        responses.ownContents
+          .filter((r) => r.content_type === "video")
+          .map((r) => r.content_id);
+      return {
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              range: async () => ({
+                data: ids.map((id) => ({ id })),
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      };
+    }
+
     if (table === "comedy_groups") {
       return {
         select: () => ({
@@ -193,6 +215,35 @@ describe("getCoAppearanceRanking", () => {
     expect(result.units).toHaveLength(1);
     expect(result.units[0].performer.name).toBe("ユニット1");
     expect(result.units[0].breakdown.live).toBe(1);
+  });
+
+  it("承認済みでない動画は集計対象から除外する", async () => {
+    buildQueryStub({
+      ownContents: [
+        { content_type: "video", content_id: "v1" },
+        { content_type: "video", content_id: "v-pending" },
+        { content_type: "live", content_id: "l1" },
+      ],
+      coCasts: [
+        comboRow("video", "v1", "combo-a", "コンビA"),
+        // 承認待ち動画の共演者は集計されないこと
+        comboRow("video", "v-pending", "combo-x", "コンビX"),
+        comboRow("live", "l1", "combo-a", "コンビA"),
+      ],
+      approvedVideoIds: ["v1"],
+    });
+
+    const result = await getCoAppearanceRanking();
+
+    // 承認待ち動画はコンテンツ数にも含まれない
+    expect(result.totalContentCount).toBe(2);
+    expect(
+      result.combos.find((c) => c.performer.id === "combo-x")
+    ).toBeUndefined();
+    expect(result.combos[0]).toMatchObject({
+      performer: { id: "combo-a" },
+      count: 2,
+    });
   });
 
   it("ドンデコルテ自身は集計対象から除外する", async () => {

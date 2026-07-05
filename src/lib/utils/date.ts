@@ -17,6 +17,14 @@ export function formatDate(value: string | null): string | null {
   });
 }
 
+/** 管理画面のテーブル・一覧表示用の短い日付表記（例: 2026/7/5）。値が無い・不正な場合は「—」 */
+export function formatDateCompact(value: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ja-JP", { timeZone: BUSINESS_TIMEZONE });
+}
+
 export function formatTime(value: string | null): string | null {
   if (!value) return null;
   if (/^\d{2}:\d{2}(:\d{2})?$/.test(value)) return value.slice(0, 5);
