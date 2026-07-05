@@ -18,8 +18,30 @@ function buildQueryStub(responses: {
   ownContents: Array<{ content_type: string; content_id: string }>;
   coCasts: AnyRow[];
   dondecorteId?: string | null;
+  // 承認済み動画ID。未指定なら ownContents 中の video を全て承認済みとして扱う
+  approvedVideoIds?: string[];
 }) {
   supabaseMock.from.mockImplementation((table: string) => {
+    if (table === "videos") {
+      const ids =
+        responses.approvedVideoIds ??
+        responses.ownContents
+          .filter((r) => r.content_type === "video")
+          .map((r) => r.content_id);
+      return {
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              range: async () => ({
+                data: ids.map((id) => ({ id })),
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      };
+    }
+
     if (table === "comedy_groups") {
       return {
         select: () => ({

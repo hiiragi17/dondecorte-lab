@@ -1,3 +1,7 @@
+import {
+  fetchApprovedVideoIds,
+  isVisibleContent,
+} from "@/lib/queries/_approved-videos";
 import { mapCasts, type CastRow } from "@/lib/queries/_casts";
 import { createClient } from "@/lib/supabase/server";
 import { CONTENT_TYPES, type CastEntry, type ContentType } from "@/lib/types";
@@ -6,6 +10,7 @@ type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 const CAST_SELECT = `
   content_type,
+  content_id,
   artist_id,
   comedy_group_id,
   unit_id,
@@ -18,7 +23,10 @@ const CAST_SELECT = `
 // 全行を range で分割取得して集計漏れを防ぐ。
 const PAGE_SIZE = 1000;
 
-type CastWithTypeRow = CastRow & { content_type: ContentType };
+type CastWithTypeRow = CastRow & {
+  content_type: ContentType;
+  content_id: string;
+};
 
 export type AppearanceRankingEntry = {
   performer: CastEntry;
@@ -96,7 +104,12 @@ export async function listAppearanceRanking(): Promise<
   AppearanceRankingEntry[]
 > {
   const supabase = await createClient();
-  const rows = await selectAllCastRows(supabase);
+  // 承認前・却下済み動画の casts 行が公開ランキングに混入しないよう、
+  // 承認済み動画の ID 集合で video 行を絞り込む
+  const [rows, approvedVideoIds] = await Promise.all([
+    selectAllCastRows(supabase),
+    fetchApprovedVideoIds(supabase),
+  ]);
 
   const castsByContentType: Record<ContentType, CastEntry[]> = {
     video: [],
@@ -110,6 +123,9 @@ export async function listAppearanceRanking(): Promise<
   };
 
   for (const row of rows) {
+    if (!isVisibleContent(row.content_type, row.content_id, approvedVideoIds)) {
+      continue;
+    }
     const [entry] = mapCasts([row]);
     if (entry) castsByContentType[row.content_type].push(entry);
   }

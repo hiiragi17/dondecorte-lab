@@ -103,6 +103,9 @@ describe("syncChannelVideos", () => {
           youtube_video_id: "a",
           youtube_url: "https://www.youtube.com/watch?v=a",
           youtube_channel_id: "UC_abc",
+          // 自動取得分はレビュー待ちで保存する（管理画面で承認するまで非公開）
+          source: "youtube_auto",
+          review_status: "pending",
         }),
         expect.objectContaining({ youtube_video_id: "b" }),
         expect.objectContaining({ youtube_video_id: "c" }),

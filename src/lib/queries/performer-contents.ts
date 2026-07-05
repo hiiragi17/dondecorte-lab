@@ -84,6 +84,7 @@ export async function getPerformerContents(
             .from("videos")
             .select("*")
             .in("id", videoIds)
+            .eq("review_status", "approved")
             .order("published_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
@@ -203,6 +204,8 @@ export async function getPerformerContents(
     thumbnail_url: (r.thumbnail_url as string | null) ?? null,
     published_at: (r.published_at as string | null) ?? null,
     description: (r.description as string | null) ?? null,
+    source: r.source as VideoWithCasts["source"],
+    review_status: r.review_status as VideoWithCasts["review_status"],
     created_at: r.created_at as string,
     updated_at: r.updated_at as string,
     casts: videoCasts.get(r.id as string) ?? [],
