@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VideoDeleteButton } from "@/components/features/video/video-delete-button";
 import { deleteVideo } from "@/lib/actions/videos";
 import { listVideos } from "@/lib/queries/videos";
+import type { VideoReviewStatus } from "@/lib/types/video";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,32 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("ja-JP");
 }
 
+const REVIEW_STATUS_BADGE: Record<
+  VideoReviewStatus,
+  { label: string; className: string }
+> = {
+  approved: {
+    label: "承認済み",
+    className:
+      "inline-flex rounded-full bg-brand-bg-light px-2 py-0.5 text-xs text-brand-brown-light",
+  },
+  pending: {
+    label: "承認待ち",
+    className:
+      "inline-flex rounded-full bg-brand-gold/20 px-2 py-0.5 text-xs font-medium text-brand-brown-dark",
+  },
+  rejected: {
+    label: "却下",
+    className:
+      "inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700",
+  },
+};
+
 export default async function AdminVideosPage() {
-  const videos = await listVideos();
+  const videos = await listVideos({ includeUnapproved: true });
+  const pendingCount = videos.filter(
+    (video) => video.review_status === "pending"
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -22,12 +47,21 @@ export default async function AdminVideosPage() {
             YouTube動画と出演者を管理します。
           </p>
         </div>
-        <Link
-          href="/admin/videos/new"
-          className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark"
-        >
-          新規作成
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/videos/review"
+            className="rounded-md border border-brand-border-light px-4 py-2 text-sm text-brand-brown-dark transition hover:bg-brand-bg-light"
+          >
+            レビュー
+            {pendingCount > 0 ? `（承認待ち ${pendingCount}件）` : ""}
+          </Link>
+          <Link
+            href="/admin/videos/new"
+            className="rounded-md bg-brand-sky px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-sky-dark"
+          >
+            新規作成
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-brand-border-light bg-brand-card-light">
@@ -40,6 +74,7 @@ export default async function AdminVideosPage() {
             <thead className="bg-brand-bg-light text-xs text-brand-brown-light">
               <tr>
                 <th className="px-4 py-2 text-left font-medium">タイトル</th>
+                <th className="px-4 py-2 text-left font-medium">状態</th>
                 <th className="px-4 py-2 text-left font-medium">公開日</th>
                 <th className="px-4 py-2 text-left font-medium">動画ID</th>
                 <th className="px-4 py-2 text-right font-medium">操作</th>
@@ -50,6 +85,13 @@ export default async function AdminVideosPage() {
                 <tr key={video.id} className="hover:bg-brand-bg-light">
                   <td className="max-w-xs truncate px-4 py-2 font-medium text-brand-brown-dark">
                     {video.title}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={REVIEW_STATUS_BADGE[video.review_status].className}
+                    >
+                      {REVIEW_STATUS_BADGE[video.review_status].label}
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-brand-brown-light">
                     {formatDate(video.published_at)}

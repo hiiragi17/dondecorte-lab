@@ -26,6 +26,7 @@ export async function listTimeline(limit?: number): Promise<TimelineItem[]> {
     supabase
       .from("videos")
       .select("id, title, published_at, created_at")
+      .eq("review_status", "approved")
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false }),
     supabase

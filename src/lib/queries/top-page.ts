@@ -54,6 +54,7 @@ export async function getLatestVideos(): Promise<Video[]> {
   const { data, error } = await supabase
     .from("videos")
     .select("*")
+    .eq("review_status", "approved")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(LATEST_VIDEOS_LIMIT);
@@ -79,6 +80,7 @@ export async function getRecentContent(): Promise<RecentContentItem[]> {
     supabase
       .from("videos")
       .select("id, title, created_at, published_at")
+      .eq("review_status", "approved")
       .order("created_at", { ascending: false })
       .limit(RECENT_PER_TYPE_LIMIT),
     supabase

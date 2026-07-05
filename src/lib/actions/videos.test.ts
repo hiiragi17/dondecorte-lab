@@ -20,7 +20,13 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => supabaseMock),
 }));
 
-import { createVideo, updateVideo, deleteVideo } from "./videos";
+import {
+  createVideo,
+  updateVideo,
+  deleteVideo,
+  approveVideo,
+  rejectVideo,
+} from "./videos";
 
 function buildFormData(entries: Record<string, string | string[]>): FormData {
   const fd = new FormData();
@@ -204,5 +210,81 @@ describe("deleteVideo", () => {
   it("IDがUUID形式でない場合は例外を投げる", async () => {
     const fd = buildFormData({ id: "not-a-uuid" });
     await expect(deleteVideo(fd)).rejects.toThrow("IDが不正です");
+  });
+});
+
+describe("approveVideo / rejectVideo", () => {
+  const VIDEO_ID = "11111111-1111-4111-8111-111111111111";
+
+  function setupUpdate(
+    result: { error?: { message: string } | null; count?: number } = {}
+  ) {
+    const eqMock = vi.fn().mockResolvedValue({
+      error: result.error ?? null,
+      count: result.count ?? 1,
+    });
+    const updateMock = vi.fn(() => ({ eq: eqMock }));
+    supabaseMock.from.mockReturnValue({ update: updateMock });
+    return { updateMock, eqMock };
+  }
+
+  it("IDが空なら何もせず終了する", async () => {
+    const fd = buildFormData({ id: "" });
+    await expect(approveVideo(fd)).resolves.toBeUndefined();
+    expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+
+  it("IDがUUID形式でない場合は例外を投げる", async () => {
+    const fd = buildFormData({ id: "not-a-uuid" });
+    await expect(approveVideo(fd)).rejects.toThrow("IDが不正です");
+  });
+
+  it("未認証なら例外を投げる", async () => {
+    supabaseMock.auth.getUser.mockResolvedValue({ data: { user: null } });
+    setupUpdate();
+    const fd = buildFormData({ id: VIDEO_ID });
+    await expect(approveVideo(fd)).rejects.toThrow("認証が必要です");
+  });
+
+  it("承認すると review_status を approved に更新する", async () => {
+    const { updateMock, eqMock } = setupUpdate();
+    const fd = buildFormData({ id: VIDEO_ID });
+
+    await approveVideo(fd);
+
+    expect(supabaseMock.from).toHaveBeenCalledWith("videos");
+    expect(updateMock).toHaveBeenCalledWith(
+      { review_status: "approved" },
+      { count: "exact" }
+    );
+    expect(eqMock).toHaveBeenCalledWith("id", VIDEO_ID);
+  });
+
+  it("却下すると review_status を rejected に更新する", async () => {
+    const { updateMock } = setupUpdate();
+    const fd = buildFormData({ id: VIDEO_ID });
+
+    await rejectVideo(fd);
+
+    expect(updateMock).toHaveBeenCalledWith(
+      { review_status: "rejected" },
+      { count: "exact" }
+    );
+  });
+
+  it("更新に失敗したら例外を投げる", async () => {
+    setupUpdate({ error: { message: "update boom" } });
+    const fd = buildFormData({ id: VIDEO_ID });
+    await expect(approveVideo(fd)).rejects.toThrow(
+      "動画のレビュー状態の更新に失敗しました: update boom"
+    );
+  });
+
+  it("対象が存在しなければ例外を投げる", async () => {
+    setupUpdate({ count: 0 });
+    const fd = buildFormData({ id: VIDEO_ID });
+    await expect(approveVideo(fd)).rejects.toThrow(
+      "指定された動画が見つかりません"
+    );
   });
 });

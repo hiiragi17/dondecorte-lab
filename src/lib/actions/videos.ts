@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { parseCasts } from "@/lib/services/casts";
 import { deleteContent, saveContentWithCasts } from "@/lib/services/content-service";
 import { isUuid, toNullableString, validateTitle } from "@/lib/services/validation";
@@ -102,6 +103,52 @@ export async function updateVideo(
   revalidatePath("/admin/videos");
   revalidatePath(`/admin/videos/${id}/edit`);
   redirect("/admin/videos");
+}
+
+// 自動取得動画のレビュー（承認 / 却下）。レビュー状態のみを更新し、
+// 本体・casts には触れない。却下は行を残すことで再取り込みをブロックする。
+async function updateReviewStatus(
+  formData: FormData,
+  status: "approved" | "rejected"
+): Promise<void> {
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  if (!isUuid(id)) {
+    throw new Error("IDが不正です");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("認証が必要です");
+  }
+
+  const { error, count } = await supabase
+    .from("videos")
+    .update({ review_status: status }, { count: "exact" })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`動画のレビュー状態の更新に失敗しました: ${error.message}`);
+  }
+  if (count !== 1) {
+    throw new Error("指定された動画が見つかりません");
+  }
+
+  revalidatePath("/admin/videos");
+  revalidatePath("/admin/videos/review");
+  revalidatePath("/videos");
+  revalidatePath("/");
+}
+
+export async function approveVideo(formData: FormData): Promise<void> {
+  await updateReviewStatus(formData, "approved");
+}
+
+export async function rejectVideo(formData: FormData): Promise<void> {
+  await updateReviewStatus(formData, "rejected");
 }
 
 export async function deleteVideo(formData: FormData): Promise<void> {

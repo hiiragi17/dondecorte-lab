@@ -69,6 +69,9 @@ function toVideoRow(video: YoutubeVideo) {
     thumbnail_url: video.thumbnailUrl,
     published_at: video.publishedAt,
     description: video.description,
+    // 自動取得分はレビュー待ちで保存し、管理画面で承認されるまで公開しない
+    source: "youtube_auto",
+    review_status: "pending",
   };
 }
 

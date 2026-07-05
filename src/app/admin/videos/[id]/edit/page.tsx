@@ -17,7 +17,7 @@ type Props = {
 export default async function EditVideoPage({ params }: Props) {
   const { id } = await params;
   const [video, artists, combos, units] = await Promise.all([
-    getVideo(id),
+    getVideo(id, { includeUnapproved: true }),
     listArtistSummaries(),
     listComboSummaries(),
     listUnitSummaries(),
