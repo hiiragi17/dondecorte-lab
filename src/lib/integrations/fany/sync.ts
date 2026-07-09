@@ -228,7 +228,10 @@ async function notifyNewLives(): Promise<number> {
   return claimed.length;
 }
 
-// 未通知の FANY 由来 live_schedules（先行受付）に発見 push を送る。lives と同じクレーム方式。
+// 未通知の FANY 由来 live_schedules の「先行受付」だけに発見 push を送る。lives と同じクレーム方式。
+// live_schedules には一般発売など先行以外の受付も保存されるため、label が「先行」を含む行だけに
+// 絞る（classifyReception の isPresale = name.includes("先行") と同じ判定。label = 受付名）。
+// 先行以外は notified_new_at を null のまま残すが、この絞り込みで毎回除外されるため push はされない。
 async function notifyNewSchedules(): Promise<number> {
   const now = new Date().toISOString();
   const { data, error } = await adminClient
@@ -236,6 +239,7 @@ async function notifyNewSchedules(): Promise<number> {
     .update({ notified_new_at: now })
     .eq("source", SOURCE)
     .is("notified_new_at", null)
+    .ilike("label", "%先行%")
     .select("id, label, live_id");
   if (error) {
     throw new Error(`新規受付のクレームに失敗しました: ${error.message}`);
