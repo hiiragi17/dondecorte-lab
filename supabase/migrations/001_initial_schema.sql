@@ -179,11 +179,21 @@ create table lives (
   description text,
   url text,                  -- チケットサイト等
   is_notified boolean not null default false, -- 通知済みフラグ
+  -- 取得元連携（FANY 等。#97 / #42）。手動作成は source='manual' / external_id=null。
+  source text not null default 'manual',  -- 取得元（manual / fany 等）
+  external_id text,          -- 取得元での一意 ID（FANY の event_id 等）
+  source_url text,           -- 取得元の詳細ページ URL
+  notified_new_at timestamptz, -- 新規ライブ発見 push を送った時刻（重複送信防止）
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 comment on table lives is 'ライブ・イベント';
+
+-- 同一取得元 + 外部 ID の重複を防ぐ。手動作成は external_id null で、Postgres の
+-- NULLS DISTINCT（既定）により互いに衝突しない。sync の upsert onConflict と一致させるため
+-- 部分 index にはしない（部分 index だと ON CONFLICT 指定にマッチせずエラーになる）。
+create unique index uq_lives_source_external on lives (source, external_id);
 
 -- ============================================
 -- 10. ライブ出演
