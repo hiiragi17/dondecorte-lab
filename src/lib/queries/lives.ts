@@ -31,6 +31,8 @@ function toLiveSchedule(row: Record<string, unknown>): LiveSchedule {
     label: (row.label as string | null) ?? null,
     start_date: row.start_date as string,
     end_date: (row.end_date as string | null) ?? null,
+    starts_at: (row.starts_at as string | null) ?? null,
+    ends_at: (row.ends_at as string | null) ?? null,
     url: (row.url as string | null) ?? null,
     sort_order: (row.sort_order as number | null) ?? 0,
   };

@@ -128,9 +128,22 @@ export default async function LiveDetailPage({ params }: Props) {
           </h2>
           <ul className="space-y-2">
             {live.schedules.map((schedule) => {
-              const start = formatDate(schedule.start_date);
-              const end = schedule.end_date
+              // starts_at / ends_at（FANY 取得分）があれば時刻まで表示する。
+              const startTime = schedule.starts_at
+                ? formatTime(schedule.starts_at)
+                : null;
+              const startDate = formatDate(schedule.start_date);
+              const start = startTime ? `${startDate} ${startTime}` : startDate;
+              const endTime = schedule.ends_at
+                ? formatTime(schedule.ends_at)
+                : null;
+              const endDate = schedule.end_date
                 ? formatDate(schedule.end_date)
+                : null;
+              const end = endDate
+                ? endTime
+                  ? `${endDate} ${endTime}`
+                  : endDate
                 : null;
               const phaseLabel = LIVE_SCHEDULE_PHASE_LABEL[schedule.phase_type];
               const scheduleUrl = normalizeExternalUrl(schedule.url);

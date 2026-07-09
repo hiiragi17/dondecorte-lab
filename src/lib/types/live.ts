@@ -43,6 +43,9 @@ export type LiveSchedule = {
   label: string | null;
   start_date: string;
   end_date: string | null;
+  // 時刻付きの受付開始 / 締切（FANY 取得分のみ。手動入力は null）。start_date / end_date と併存。
+  starts_at: string | null;
+  ends_at: string | null;
   url: string | null;
   sort_order: number;
 };
