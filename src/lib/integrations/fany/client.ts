@@ -28,13 +28,26 @@ export async function fetchPolite(
   { retries = 3, etag }: { retries?: number; etag?: string } = {}
 ): Promise<FetchResult> {
   for (let i = 0; i <= retries; i++) {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        "Accept-Language": "ja",
-        ...(etag ? { "If-None-Match": etag } : {}),
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          "Accept-Language": "ja",
+          ...(etag ? { "If-None-Match": etag } : {}),
+        },
+        // fetch は既定でタイムアウトしない。ticket.fany.lol がハングすると cron 関数が
+        // プラットフォームに kill されるまでブロックし続けるため、明示的に打ち切る。
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (err) {
+      // タイムアウト / ネットワークエラーはバックオフして再試行し、最終回で再送出する。
+      if (i < retries) {
+        await new Promise((r) => setTimeout(r, 2 ** i * 1000));
+        continue;
+      }
+      throw err;
+    }
     if (res.status === 304) return { status: 304, html: "", etag };
     if (res.status === 200) {
       return {

@@ -21,10 +21,12 @@ export function toLiveRow(event: FanyEvent) {
   return {
     title: event.title,
     event_date: event.performanceDate ? toJstDate(event.performanceDate) : null,
-    // start_time は timestamptz。公演の instant をそのまま保存する。
-    start_time: event.performanceDate
-      ? event.performanceDate.toISOString()
-      : null,
+    // start_time は timestamptz。開演時刻が無い場合 parser は 00:00 で埋めるため、
+    // 実際の開演時刻（startTime）がある時だけ保存し、無ければ null（架空の 0 時を残さない）。
+    start_time:
+      event.performanceDate && event.startTime
+        ? event.performanceDate.toISOString()
+        : null,
     venue: event.venue || null,
     url: event.detailUrl || null,
     source: SOURCE,
@@ -205,33 +207,35 @@ async function notifyNewLives(): Promise<number> {
   const claimed = data ?? [];
   if (claimed.length === 0) return 0;
 
-  try {
-    for (const row of claimed) {
+  // 送信済みの行はクレームを維持し、失敗した行と未送信の残りだけ戻す
+  // （全戻しにすると、次回実行で送信済みのぶんまで二重 push してしまう）。
+  for (let i = 0; i < claimed.length; i++) {
+    try {
       await sendPushToAll({
         title: "新しいライブが追加されました",
-        body: row.title ?? "ドンデコルテの新しいライブ情報",
-        url: `/lives/${row.id}`,
-        tag: `live-${row.id}`,
+        body: claimed[i].title ?? "ドンデコルテの新しいライブ情報",
+        url: `/lives/${claimed[i].id}`,
+        tag: `live-${claimed[i].id}`,
       });
+    } catch (error) {
+      await adminClient
+        .from("lives")
+        .update({ notified_new_at: null })
+        .in(
+          "id",
+          claimed.slice(i).map((r) => r.id)
+        );
+      throw error;
     }
-  } catch (error) {
-    // クレームを戻して次回リトライに委ねる（VAPID 未設定など batch 全体の失敗時）。
-    await adminClient
-      .from("lives")
-      .update({ notified_new_at: null })
-      .in(
-        "id",
-        claimed.map((r) => r.id)
-      );
-    throw error;
   }
   return claimed.length;
 }
 
 // 未通知の FANY 由来 live_schedules の「先行受付」だけに発見 push を送る。lives と同じクレーム方式。
-// live_schedules には一般発売など先行以外の受付も保存されるため、label が「先行」を含む行だけに
-// 絞る（classifyReception の isPresale = name.includes("先行") と同じ判定。label = 受付名）。
-// 先行以外は notified_new_at を null のまま残すが、この絞り込みで毎回除外されるため push はされない。
+// - label が「先行」を含む行だけに絞る（classifyReception の isPresale = name.includes("先行") と
+//   同じ判定。label = 受付名）。一般発売など先行以外は保存はされるが push はされない。
+// - 既に締切済み（ends_at が過去）の受付は発見しても通知価値がないため除外する。ends_at が
+//   null（締切不明）は受付中の可能性があるため対象に残す。受付前 / 受付中のみ通知する狙い。
 async function notifyNewSchedules(): Promise<number> {
   const now = new Date().toISOString();
   const { data, error } = await adminClient
@@ -240,6 +244,7 @@ async function notifyNewSchedules(): Promise<number> {
     .eq("source", SOURCE)
     .is("notified_new_at", null)
     .ilike("label", "%先行%")
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
     .select("id, label, live_id");
   if (error) {
     throw new Error(`新規受付のクレームに失敗しました: ${error.message}`);
@@ -247,24 +252,25 @@ async function notifyNewSchedules(): Promise<number> {
   const claimed = data ?? [];
   if (claimed.length === 0) return 0;
 
-  try {
-    for (const row of claimed) {
+  // lives と同様、送信済みの行はクレームを維持し、失敗行と未送信の残りだけ戻す。
+  for (let i = 0; i < claimed.length; i++) {
+    try {
       await sendPushToAll({
         title: "先行受付が告知されました",
-        body: row.label ?? "ドンデコルテのライブ先行受付",
-        url: `/lives/${row.live_id}`,
-        tag: `schedule-${row.id}`,
+        body: claimed[i].label ?? "ドンデコルテのライブ先行受付",
+        url: `/lives/${claimed[i].live_id}`,
+        tag: `schedule-${claimed[i].id}`,
       });
+    } catch (error) {
+      await adminClient
+        .from("live_schedules")
+        .update({ notified_new_at: null })
+        .in(
+          "id",
+          claimed.slice(i).map((r) => r.id)
+        );
+      throw error;
     }
-  } catch (error) {
-    await adminClient
-      .from("live_schedules")
-      .update({ notified_new_at: null })
-      .in(
-        "id",
-        claimed.map((r) => r.id)
-      );
-    throw error;
   }
   return claimed.length;
 }

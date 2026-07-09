@@ -133,7 +133,13 @@ export default async function LiveDetailPage({ params }: Props) {
                 ? formatTime(schedule.starts_at)
                 : null;
               const startDate = formatDate(schedule.start_date);
-              const start = startTime ? `${startDate} ${startTime}` : startDate;
+              // end と同じく startDate を優先ガード（start_date が解釈不能で null の場合に
+              // "null HH:MM" を描画しないため）。
+              const start = startDate
+                ? startTime
+                  ? `${startDate} ${startTime}`
+                  : startDate
+                : null;
               const endTime = schedule.ends_at
                 ? formatTime(schedule.ends_at)
                 : null;

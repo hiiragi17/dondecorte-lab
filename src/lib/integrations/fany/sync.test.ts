@@ -72,6 +72,12 @@ describe("toLiveRow", () => {
     expect(row.event_date).toBeNull();
     expect(row.start_time).toBeNull();
   });
+
+  it("開演時刻が無ければ event_date は残すが start_time は null（架空の 0 時を残さない）", () => {
+    const row = toLiveRow(makeEvent({ startTime: null }));
+    expect(row.event_date).toBe("2026-07-29");
+    expect(row.start_time).toBeNull();
+  });
 });
 
 describe("toScheduleRow", () => {
