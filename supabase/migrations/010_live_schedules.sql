@@ -19,10 +19,18 @@ create table live_schedules (
   phase_type text not null
     check (phase_type in ('lottery', 'sale')), -- 抽選 / 販売
   label text,                  -- 自由表記（例: 一次抽選, 先行販売）
-  start_date date not null,    -- 期間開始日
-  end_date date,               -- 期間終了日（null なら単日）
+  start_date date not null,    -- 期間開始日（帯表示・カレンダー用）
+  end_date date,               -- 期間終了日（null なら単日。帯表示・カレンダー用）
+  -- 受付の「何時開始 / 何時締切」を保持する時刻付き列（FANY 取得分。#97 / #42）。
+  -- start_date / end_date は帯表示用に併存させ、手動入力分は starts_at / ends_at = null。
+  starts_at timestamptz,       -- 受付開始日時（時刻あり）
+  ends_at timestamptz,         -- 受付締切日時（時刻あり）
   url text,                    -- 申込 / 購入ページのURL
   sort_order integer not null default 0, -- 表示順
+  -- 取得元連携（FANY 等）。手動作成は source='manual' / external_id=null。
+  source text not null default 'manual', -- 取得元（manual / fany 等）
+  external_id text,            -- 取得元での一意 ID（FANY の reception_id 等）
+  notified_new_at timestamptz, -- 先行受付 発見 push を送った時刻（重複送信防止）
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -37,6 +45,11 @@ comment on table live_schedules is 'ライブのチケットスケジュール�
 -- ============================================
 create index idx_live_schedules_live on live_schedules(live_id);
 create index idx_live_schedules_start on live_schedules(start_date);
+
+-- 同一取得元 + 外部 ID の重複を防ぐ。手動作成は external_id null（NULLS DISTINCT で衝突しない）。
+-- sync の upsert onConflict と一致させるため部分 index にはしない。
+create unique index uq_live_schedules_source_external
+  on live_schedules (source, external_id);
 
 -- ============================================
 -- updated_at 自動更新トリガー（update_updated_at は 001 で定義済み）
