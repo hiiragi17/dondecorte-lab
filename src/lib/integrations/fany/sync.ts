@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendPushToAll } from "@/lib/push/sender";
-import { buildSearchUrl, fetchPolite } from "./client";
+import { discoveryUrl, fetchPolite } from "./client";
 import { parseSearchResults } from "./parser";
 import type { FanyEvent, Reception } from "./types";
 
@@ -91,7 +91,9 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
     pushed: 0,
   };
 
-  const res = await fetchPolite(buildSearchUrl(), { etag });
+  // 発見用 URL（先行受付前 / 受付中 + 先着発売前 / 発売中の 4 フィルタ）。
+  // 「先行経由」も「いきなり先着 / 一般の突発販売」も両方拾える。
+  const res = await fetchPolite(discoveryUrl(), { etag });
   if (res.status === 304) {
     return { ...empty, notModified: true };
   }

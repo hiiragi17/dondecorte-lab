@@ -65,8 +65,54 @@ export async function fetchPolite(
   throw new Error(`Gave up after retries: ${url}`);
 }
 
-// 検索 URL。
-// TODO[PARAM]: 先行受付前 / 受付中フィルタ・ページング（もっと見る）のパラメータを実機で確認して付与。
-export function buildSearchUrl(keyword: string = TARGET): string {
-  return `${BASE}/search/event?keywords=${encodeURIComponent(keyword)}&search_type=search_string`;
+// 検索フィルタ（search_type=form。パラメータは devtools 実機で確認済み）。
+//   ngk_beforeReception=on 先行抽選・受付前 / ngk_accepting=on 先行抽選・受付中
+//   ngk_beforesale=on      先着・発売前     / ngk_sale=on       先着・発売中
+//   from,to 公演日レンジ / prefectures(0=全国) / genre(0=全ジャンル)
+export interface SearchFilter {
+  beforeReception?: boolean; // 先行抽選 受付前
+  accepting?: boolean; // 先行抽選 受付中
+  beforeSale?: boolean; // 先着 発売前
+  sale?: boolean; // 先着 発売中
+  from?: string; // "YYYY-MM-DD" など（実フォーマットは実機で確認）
+  to?: string;
+  prefectures?: number; // 0 = 全国
+  genre?: number; // 0 = 全ジャンル
 }
+
+export function buildSearchUrl(
+  keyword: string = TARGET,
+  f: SearchFilter = {}
+): string {
+  const p = new URLSearchParams();
+  p.set("keywords", keyword);
+  p.set("from", f.from ?? "");
+  p.set("to", f.to ?? "");
+  if (f.beforeReception) p.set("ngk_beforeReception", "on");
+  if (f.accepting) p.set("ngk_accepting", "on");
+  if (f.beforeSale) p.set("ngk_beforesale", "on");
+  if (f.sale) p.set("ngk_sale", "on");
+  p.set("prefectures", String(f.prefectures ?? 0));
+  p.set("genre", String(f.genre ?? 0));
+  // フィルタ無しは軽い search_string、有りは form。
+  p.set(
+    "search_type",
+    f.beforeReception || f.accepting || f.beforeSale || f.sale
+      ? "form"
+      : "search_string"
+  );
+  return `${BASE}/search/event?${p.toString()}`;
+}
+
+// #97: 先行抽選の受付前 + 受付中だけを狙う URL。普段は 0 件 = 空振り（= 軽い）。
+export const presaleWatchUrl = (keyword: string = TARGET) =>
+  buildSearchUrl(keyword, { beforeReception: true, accepting: true });
+
+// #42: 発売前後も含めて「今動きのある公演」を広めに拾う URL（新規発見 + 突発販売用）。
+export const discoveryUrl = (keyword: string = TARGET) =>
+  buildSearchUrl(keyword, {
+    beforeReception: true,
+    accepting: true,
+    beforeSale: true,
+    sale: true,
+  });

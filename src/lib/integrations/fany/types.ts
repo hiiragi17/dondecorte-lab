@@ -2,7 +2,13 @@
 // 対象は公開の事実データ（公演日 / 会場 / 出演者 / 受付期間）のみ。説明文の丸ごと保存はしない。
 
 export type ReceptionKind = "抽選" | "先着" | "一般" | "不明";
-export type ReceptionStatus = "受付前" | "受付中" | "受付終了" | "発売中" | "不明";
+export type ReceptionStatus =
+  | "受付前" // 抽選先行 受付前
+  | "受付中" // 抽選先行 受付中
+  | "発売前" // 先着 / 一般 発売前
+  | "発売中" // 先着 / 一般 発売中
+  | "受付終了" // 受付 / 発売 終了・売切
+  | "不明";
 
 export interface Reception {
   receptionId: number; // /reception/{recId}/{eventId} または /limited/reception/{recId}
@@ -31,8 +37,9 @@ export interface FanyEvent {
   hasTarget: boolean; // cast に TARGET を含むか
 }
 
-// #97（発見）/ #42（先行）の検知結果。
+// #97 / #42 の検知結果。dedup 主キー: (eventId, receptionId)。
 export interface DiffResult {
-  newEvents: FanyEvent[]; // → #42 発見 push
-  upcomingPresales: Reception[]; // → #97 先行 push（受付前 & acceptStart が近い）
+  newEvents: FanyEvent[]; // 新規 eventId → #42 発見 push
+  scheduleReminder: Reception[]; // 受付前 / 発売前 の新規受付 → 開始前リマインドの供給元
+  notifyNow: Reception[]; // いきなり受付中 / 発売中で初出（突発販売）→ 即通知の供給元
 }

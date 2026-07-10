@@ -9,7 +9,7 @@ import {
   parseStatus,
   receptionIdFrom,
 } from "./parser";
-import type { FanyEvent } from "./types";
+import type { FanyEvent, Reception, ReceptionStatus } from "./types";
 
 describe("parsePerformanceDate", () => {
   it("公演日と開場 / 開演を JST で組み立てる", () => {
@@ -90,6 +90,9 @@ describe("parseStatus", () => {
     ["受付前です", "受付前"],
     ["ただいま受付中", "受付中"],
     ["受付終了しました", "受付終了"],
+    ["販売終了", "受付終了"],
+    ["売切", "受付終了"],
+    ["発売前", "発売前"],
     ["発売中", "発売中"],
     ["情報なし", "不明"],
   ])("%s → %s", (input, expected) => {
@@ -117,19 +120,25 @@ describe("receptionIdFrom / eventIdFrom", () => {
   });
 });
 
-// parseSearchResults は実 HTML のセレクタ確定前のため、想定構造に沿った合成フィクスチャで
-// 配線（出演者 / 受付行 / hasTarget の抽出）を回帰確認する。実 HTML 確定時にフィクスチャを差し替える。
+// parseSearchResults は devtools 確認済みのクラス名（fany_performanceListBox 系 /
+// fany_g-ticketInfo 系）に沿った合成フィクスチャで配線を回帰確認する。
 describe("parseSearchResults (合成フィクスチャ)", () => {
   const html = `
-    <ul>
-      <li class="result">
-        <h3 class="title">ドンデコルテ単独ライブ</h3>
-        <div class="venue">ヨシモト∞ホール</div>
-        <p>2026/07/29(水) 開場19:00 開演19:30 （東京都） 受付前</p>
-        <div class="cast">ドンデコルテ／マユリカ</div>
-        <a href="/reception/123/456">●FANY IDプレミアムメンバー一次抽選先行 受付期間： 2026/05/09(土) 20:30～2026/05/12(火) 11:00</a>
-      </li>
-    </ul>`;
+    <div class="fany_performanceListBox">
+      <h4 class="fany_performanceListBox__header">
+        <span class="fany_performanceListBox__headerDate">2026/07/29(水) 開場19:00 開演19:30</span>
+        <span class="fany_performanceListBox__headerTitle">ドンデコルテ単独ライブ</span>
+        <span class="fany_performanceListBox__headerVenue">ヨシモト∞ホール（東京都）</span>
+      </h4>
+      <div class="fany_performanceListBox__stageInfo">
+        <p class="preview_block">ドンデコルテ／マユリカ</p>
+      </div>
+      <div class="fany_g-ticketInfo fany_g-ticket_lottery">
+        <ul class="fany_icon__lottery"><li>抽選先行 受付前</li></ul>
+        <div class="fany_g-ticketInfo__text">●FANY IDプレミアムメンバー一次抽選先行 受付期間： 2026/05/09(土) 20:30～2026/05/12(火) 11:00</div>
+        <a href="/reception/123/456">申込</a>
+      </div>
+    </div>`;
 
   it("イベントと受付を抽出する", () => {
     const events = parseSearchResults(html);
@@ -160,7 +169,7 @@ describe("parseSearchResults (合成フィクスチャ)", () => {
   });
 });
 
-// diff 用の最小イベントファクトリ。
+// diff 用の最小ファクトリ。
 function makeEvent(overrides: Partial<FanyEvent>): FanyEvent {
   return {
     eventId: 1,
@@ -178,6 +187,21 @@ function makeEvent(overrides: Partial<FanyEvent>): FanyEvent {
   };
 }
 
+function rec(receptionId: number, status: ReceptionStatus): Reception {
+  return {
+    receptionId,
+    kind: "抽選",
+    isPresale: true,
+    isPremium: false,
+    round: null,
+    name: "受付",
+    acceptStart: null,
+    acceptEnd: null,
+    status,
+    url: "",
+  };
+}
+
 describe("diff", () => {
   it("未知の対象イベントを新規として返す", () => {
     const fetched = [
@@ -189,75 +213,33 @@ describe("diff", () => {
     expect(r.newEvents.map((e) => e.eventId)).toEqual([2]);
   });
 
-  it("受付前 / 受付中の未知の先行だけ upcomingPresales に入れる", () => {
+  it("新規受付を 受付前/発売前=scheduleReminder、受付中/発売中=notifyNow に振り分ける", () => {
     const fetched = [
       makeEvent({
         eventId: 10,
         receptions: [
-          {
-            receptionId: 100,
-            kind: "抽選",
-            isPresale: true,
-            isPremium: false,
-            round: 1,
-            name: "一次抽選先行",
-            acceptStart: null,
-            acceptEnd: null,
-            status: "受付前",
-            url: "",
-          },
-          {
-            receptionId: 101,
-            kind: "一般",
-            isPresale: false, // 先行でない → 除外
-            isPremium: false,
-            round: null,
-            name: "一般発売",
-            acceptStart: null,
-            acceptEnd: null,
-            status: "受付中",
-            url: "",
-          },
-          {
-            receptionId: 102,
-            kind: "抽選",
-            isPresale: true,
-            isPremium: false,
-            round: 2,
-            name: "二次抽選先行",
-            acceptStart: null,
-            acceptEnd: null,
-            status: "受付終了", // 終了 → 除外
-            url: "",
-          },
+          rec(100, "受付前"), // → scheduleReminder
+          rec(101, "発売前"), // → scheduleReminder
+          rec(102, "受付中"), // → notifyNow
+          rec(103, "発売中"), // → notifyNow
+          rec(104, "受付終了"), // → どちらにも入らない
         ],
       }),
     ];
-    const r = diff(fetched, new Set([10]), new Set([999]));
-    expect(r.upcomingPresales.map((x) => x.receptionId)).toEqual([100]);
+    const r = diff(fetched, new Set([10]), new Set());
+    expect(r.scheduleReminder.map((x) => x.receptionId)).toEqual([100, 101]);
+    expect(r.notifyNow.map((x) => x.receptionId)).toEqual([102, 103]);
   });
 
-  it("既知の先行 ID は除外する", () => {
+  it("既知の receptionId は scheduleReminder / notifyNow から除外する", () => {
     const fetched = [
       makeEvent({
         eventId: 20,
-        receptions: [
-          {
-            receptionId: 200,
-            kind: "抽選",
-            isPresale: true,
-            isPremium: false,
-            round: 1,
-            name: "一次抽選先行",
-            acceptStart: null,
-            acceptEnd: null,
-            status: "受付中",
-            url: "",
-          },
-        ],
+        receptions: [rec(200, "受付前"), rec(201, "受付中")],
       }),
     ];
-    const r = diff(fetched, new Set([20]), new Set([200]));
-    expect(r.upcomingPresales).toEqual([]);
+    const r = diff(fetched, new Set([20]), new Set([200, 201]));
+    expect(r.scheduleReminder).toEqual([]);
+    expect(r.notifyNow).toEqual([]);
   });
 });

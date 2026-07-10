@@ -69,9 +69,25 @@ export function classifyReception(
 export function parseStatus(text: string): ReceptionStatus {
   if (text.includes("受付前")) return "受付前";
   if (text.includes("受付中")) return "受付中";
-  if (text.includes("受付終了")) return "受付終了";
+  if (
+    text.includes("受付終了") ||
+    text.includes("販売終了") ||
+    text.includes("売切")
+  )
+    return "受付終了";
+  if (text.includes("発売前")) return "発売前"; // 「発売中」より先に判定
   if (text.includes("発売中")) return "発売中";
   return "不明";
+}
+
+// 事前予告できる状態か（受付前 / 発売前）。突発販売（いきなり受付中 / 発売中）と区別する。
+export function isAdvanceNotice(s: ReceptionStatus): boolean {
+  return s === "受付前" || s === "発売前";
+}
+
+// いま購入アクション可能な状態か。
+export function isLive(s: ReceptionStatus): boolean {
+  return s === "受付中" || s === "発売中";
 }
 
 export const receptionIdFrom = (href: string): number | null => {
@@ -88,73 +104,106 @@ export const eventIdFrom = (href: string): number | null => {
   return m ? Number(m[1]) : null;
 };
 
-// 一覧ページのパース。
-// NOTE: $card / 受付行のセレクタは実 HTML を devtools で確認して差し替える（[SELECTOR]）。
-//       構造（公演日・出演・受付リンク群）自体は確認済みなので、上の抽出ヘルパはそのまま使える。
+// 一覧ページのパース。セレクタは devtools 実 HTML で確認済み（fany_performanceListBox 系 /
+// fany_g-ticketInfo 系）。
+//   カード       : .fany_performanceListBox
+//   ヘッダ(h4)   : .fany_performanceListBox__header      （日時 + タイトル + 会場）
+//   タイトル     : .fany_performanceListBox__headerTitle
+//   会場         : .fany_performanceListBox__headerVenue （「会場：」は ::before なので text は会場名のみ）
+//   本体         : .fany_performanceListBox__stageInfo
+//   出演者       : p.preview_block
+//   受付ブロック : .fany_g-ticketInfo                    （抽選は .fany_g-ticket_lottery を併せ持つ）
+//   ステータス   : ul[class*="fany_icon__"] > li
+//   受付リンク   : a[href*="/reception/"]                （/reception/{receptionId}/{eventId}）
+//   名称+期間    : .fany_g-ticketInfo__text
 export function parseSearchResults(html: string): FanyEvent[] {
   const $ = cheerio.load(html);
   const events: FanyEvent[] = [];
 
-  // TODO[SELECTOR]: 実際のカード要素セレクタに置換
-  $("[data-event-card], .event-card, li.result").each((_, el) => {
+  $(".fany_performanceListBox").each((_, el) => {
     const $card = $(el);
-    const cardText = $card.text().replace(/\s+/g, " ").trim();
+    const $header = $card.find(".fany_performanceListBox__header").first();
 
-    // 出演者: "出演" 見出し以降のテキストを ／ 、 で分割
-    const castRaw =
-      $card.find(".cast, [data-cast]").text() ||
-      (cardText.split("出演")[1] ?? "");
-    const cast = castRaw
+    // 日時: ヘッダ内テキストに公演日 + 開場 / 開演がある（受付期間は stageInfo 側なので混ざらない）。
+    const { performanceDate, openTime, startTime } = parsePerformanceDate(
+      $header.text()
+    );
+
+    // 会場: 「会場：」は CSS ::before 生成なので text は会場名のみ。末尾の（都道府県）を分離する。
+    const venueRaw = $card
+      .find(".fany_performanceListBox__headerVenue")
+      .text()
+      .trim();
+    const prefecture =
+      (venueRaw.match(/（([^）]+?[都道府県])）\s*$/) ?? [])[1] ?? null;
+    const venue = venueRaw.replace(/（[^）]+）\s*$/, "").trim();
+
+    // 出演者: preview_block を ／ 、 で分割。[..]見出し・〈..〉・MC:・ゲスト: を除去。
+    const cast = $card
+      .find(".fany_performanceListBox__stageInfo p.preview_block")
+      .text()
+      .replace(/\[[^\]]*\]|〈[^〉]*〉|MC[:：]|ゲスト[:：]/g, "")
       .split(/[／/、,]/)
-      .map((s) => s.replace(/\[.*?\]|MC[:：]|ゲスト[:：]/g, "").trim())
+      .map((s) => s.trim())
       .filter(Boolean);
 
-    const { performanceDate, openTime, startTime } =
-      parsePerformanceDate(cardText);
-
+    // 受付ブロック: .fany_g-ticketInfo ごとに 1 レコード。
     const receptions: Reception[] = [];
-    $card.find("a[href*='/reception/']").each((__, a) => {
-      const href = $(a).attr("href") ?? "";
-      const line = $(a).text().replace(/\s+/g, " ").trim();
+    $card.find(".fany_g-ticketInfo").each((__, block) => {
+      const $b = $(block);
+      const href = $b.find('a[href*="/reception/"]').attr("href") ?? "";
       const receptionId = receptionIdFrom(href);
       if (receptionId == null) return;
-      const nameOnly = line.replace(/受付期間.*/, "").trim();
+
+      const text = $b.find(".fany_g-ticketInfo__text").text() || $b.text();
+      const name = text.replace(/受付期間[：:][\s\S]*/, "").trim();
+      const cls = classifyReception(name);
+      // クラスで抽選を確定（テキストより堅牢）。
+      if ($b.hasClass("fany_g-ticket_lottery")) cls.kind = "抽選";
+
       receptions.push({
         receptionId,
-        ...classifyReception(nameOnly),
-        name: nameOnly,
-        ...parseReceptionPeriod(line),
-        status: parseStatus($card.text()),
+        ...cls,
+        name,
+        ...parseReceptionPeriod(text),
+        status: parseStatus(
+          $b.find('[class*="fany_icon__"]').text() || $b.text()
+        ),
         url: href.startsWith("http") ? href : BASE + href,
       });
     });
 
-    const firstHref = $card.find("a[href*='/reception/']").attr("href") ?? "";
-    const eventId = eventIdFrom(firstHref) ?? -1;
+    const eventId =
+      eventIdFrom($card.find('a[href*="/reception/"]').attr("href") ?? "") ?? -1;
+    const title = $card
+      .find(".fany_performanceListBox__headerTitle")
+      .text()
+      .trim();
 
     events.push({
       eventId,
-      title: $card.find(".title, h3, h4").first().text().trim(),
+      title,
       performanceDate,
       openTime,
       startTime,
-      venue: $card.find(".venue").text().trim(),
-      prefecture:
-        (cardText.match(/（([^）]+?[都道府県])）/) ?? [])[1] ?? null,
+      venue,
+      prefecture,
       cast,
       detailUrl: eventId > 0 ? `${BASE}/event/detail/${eventId}` : "",
       receptions,
       hasTarget:
-        cast.some((c) => c.includes(TARGET)) || cardText.includes(TARGET),
+        cast.some((c) => c.includes(TARGET)) ||
+        $card.find("p.preview_block").text().includes(TARGET) ||
+        title.includes(TARGET),
     });
   });
 
   return events;
 }
 
-// #97 / #42 の検知ロジック（差分）。
-// dedup / 主キー: (eventId, receptionId)。同名公演でも公演回ごとに eventId が別なので
-// eventId 粒度で足りる。
+// #97 / #42 の検知ロジック（差分）。dedup 主キー: (eventId, receptionId)。同名公演でも
+// 公演回ごとに eventId が別なので eventId 粒度で足りる。先行 / 先着を問わず「新規に現れた受付」を
+// 拾い、事前予告できる状態（受付前 / 発売前）と突発販売（いきなり受付中 / 発売中）に振り分ける。
 export function diff(
   fetched: FanyEvent[],
   knownEventIds: Set<number>,
@@ -162,13 +211,14 @@ export function diff(
 ): DiffResult {
   const target = fetched.filter((e) => e.hasTarget);
   const newEvents = target.filter((e) => !knownEventIds.has(e.eventId));
-  const upcomingPresales = target
+
+  const newReceptions = target
     .flatMap((e) => e.receptions)
-    .filter(
-      (r) =>
-        r.isPresale &&
-        !knownReceptionIds.has(r.receptionId) &&
-        (r.status === "受付前" || r.status === "受付中")
-    );
-  return { newEvents, upcomingPresales };
+    .filter((r) => !knownReceptionIds.has(r.receptionId));
+
+  return {
+    newEvents,
+    scheduleReminder: newReceptions.filter((r) => isAdvanceNotice(r.status)),
+    notifyNow: newReceptions.filter((r) => isLive(r.status)),
+  };
 }
