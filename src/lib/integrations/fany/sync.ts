@@ -1,7 +1,7 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendPushToAll } from "@/lib/push/sender";
 import { discoveryUrl, fetchPolite } from "./client";
-import { parseSearchResults } from "./parser";
+import { isLive, parseSearchResults } from "./parser";
 import type { FanyEvent, Reception } from "./types";
 
 // 取得元識別子。lives.source / live_schedules.source に入れて手動入力分と区別する。
@@ -67,6 +67,25 @@ function isPersistableEvent(event: FanyEvent): boolean {
   return event.eventId > 0 && event.title.trim().length > 0;
 }
 
+// この取得で「先行以外かつ 受付中 / 発売中」= いま買える突発販売の受付 external_id を集める。
+// 判定は取得したステータス（isLive）そのもので行うため、clock ずれによる早すぎ通知が起きない。
+// 先行は notifyNewSchedules が担当するので除外して二重 push を防ぐ。name が空（無名）の先着でも
+// isPresale=false・isLive=true なら対象に含める（DB の label に依存しない）。
+// 発売前 / 受付前は isLive=false なので対象外（事前予告は Google カレンダー委譲 #115）。
+// その行は notified_new_at=null のまま残り、後日ステータスが発売中へ変わった取得で拾われ即 push される
+// （ステータス変化はページ HTML を変えるため 304 にはならない）。
+export function selectLiveSaleExternalIds(events: FanyEvent[]): string[] {
+  const ids: string[] = [];
+  for (const event of events) {
+    for (const reception of event.receptions) {
+      if (!reception.isPresale && isLive(reception.status)) {
+        ids.push(String(reception.receptionId));
+      }
+    }
+  }
+  return ids;
+}
+
 export type FanySyncResult = {
   notModified: boolean; // 304（前回から変化なし）で早期リターンしたか
   fetched: number; // パースできたイベント総数
@@ -118,9 +137,14 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
   //    - notifyNewSchedules  : 先行受付の告知（#97。受付前でも「先行が出た」時点で push）
   //    - notifyLiveSales     : 突発販売（先行以外で いきなり発売中 / 受付中）を即 push
   //      受付前 / 発売前の事前予告リマインドは Google カレンダー委譲（#115）のため push しない。
+  //      対象は「この取得で実際に 受付中 / 発売中 だった受付」に限る（DB の時刻推測ではなく取得
+  //      ステータス駆動）。発売前が発売中へ変わる時はページが変化し 304 にならないため、304 /
+  //      対象 0 件で早期リターンしても取りこぼさない。
   const pushed = await notifyNewLives();
   const pushedSchedules = await notifyNewSchedules();
-  const pushedLiveSales = await notifyLiveSales();
+  const pushedLiveSales = await notifyLiveSales(
+    selectLiveSaleExternalIds(target)
+  );
 
   return {
     notModified: false,
@@ -282,22 +306,19 @@ async function notifyNewSchedules(): Promise<number> {
   return claimed.length;
 }
 
-// 突発販売（先行以外で いきなり発売中 / 受付中）の live_schedules を即 push する。
-// - label が「先行」を含まない行だけを対象にする（先行は notifyNewSchedules が担当。二重 push 防止）。
-// - starts_at <= now：既に販売 / 受付が始まっている（= 今買える）行に限る。starts_at が未来の
-//   「発売前 / 受付前」は事前予告 = Google カレンダー委譲（#115）のため push しない。まだ通知
-//   していない（notified_new_at = null）ので、後の実行で開始時刻を跨いだ時点で拾われ即 push される。
-// - ends_at が過去の締切済みは除外（ends_at = null は締切不明なので対象に残す）。
-async function notifyLiveSales(): Promise<number> {
+// 突発販売（先行以外で いま 受付中 / 発売中）の live_schedules を即 push する。
+// 対象は selectLiveSaleExternalIds が取得ステータスから選んだ external_id のみ。DB 側の label や
+// starts_at で「販売中かどうか」を推測しないため、無名（label = null）の先着も拾え、clock ずれによる
+// 早すぎ通知も起きない。先行は notifyNewSchedules が担当するので external_id が重ならず二重 push しない。
+async function notifyLiveSales(externalIds: string[]): Promise<number> {
+  if (externalIds.length === 0) return 0;
   const now = new Date().toISOString();
   const { data, error } = await adminClient
     .from("live_schedules")
     .update({ notified_new_at: now })
     .eq("source", SOURCE)
     .is("notified_new_at", null)
-    .not("label", "ilike", "%先行%")
-    .lte("starts_at", now)
-    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .in("external_id", externalIds)
     .select("id, label, live_id");
   if (error) {
     throw new Error(`販売中受付のクレームに失敗しました: ${error.message}`);

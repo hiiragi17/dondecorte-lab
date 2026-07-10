@@ -5,7 +5,13 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/supabase/admin", () => ({ adminClient: { from: vi.fn() } }));
 vi.mock("@/lib/push/sender", () => ({ sendPushToAll: vi.fn() }));
 
-import { SOURCE, toJstDate, toLiveRow, toScheduleRow } from "./sync";
+import {
+  SOURCE,
+  selectLiveSaleExternalIds,
+  toJstDate,
+  toLiveRow,
+  toScheduleRow,
+} from "./sync";
 import type { FanyEvent, Reception } from "./types";
 
 function makeEvent(overrides: Partial<FanyEvent> = {}): FanyEvent {
@@ -111,5 +117,59 @@ describe("toScheduleRow", () => {
     const row = toScheduleRow(makeReception({ acceptEnd: null }), "l", 0);
     expect(row.end_date).toBeNull();
     expect(row.ends_at).toBeNull();
+  });
+});
+
+describe("selectLiveSaleExternalIds", () => {
+  it("先行以外でいま受付中 / 発売中の受付だけを external_id で返す", () => {
+    const event = makeEvent({
+      receptions: [
+        // 先行（受付中）→ notifyNewSchedules 担当なので除外
+        makeReception({ receptionId: 1, isPresale: true, status: "受付中" }),
+        // 先着・発売中 → 対象
+        makeReception({
+          receptionId: 2,
+          isPresale: false,
+          kind: "先着",
+          status: "発売中",
+        }),
+        // 一般・受付中 → 対象
+        makeReception({
+          receptionId: 3,
+          isPresale: false,
+          kind: "一般",
+          status: "受付中",
+        }),
+        // 先着・発売前（未開始）→ 事前予告はカレンダー委譲なので除外
+        makeReception({
+          receptionId: 4,
+          isPresale: false,
+          kind: "先着",
+          status: "発売前",
+        }),
+        // 締切済み → 除外
+        makeReception({
+          receptionId: 5,
+          isPresale: false,
+          status: "受付終了",
+        }),
+        // 無名（label = null 相当）の先着・発売中 → label に依存せず対象
+        makeReception({
+          receptionId: 6,
+          isPresale: false,
+          kind: "先着",
+          name: "",
+          status: "発売中",
+        }),
+      ],
+    });
+    expect(selectLiveSaleExternalIds([event])).toEqual(["2", "3", "6"]);
+  });
+
+  it("対象が無ければ空配列", () => {
+    const event = makeEvent({
+      receptions: [makeReception({ isPresale: true, status: "受付前" })],
+    });
+    expect(selectLiveSaleExternalIds([event])).toEqual([]);
   });
 });
