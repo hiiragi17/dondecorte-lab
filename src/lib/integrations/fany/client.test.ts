@@ -124,4 +124,23 @@ describe("fetchPolite", () => {
       vi.useRealTimers();
     }
   });
+
+  it("429 が続いたら retries+1 回試して最終ステータス付きで打ち切る（最終回はバックオフしない）", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse("", 429));
+      global.fetch = fetchMock;
+
+      const promise = fetchPolite("https://ticket.fany.lol/x", { retries: 1 });
+      const assertion = expect(promise).rejects.toThrow(
+        /Gave up after 1 retries \(last status 429\)/
+      );
+      await vi.runAllTimersAsync();
+      await assertion;
+
+      expect(fetchMock).toHaveBeenCalledTimes(2); // retries=1 → 初回 + 1 リトライ
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

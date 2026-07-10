@@ -114,8 +114,13 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
   const newSchedules = await upsertSchedules(target, liveIdByExternal);
 
   // 4. 未通知の新規 lives / live_schedules に発見 push を送る。
+  //    - notifyNewLives      : 新規ライブの発見（#42）
+  //    - notifyNewSchedules  : 先行受付の告知（#97。受付前でも「先行が出た」時点で push）
+  //    - notifyLiveSales     : 突発販売（先行以外で いきなり発売中 / 受付中）を即 push
+  //      受付前 / 発売前の事前予告リマインドは Google カレンダー委譲（#115）のため push しない。
   const pushed = await notifyNewLives();
   const pushedSchedules = await notifyNewSchedules();
+  const pushedLiveSales = await notifyLiveSales();
 
   return {
     notModified: false,
@@ -123,7 +128,7 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
     targetEvents: target.length,
     newLives,
     newSchedules,
-    pushed: pushed + pushedSchedules,
+    pushed: pushed + pushedSchedules + pushedLiveSales,
   };
 }
 
@@ -262,6 +267,51 @@ async function notifyNewSchedules(): Promise<number> {
         body: claimed[i].label ?? "ドンデコルテのライブ先行受付",
         url: `/lives/${claimed[i].live_id}`,
         tag: `schedule-${claimed[i].id}`,
+      });
+    } catch (error) {
+      await adminClient
+        .from("live_schedules")
+        .update({ notified_new_at: null })
+        .in(
+          "id",
+          claimed.slice(i).map((r) => r.id)
+        );
+      throw error;
+    }
+  }
+  return claimed.length;
+}
+
+// 突発販売（先行以外で いきなり発売中 / 受付中）の live_schedules を即 push する。
+// - label が「先行」を含まない行だけを対象にする（先行は notifyNewSchedules が担当。二重 push 防止）。
+// - starts_at <= now：既に販売 / 受付が始まっている（= 今買える）行に限る。starts_at が未来の
+//   「発売前 / 受付前」は事前予告 = Google カレンダー委譲（#115）のため push しない。まだ通知
+//   していない（notified_new_at = null）ので、後の実行で開始時刻を跨いだ時点で拾われ即 push される。
+// - ends_at が過去の締切済みは除外（ends_at = null は締切不明なので対象に残す）。
+async function notifyLiveSales(): Promise<number> {
+  const now = new Date().toISOString();
+  const { data, error } = await adminClient
+    .from("live_schedules")
+    .update({ notified_new_at: now })
+    .eq("source", SOURCE)
+    .is("notified_new_at", null)
+    .not("label", "ilike", "%先行%")
+    .lte("starts_at", now)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .select("id, label, live_id");
+  if (error) {
+    throw new Error(`販売中受付のクレームに失敗しました: ${error.message}`);
+  }
+  const claimed = data ?? [];
+  if (claimed.length === 0) return 0;
+
+  for (let i = 0; i < claimed.length; i++) {
+    try {
+      await sendPushToAll({
+        title: "販売中！今すぐ購入できます",
+        body: claimed[i].label ?? "ドンデコルテのライブチケット販売中",
+        url: `/lives/${claimed[i].live_id}`,
+        tag: `sale-${claimed[i].id}`,
       });
     } catch (error) {
       await adminClient

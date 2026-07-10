@@ -57,8 +57,14 @@ export async function fetchPolite(
       };
     }
     if (res.status === 429 || res.status >= 500) {
-      await new Promise((r) => setTimeout(r, 2 ** i * 1000)); // 指数バックオフ
-      continue;
+      // タイムアウト / ネットワークと同様、最終回はバックオフせず即座に打ち切る。
+      if (i < retries) {
+        await new Promise((r) => setTimeout(r, 2 ** i * 1000)); // 指数バックオフ
+        continue;
+      }
+      throw new Error(
+        `Gave up after ${retries} retries (last status ${res.status}): ${url}`
+      );
     }
     throw new Error(`Unexpected status ${res.status} for ${url}`);
   }
