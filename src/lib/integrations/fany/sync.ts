@@ -246,7 +246,10 @@ async function upsertSchedules(
 // - comedy_groups を name = TARGET で 1 件解決する。未登録なら no-op（sync 全体は止めない）。
 // - 既にこの group が付いているライブは除外して、不足分だけ insert する。
 //   idx_casts_uniq_group（partial unique index）があるため upsert の ON CONFLICT 推論が
-//   効かないので、存在確認 + insert で冪等性を担保する（手動編集分とも競合させない）。
+//   効かない。存在確認 + insert で冪等にするが、確認と insert の間に別 sync / 手動編集が
+//   割り込むと重複キー（23505）になりうる。他の sync 処理と同様に多重実行へ耐えるため、
+//   23505 は「既に紐付け済み」の no-op として飲み込み、行ごとに処理を続ける（後続の
+//   notification 段階を止めない）。
 // - 共演者の自動リンク（件数しきい値 × 完全一致）は誤リンクを避けるため本 issue では対象外。
 async function linkTargetCasts(liveIds: string[]): Promise<number> {
   if (liveIds.length === 0) return 0;
@@ -273,19 +276,23 @@ async function linkTargetCasts(liveIds: string[]): Promise<number> {
     throw new Error(`既存出演者の確認に失敗しました: ${existingError.message}`);
   }
   const alreadyLinked = new Set((existing ?? []).map((r) => r.content_id));
-  const rows = liveIds
-    .filter((id) => !alreadyLinked.has(id))
-    .map((id) => toTargetCastRow(id, comedyGroupId));
-  if (rows.length === 0) return 0;
+  const missing = liveIds.filter((id) => !alreadyLinked.has(id));
+  if (missing.length === 0) return 0;
 
-  const { data, error } = await adminClient
-    .from("casts")
-    .insert(rows)
-    .select("id");
-  if (error) {
-    throw new Error(`出演者の紐付けに失敗しました: ${error.message}`);
+  // 行ごとに insert し、23505（unique_violation）は競合で既に入ったものとして no-op 扱い。
+  // 1 行が競合しても残りのライブの紐付けと後続処理を止めない。
+  let inserted = 0;
+  for (const id of missing) {
+    const { error } = await adminClient
+      .from("casts")
+      .insert(toTargetCastRow(id, comedyGroupId));
+    if (error) {
+      if (error.code === "23505") continue; // 競合で既に紐付け済み → no-op
+      throw new Error(`出演者の紐付けに失敗しました: ${error.message}`);
+    }
+    inserted++;
   }
-  return (data ?? []).length;
+  return inserted;
 }
 
 // 未通知（notified_new_at IS NULL）の FANY 由来 lives を単一 UPDATE ... RETURNING で
