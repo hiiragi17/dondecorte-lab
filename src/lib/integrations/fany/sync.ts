@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendPushToAll } from "@/lib/push/sender";
-import { discoveryUrl, fetchPolite } from "./client";
+import { discoveryUrl, fetchPolite, TARGET } from "./client";
 import { isLive, parseSearchResults } from "./parser";
 import type { FanyEvent, Reception } from "./types";
 
@@ -60,6 +60,17 @@ export function toScheduleRow(
   };
 }
 
+// live_id + comedy_group_id → casts の 1 行。取り込みライブへ「ドンデコルテ」本体を
+// 出演者として紐付けるための行を作る（#126）。content_type は 'live' 固定。
+// idx_casts_uniq_group（content_type, content_id, comedy_group_id）で冪等性を担保する。
+export function toTargetCastRow(liveId: string, comedyGroupId: string) {
+  return {
+    content_type: "live",
+    content_id: liveId,
+    comedy_group_id: comedyGroupId,
+  };
+}
+
 // 取得結果のうち DB に保存できるイベントだけを残す。
 // - eventId が正（reception リンクから解決できている）
 // - タイトルがある（lives.title は NOT NULL）
@@ -92,6 +103,7 @@ export type FanySyncResult = {
   targetEvents: number; // ドンデコルテ出演として保存対象になった数
   newLives: number; // 今回新規挿入された lives
   newSchedules: number; // 今回新規挿入された live_schedules
+  newCasts: number; // 今回新規紐付けした casts（ドンデコルテ本体）
   pushed: number; // 発見 push を送った行数（lives + live_schedules）
 };
 
@@ -107,6 +119,7 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
     targetEvents: 0,
     newLives: 0,
     newSchedules: 0,
+    newCasts: 0,
     pushed: 0,
   };
 
@@ -132,6 +145,13 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
   // 3. live_schedules を upsert（未登録のみ挿入）。
   const newSchedules = await upsertSchedules(target, liveIdByExternal);
 
+  // 3.5. 取り込んだライブへ「ドンデコルテ」本体を casts に紐付ける（#126）。
+  //      これがないと自動取り込みライブは出演者タグが空になり、ドンデコルテの
+  //      出演者スコープのビュー（fetchCastsByContent 経由）に出てこない。
+  const newCasts = await linkTargetCasts(
+    Array.from(new Set(liveIdByExternal.values()))
+  );
+
   // 4. 未通知の新規 lives / live_schedules に発見 push を送る。
   //    - notifyNewLives      : 新規ライブの発見（#42）
   //    - notifyNewSchedules  : 先行受付の告知（#97。受付前でも「先行が出た」時点で push）
@@ -152,6 +172,7 @@ export async function syncFany(etag?: string): Promise<FanySyncResult> {
     targetEvents: target.length,
     newLives,
     newSchedules,
+    newCasts,
     pushed: pushed + pushedSchedules + pushedLiveSales,
   };
 }
@@ -219,6 +240,59 @@ async function upsertSchedules(
     throw new Error(`受付スケジュールの保存に失敗しました: ${error.message}`);
   }
   return (data ?? []).length;
+}
+
+// 取り込んだライブへ「ドンデコルテ」本体（comedy_group）の casts 行を冪等に付与する（#126）。
+// - comedy_groups を name = TARGET で 1 件解決する。未登録なら no-op（sync 全体は止めない）。
+// - 既にこの group が付いているライブは除外して、不足分だけ insert する。
+//   idx_casts_uniq_group（partial unique index）があるため upsert の ON CONFLICT 推論が
+//   効かない。存在確認 + insert で冪等にするが、確認と insert の間に別 sync / 手動編集が
+//   割り込むと重複キー（23505）になりうる。他の sync 処理と同様に多重実行へ耐えるため、
+//   23505 は「既に紐付け済み」の no-op として飲み込み、行ごとに処理を続ける（後続の
+//   notification 段階を止めない）。
+// - 共演者の自動リンク（件数しきい値 × 完全一致）は誤リンクを避けるため本 issue では対象外。
+async function linkTargetCasts(liveIds: string[]): Promise<number> {
+  if (liveIds.length === 0) return 0;
+
+  const { data: groups, error: groupError } = await adminClient
+    .from("comedy_groups")
+    .select("id")
+    .eq("name", TARGET)
+    .limit(1);
+  if (groupError) {
+    throw new Error(`ドンデコルテの解決に失敗しました: ${groupError.message}`);
+  }
+  const comedyGroupId = groups?.[0]?.id;
+  if (!comedyGroupId) return 0; // 未登録なら紐付けをスキップ
+
+  // 既にドンデコルテが付いているライブを除外（冪等 / 手動編集分と競合させない）。
+  const { data: existing, error: existingError } = await adminClient
+    .from("casts")
+    .select("content_id")
+    .eq("content_type", "live")
+    .eq("comedy_group_id", comedyGroupId)
+    .in("content_id", liveIds);
+  if (existingError) {
+    throw new Error(`既存出演者の確認に失敗しました: ${existingError.message}`);
+  }
+  const alreadyLinked = new Set((existing ?? []).map((r) => r.content_id));
+  const missing = liveIds.filter((id) => !alreadyLinked.has(id));
+  if (missing.length === 0) return 0;
+
+  // 行ごとに insert し、23505（unique_violation）は競合で既に入ったものとして no-op 扱い。
+  // 1 行が競合しても残りのライブの紐付けと後続処理を止めない。
+  let inserted = 0;
+  for (const id of missing) {
+    const { error } = await adminClient
+      .from("casts")
+      .insert(toTargetCastRow(id, comedyGroupId));
+    if (error) {
+      if (error.code === "23505") continue; // 競合で既に紐付け済み → no-op
+      throw new Error(`出演者の紐付けに失敗しました: ${error.message}`);
+    }
+    inserted++;
+  }
+  return inserted;
 }
 
 // 未通知（notified_new_at IS NULL）の FANY 由来 lives を単一 UPDATE ... RETURNING で
