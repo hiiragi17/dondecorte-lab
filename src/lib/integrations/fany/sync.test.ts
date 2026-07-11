@@ -11,6 +11,7 @@ import {
   toJstDate,
   toLiveRow,
   toScheduleRow,
+  toTargetCastRow,
 } from "./sync";
 import type { FanyEvent, Reception } from "./types";
 
@@ -117,6 +118,16 @@ describe("toScheduleRow", () => {
     const row = toScheduleRow(makeReception({ acceptEnd: null }), "l", 0);
     expect(row.end_date).toBeNull();
     expect(row.ends_at).toBeNull();
+  });
+});
+
+describe("toTargetCastRow", () => {
+  it("ライブへドンデコルテ本体を紐付ける casts 行に変換する", () => {
+    expect(toTargetCastRow("live-uuid", "group-uuid")).toEqual({
+      content_type: "live",
+      content_id: "live-uuid",
+      comedy_group_id: "group-uuid",
+    });
   });
 });
 
