@@ -23,5 +23,8 @@ begin;
 \ir seeds/09_tv_shows.sql
 \ir seeds/10_topics.sql
 \ir seeds/11_units.sql
+\ir seeds/12_cms.sql
+\ir seeds/13_magazines.sql
+\ir seeds/14_live_schedules.sql
 
 commit;
