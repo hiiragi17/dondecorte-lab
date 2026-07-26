@@ -8,9 +8,13 @@
 -- 主要動画（M-1決勝ネタ等）は seed で登録しておく。
 -- youtube_video_id に UNIQUE 制約があるため ON CONFLICT で再実行可能。
 
+-- source / review_status を明示する。YouTube 自動同期（syncChannelVideos）が先に
+-- 同じ動画を youtube_auto / pending で取り込んでいた場合、ON CONFLICT の更新で
+-- manual / approved へ引き上げないと、seed で主要動画として登録したつもりでも
+-- 公開側（review_status = 'approved' で絞り込み）に出てこないため。
 insert into videos (
   id, title, youtube_url, youtube_video_id, youtube_channel_id,
-  thumbnail_url, published_at, description
+  thumbnail_url, published_at, description, source, review_status
 ) values
   (
     '77777777-7777-4777-8777-000000000001',
@@ -20,7 +24,8 @@ insert into videos (
     null,  -- M-1公式チャンネル投稿のためドンデコルテch ID は付与しない
     'https://i.ytimg.com/vi/T37pceaYiOg/hqdefault.jpg',
     '2025-12-21 21:00:00+09',
-    'M-1グランプリ2025 決勝ファーストラウンド ドンデコルテのネタ。845点で最終決戦進出、結果は準優勝。'
+    'M-1グランプリ2025 決勝ファーストラウンド ドンデコルテのネタ。845点で最終決戦進出、結果は準優勝。',
+    'manual', 'approved'
   ),
   (
     '77777777-7777-4777-8777-000000000002',
@@ -30,7 +35,8 @@ insert into videos (
     null,  -- 投稿チャンネル未確認のため付与しない
     'https://i.ytimg.com/vi/auZCfaBVKkk/hqdefault.jpg',
     null,  -- 公開日未確認
-    'チャンネルNECOで2026年8月29日に放送されるドンデコルテ冠特番「人間、銀次。」の予告編。'
+    'チャンネルNECOで2026年8月29日に放送されるドンデコルテ冠特番「人間、銀次。」の予告編。',
+    'manual', 'approved'
   ),
   (
     '77777777-7777-4777-8777-000000000003',
@@ -40,7 +46,8 @@ insert into videos (
     null,
     'https://i.ytimg.com/vi/ko_2lU-ghcU/hqdefault.jpg',
     null,
-    'キリン「一番搾り生ビール」WEB CM『とりあえず頼む人へ』篇関連の動画。渡辺銀次が“とりあえず生”に演説をぶつ。'
+    'キリン「一番搾り生ビール」WEB CM『とりあえず頼む人へ』篇関連の動画。渡辺銀次が“とりあえず生”に演説をぶつ。',
+    'manual', 'approved'
   ),
   (
     '77777777-7777-4777-8777-000000000004',
@@ -50,7 +57,8 @@ insert into videos (
     null,
     'https://i.ytimg.com/vi/QMddnV_2CVw/hqdefault.jpg',
     null,
-    '「くりぃむナンタラ」のドッキリ企画で小橋共作が涙を見せた回の切り抜き。全編はTELASA / ABEMAで配信。'
+    '「くりぃむナンタラ」のドッキリ企画で小橋共作が涙を見せた回の切り抜き。全編はTELASA / ABEMAで配信。',
+    'manual', 'approved'
   )
 on conflict (youtube_video_id) do update set
   title = excluded.title,
@@ -59,6 +67,8 @@ on conflict (youtube_video_id) do update set
   thumbnail_url = excluded.thumbnail_url,
   published_at = excluded.published_at,
   description = excluded.description,
+  source = excluded.source,
+  review_status = excluded.review_status,
   updated_at = now();
 
 -- 出演登録
