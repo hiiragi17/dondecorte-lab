@@ -6,6 +6,13 @@
 -- ここでは告知で日時が確認できた手動分（source = 'manual'）のみを最小限入れる。
 -- 受付期間は FANY の受付公演詳細で確認できた範囲で end_date / ends_at まで入れる。
 -- 固定UUID（eeee...）+ ON CONFLICT で再実行安全。
+--
+-- NOTE: FANY 同期（syncFany）は lives / live_schedules を (source, external_id) で
+--   upsert するため、ここの manual 行（external_id = null）とは決してマッチしない。
+--   ただし本ファイルに入れているのは 2026-05-12 に終了済みの一次先行のみで、
+--   同期の discovery URL は「先行受付前 / 受付中 / 先着発売前 / 発売中」の 4 フィルタ
+--   しか見ないため、終了済み受付が再取得されて二重登録されることはない。
+--   受付中 / 今後の受付は FANY 同期側が owner なので、ここには手で足さないこと。
 
 insert into live_schedules (
   id, live_id, phase_type, label, start_date, end_date, starts_at, ends_at, url, sort_order, source
