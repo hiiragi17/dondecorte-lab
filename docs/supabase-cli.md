@@ -14,7 +14,15 @@ devDependencies に入れると Vercel の毎ビルドでこれを取得する�
 デプロイに何の関係もないバイナリでビルドを重くしてしまう。
 
 そのため `pnpm dlx supabase@2.115.0` をラップした npm script として持つ。
-バージョンは `scripts.supabase` の 1 箇所だけで管理する。
+ローカルで叩くコマンドのバージョンは `scripts.supabase` に集約している。
+
+ただし CI（`supabase/setup-cli`）は npm を経由しないため、**バージョンの固定箇所は 2 つある**。
+CLI を上げるときは両方を揃えて更新すること。
+
+| 場所 | 対象 |
+| --- | --- |
+| `package.json` の `scripts.supabase` | ローカルで実行する CLI |
+| `.github/workflows/db-migration.yml` の `supabase/setup-cli` の `version` | CI で実行する CLI |
 
 ```jsonc
 "supabase":  "pnpm dlx supabase@2.115.0",
@@ -122,6 +130,10 @@ sql_paths = ["./seeds/*.sql"]
 
 migration 001〜012 は Supabase 固有の拡張に依存していないため、素の PostgreSQL に
 そのまま通る。Docker も本番の認証情報も不要。
+
+checkout は `persist-credentials: false` で実行する。このジョブは PR 側の SQL を
+superuser 権限で流すため（psql の `\!` メタコマンド等でシェルが叩ける）、
+`GITHUB_TOKEN` を `.git/config` に残さないようにしている。
 
 本番への適用（`db push --linked`）は CI では行わない。手元から明示的に実行する。
 

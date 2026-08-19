@@ -43,6 +43,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # このジョブは PR 側の SQL を superuser で流すため、checkout が .git/config に
+          # 残す GITHUB_TOKEN を持ち越さない（COPY ... FROM PROGRAM 等での読み出し対策）
+          persist-credentials: false
 
       - name: Supabase CLI をセットアップ
         uses: supabase/setup-cli@v1
