@@ -279,6 +279,14 @@ mkdir -p supabase/migrations
 `dondecorte-lab-design.md` 内のSQL全文を
 `supabase/migrations/001_initial_schema.sql` として保存。
 
+以降の migration は Supabase CLI で作成・適用する（SQL Editor への手貼りは不要）。
+手順は `docs/supabase-cli.md` を参照。
+
+```bash
+pnpm run db:new add_foo   # supabase/migrations/<timestamp>_add_foo.sql を生成
+pnpm run db:push          # link 済みの本番へ適用
+```
+
 ---
 
 ## Step 9: YouTube Data API セットアップ
