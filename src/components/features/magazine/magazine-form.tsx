@@ -71,11 +71,17 @@ export function MagazineForm({
   });
 
   const [casts, setCasts] = useState<CastEntry[]>(initialCasts ?? []);
+  const [prevInitialCasts, setPrevInitialCasts] = useState(initialCasts);
+
+  // props の変更に追従して出演者を初期化する(effect 内の setState を避け、レンダー中に調整する)
+  if (prevInitialCasts !== initialCasts) {
+    setPrevInitialCasts(initialCasts);
+    setCasts(initialCasts ?? []);
+  }
 
   useEffect(() => {
     reset(toFormValues(initialValues));
-    setCasts(initialCasts ?? []);
-  }, [initialCasts, initialValues, reset]);
+  }, [initialValues, reset]);
 
   const onSubmit = handleSubmit((data) => {
     const formData = new FormData();

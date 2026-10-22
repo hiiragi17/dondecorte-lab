@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    // Serwist がビルド時に生成する Service Worker(.gitignore 対象)
+    "public/sw.js",
+    "public/swe-worker-*.js",
   ]),
 ]);
 
