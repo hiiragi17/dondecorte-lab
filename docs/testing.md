@@ -177,8 +177,8 @@ vi.mock('@/lib/supabase/server', () => ({
 
 ## CI（将来）
 
-GitHub Actions で `npm run test:run` を PR トリガーで回す。
-現時点では導入せず、ローカルで `npm test` を watch モードで使う運用から始める。
+GitHub Actions で `pnpm test` を PR トリガーで回す。
+現時点では導入せず、ローカルで `pnpm test:watch` を使う運用から始める。
 
 ---
 
