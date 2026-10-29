@@ -108,6 +108,7 @@ Tailwindカスタムカラー: `brand-brown-*`, `brand-sky-*`, `brand-cream`, `b
 - RLS だけでは PostgREST から `permission denied` で弾かれるため、`enable row level security` / `create policy` と **必ずセット** で `grant` を書く
 - 新しい RPC 関数を `create function` したら `grant execute on function ... to authenticated;`（または `service_role`）を忘れずに
 - 参考: `supabase/migrations/008_explicit_grants.sql`、https://github.com/orgs/supabase/discussions/45329
+- migration の作成・適用は Supabase CLI で行う（`pnpm run db:new` → `pnpm run db:push`）。手順と注意点は `docs/supabase-cli.md` を参照
 
 ### cast-selector（最重要共通コンポーネント）
 - 管理画面の6コンテンツ（video, live, radio, article, tv, topic）全てで使い回す
@@ -169,3 +170,4 @@ PR には CodeRabbit / Codex などの bot レビューが付く。基本方針�
 - `docs/directory.md` — ディレクトリ構成詳細、認証戦略、Tailwind設定
 - `docs/setup.md` — セットアップ手順、初期コード（Supabaseクライアント、ミドルウェア等）
 - `docs/issues.md` — GitHub issue定義（38件、ラベル・マイルストーン付き）
+- `docs/supabase-cli.md` — Supabase CLI 運用（link / migration repair / db push / CI）

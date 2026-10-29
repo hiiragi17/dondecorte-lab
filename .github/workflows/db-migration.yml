@@ -1,0 +1,84 @@
+name: DB Migration Check
+
+# supabase/ 配下（migration / seed / config.toml）が変更された PR で、
+# Supabase CLI が migration と seed を素の PostgreSQL に流せることを検証する。
+#
+# 本番 Supabase には一切接続しない。Docker も使わない。
+# - migration 001〜 は Supabase 固有の拡張に依存せず、
+#   anon / authenticated / service_role ロールさえあれば素の PostgreSQL で通る
+# - seed は ON CONFLICT により冪等なので、2回流して壊れないことも確認する
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: migration / seed を PostgreSQL に適用
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # 本番 Supabase の major_version に合わせる（supabase/config.toml の db.major_version と揃えること）
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # sslmode=disable は CI の postgres サービスが TLS 無効のため必須
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # このジョブは PR 側の SQL を superuser で流すため、checkout が .git/config に
+          # 残す GITHUB_TOKEN を持ち越さない（COPY ... FROM PROGRAM 等での読み出し対策）
+          persist-credentials: false
+
+      - name: Supabase CLI をセットアップ
+        uses: supabase/setup-cli@v1
+        with:
+          # package.json の scripts.supabase と同じバージョンに揃えること
+          version: 2.115.0
+
+      - name: Supabase のロールを作成
+        # 008_explicit_grants.sql 等が grant する先。実 Supabase では最初から存在する。
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin noinherit;
+          create role authenticated nologin noinherit;
+          create role service_role nologin noinherit bypassrls;
+          SQL
+
+      - name: migration + seed を適用
+        run: supabase db push --db-url "$DB_URL" --include-all --include-seed --yes
+
+      - name: seed の冪等性を確認（2回目の適用）
+        run: |
+          for f in supabase/seeds/*.sql; do
+            echo "--- $f"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: 適用結果のサマリ
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "
+            select
+              (select count(*) from supabase_migrations.schema_migrations) as migrations,
+              (select count(*) from information_schema.tables where table_schema = 'public') as tables,
+              (select count(*) from artists) as artists,
+              (select count(*) from comedy_groups) as comedy_groups;
+          "
