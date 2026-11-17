@@ -15,6 +15,9 @@ on:
 
 jobs:
   update-project-dates:
+    # Dependabot の PR には Secrets（PROJECTS_TOKEN）が渡らず必ず失敗する。
+    # リンクされた issue も無いので、Dependabot が作成した PR ではスキップする。
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Update Start date / Merged date on linked issues
