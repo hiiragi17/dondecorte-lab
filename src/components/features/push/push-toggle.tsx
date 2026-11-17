@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 type Props = {
   vapidPublicKey: string;
@@ -17,28 +17,35 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
+// 対応可否はブラウザの機能有無で決まり、マウント後に変化しないので購読は不要。
+const subscribeNoop = () => () => {};
+
+function getPushSupported(): boolean {
+  return (
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
 export function PushToggle({ vapidPublicKey }: Props) {
-  const [supported, setSupported] = useState(false);
+  // サーバー側とハイドレーション時は false、クライアントでは実際の対応可否を返す。
+  const supported = useSyncExternalStore(
+    subscribeNoop,
+    getPushSupported,
+    () => false
+  );
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const ok =
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window;
-    setSupported(ok);
-    if (!ok) {
-      setSubscribed(false);
-      return;
-    }
+    if (!supported) return;
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setSubscribed(Boolean(sub)))
       .catch(() => setSubscribed(false));
-  }, []);
+  }, [supported]);
 
   const subscribe = useCallback(async () => {
     setBusy(true);
